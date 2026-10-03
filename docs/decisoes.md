@@ -44,7 +44,7 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 
 ## DEC-004 — Protocolo em modo descritivo (03/10/2026)
 
-- **Hipótese:** sem protocolo científico homologado, o sistema só descreve e organiza observações; qualquer classificação usa protótipo rotulado.
+- **Hipótese:** sem protocolo científico validado, o sistema só descreve e organiza observações; qualquer classificação usa protótipo rotulado.
 - **Motivo:** lacunas LA-02, LA-03, LA-04; proibição de inventar limiares.
 - **Impacto:** o protótipo de teste (Fase 3) carrega o rótulo "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA" em toda saída.
 - **Risco:** leitor tomar resultado de protótipo como conclusão técnica. Mitigação: rótulo obrigatório, revisão técnica humana obrigatória antes de DIAGNOSTICO_EMITIDO.

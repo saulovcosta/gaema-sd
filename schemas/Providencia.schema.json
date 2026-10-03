@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Providencia.schema.json",
+  "title": "Providencia",
+  "description": "Registro de decisão humana. O sistema não sugere nem infere providência.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "ENCAMINHAMENTO_TECNICO",
+        "REQUISICAO_INFORMACAO",
+        "REUNIAO_TRATATIVA",
+        "RECOMENDACAO",
+        "ACOMPANHAMENTO",
+        "ARQUIVAMENTO_DA_ANALISE",
+        "OUTRA"
+      ]
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "decidido_por": {
+      "type": "string"
+    },
+    "decidido_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "base_tecnica_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "demanda_id",
+    "tipo",
+    "descricao",
+    "decidido_por"
+  ],
+  "additionalProperties": false
+}

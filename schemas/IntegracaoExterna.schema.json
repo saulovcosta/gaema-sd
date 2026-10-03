@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/IntegracaoExterna.schema.json",
+  "title": "IntegracaoExterna",
+  "description": "IntegracaoExterna(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, nome: 'str', sistema: 'str', situacao: 'SituacaoIntegracao' = <SituacaoIntegracao.ESPECIFICADA: 'ESPECIFICADA'>, ambiente: 'Ambiente' = <Ambiente.DESENVOLVIMENTO: 'DESENVOLVIMENTO'>, variavel_configuracao: 'str' = '', evidencia_teste: 'str' = '', observacoes: 'str' = '')",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "nome": {
+      "type": "string"
+    },
+    "sistema": {
+      "type": "string"
+    },
+    "situacao": {
+      "type": "string",
+      "enum": [
+        "ESPECIFICADA",
+        "EM_TESTE",
+        "ATIVA",
+        "DESATIVADA"
+      ]
+    },
+    "ambiente": {
+      "type": "string",
+      "enum": [
+        "DESENVOLVIMENTO",
+        "HOMOLOGACAO",
+        "OPERACAO"
+      ]
+    },
+    "variavel_configuracao": {
+      "type": "string"
+    },
+    "evidencia_teste": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "nome",
+    "sistema"
+  ],
+  "additionalProperties": false
+}

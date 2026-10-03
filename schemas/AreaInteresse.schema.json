@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/AreaInteresse.schema.json",
+  "title": "AreaInteresse",
+  "description": "AreaInteresse(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, geometria_wkt: 'str', descricao: 'str', origem: 'OrigemAreaInteresse', area_candidata_id: 'Optional[str]' = None, cruzamentos: 'list[CruzamentoTerritorial]' = <factory>)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "geometria_wkt": {
+      "type": "string"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "DE_CANDIDATA",
+        "DESENHADA",
+        "IMPORTADA"
+      ]
+    },
+    "area_candidata_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cruzamentos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fonte_id": {
+            "type": "string"
+          },
+          "camada": {
+            "type": "string"
+          },
+          "identificador_externo": {
+            "type": "string"
+          },
+          "sobreposicao_percentual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observacao": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fonte_id",
+          "camada"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "geometria_wkt",
+    "descricao",
+    "origem"
+  ],
+  "additionalProperties": false
+}

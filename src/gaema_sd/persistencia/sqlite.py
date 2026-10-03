@@ -1,0 +1,200 @@
+"""Repositório SQLite.
+
+- Controle otimista: atualizar exige a versão lida; versão desatualizada gera
+  ConflitoAtualizacao (nunca "última edição vence").
+- Idempotência: reenvio com a mesma chave e o mesmo conteúdo devolve o registro
+  existente; mesma chave com conteúdo diferente gera ConflitoIdempotencia.
+- Histórico: toda versão gravada fica em `historico` (somente acréscimo).
+- Auditoria: tabela somente acréscimo, protegida por gatilhos.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import json
+import sqlite3
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import Iterator, Optional, TypeVar
+
+from ..dominio.entidades import EventoAuditoria
+from ..dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
+from ..erros import ConflitoAtualizacao, ConflitoIdempotencia, RegistroNaoEncontrado
+
+T = TypeVar("T")
+
+ESQUEMA = """
+CREATE TABLE IF NOT EXISTS registros (
+    tipo TEXT NOT NULL,
+    id TEXT NOT NULL,
+    versao INTEGER NOT NULL CHECK (versao >= 1),
+    dados TEXT NOT NULL,
+    hash_dados TEXT NOT NULL,
+    chave_idempotencia TEXT NOT NULL DEFAULT '',
+    gravado_em TEXT NOT NULL,
+    PRIMARY KEY (tipo, id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_idempotencia
+    ON registros (tipo, chave_idempotencia) WHERE chave_idempotencia <> '';
+
+CREATE TABLE IF NOT EXISTS historico (
+    tipo TEXT NOT NULL,
+    id TEXT NOT NULL,
+    versao INTEGER NOT NULL,
+    dados TEXT NOT NULL,
+    gravado_em TEXT NOT NULL,
+    PRIMARY KEY (tipo, id, versao)
+);
+
+CREATE TABLE IF NOT EXISTS auditoria (
+    sequencia INTEGER PRIMARY KEY,
+    dados TEXT NOT NULL,
+    hash_evento TEXT NOT NULL UNIQUE
+);
+
+CREATE TRIGGER IF NOT EXISTS auditoria_sem_update BEFORE UPDATE ON auditoria
+BEGIN SELECT RAISE(ABORT, 'auditoria é somente acréscimo'); END;
+CREATE TRIGGER IF NOT EXISTS auditoria_sem_delete BEFORE DELETE ON auditoria
+BEGIN SELECT RAISE(ABORT, 'auditoria é somente acréscimo'); END;
+CREATE TRIGGER IF NOT EXISTS historico_sem_update BEFORE UPDATE ON historico
+BEGIN SELECT RAISE(ABORT, 'histórico é somente acréscimo'); END;
+CREATE TRIGGER IF NOT EXISTS historico_sem_delete BEFORE DELETE ON historico
+BEGIN SELECT RAISE(ABORT, 'histórico é somente acréscimo'); END;
+"""
+
+
+def _agora() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _conteudo(obj) -> tuple[str, str]:
+    dados = json_canonico(obj)
+    return dados, sha256_texto(dados)
+
+
+class Repositorio:
+    def __init__(self, caminho: str = ":memory:"):
+        self.con = sqlite3.connect(caminho, isolation_level=None, timeout=10)
+        self.con.execute("PRAGMA foreign_keys = ON")
+        self.con.executescript(ESQUEMA)
+        self._profundidade = 0
+
+    def fechar(self) -> None:
+        self.con.close()
+
+    @contextmanager
+    def transacao(self) -> Iterator[None]:
+        """Transação de escrita. Aninhamento reaproveita a transação externa."""
+        if self._profundidade:
+            self._profundidade += 1
+            try:
+                yield
+            finally:
+                self._profundidade -= 1
+            return
+        self.con.execute("BEGIN IMMEDIATE")
+        self._profundidade = 1
+        try:
+            yield
+        except BaseException:
+            self.con.execute("ROLLBACK")
+            raise
+        else:
+            self.con.execute("COMMIT")
+        finally:
+            self._profundidade = 0
+
+    # ------------------------------------------------------------ registros
+
+    def inserir(self, obj: T) -> tuple[T, bool]:
+        """Grava registro novo. Devolve (registro, criado). criado=False em reenvio idêntico."""
+        tipo = type(obj).__name__
+        chave = getattr(obj, "chave_idempotencia", "") or ""
+        dados, hash_dados = _conteudo(obj)
+        with self.transacao():
+            existente = None
+            if chave:
+                existente = self.con.execute(
+                    "SELECT id, hash_dados, dados FROM registros WHERE tipo=? AND chave_idempotencia=?",
+                    (tipo, chave)).fetchone()
+            if existente is None:
+                existente = self.con.execute(
+                    "SELECT id, hash_dados, dados FROM registros WHERE tipo=? AND id=?",
+                    (tipo, obj.id)).fetchone()
+            if existente is not None:
+                if existente[1] == hash_dados:
+                    return de_dict(type(obj), json.loads(existente[2])), False
+                raise ConflitoIdempotencia(
+                    f"{tipo}: já existe registro com a mesma chave/identificador e conteúdo diferente "
+                    f"(id {existente[0]}); nada foi sobrescrito")
+            agora = _agora()
+            self.con.execute(
+                "INSERT INTO registros (tipo, id, versao, dados, hash_dados, chave_idempotencia, gravado_em)"
+                " VALUES (?,?,?,?,?,?,?)", (tipo, obj.id, obj.versao, dados, hash_dados, chave, agora))
+            self.con.execute("INSERT INTO historico VALUES (?,?,?,?,?)", (tipo, obj.id, obj.versao, dados, agora))
+        return obj, True
+
+    def obter(self, cls: type[T], id: str) -> T:
+        linha = self.con.execute("SELECT dados FROM registros WHERE tipo=? AND id=?",
+                                 (cls.__name__, id)).fetchone()
+        if linha is None:
+            raise RegistroNaoEncontrado(f"{cls.__name__} {id} não encontrado")
+        return de_dict(cls, json.loads(linha[0]))
+
+    def listar(self, cls: type[T]) -> list[T]:
+        linhas = self.con.execute("SELECT dados FROM registros WHERE tipo=? ORDER BY gravado_em, id",
+                                  (cls.__name__,)).fetchall()
+        return [de_dict(cls, json.loads(x[0])) for x in linhas]
+
+    def atualizar(self, obj: T, versao_lida: int) -> T:
+        """Grava nova versão se ninguém alterou o registro depois da leitura."""
+        tipo = type(obj).__name__
+        nova = dataclasses.replace(obj, versao=versao_lida + 1,
+                                   atualizado_em=datetime.now(timezone.utc))
+        dados, hash_dados = _conteudo(nova)
+        with self.transacao():
+            cur = self.con.execute(
+                "UPDATE registros SET versao=?, dados=?, hash_dados=?, gravado_em=?"
+                " WHERE tipo=? AND id=? AND versao=?",
+                (nova.versao, dados, hash_dados, _agora(), tipo, obj.id, versao_lida))
+            if cur.rowcount == 0:
+                atual = self.con.execute("SELECT versao FROM registros WHERE tipo=? AND id=?",
+                                         (tipo, obj.id)).fetchone()
+                if atual is None:
+                    raise RegistroNaoEncontrado(f"{tipo} {obj.id} não encontrado")
+                raise ConflitoAtualizacao(
+                    f"{tipo} {obj.id}: alterado por outra pessoa (versão lida {versao_lida}, "
+                    f"atual {atual[0]}). Recarregue e refaça a alteração.")
+            self.con.execute("INSERT INTO historico VALUES (?,?,?,?,?)",
+                             (tipo, obj.id, nova.versao, dados, _agora()))
+        return nova
+
+    def historico(self, cls: type[T], id: str) -> list[T]:
+        linhas = self.con.execute("SELECT dados FROM historico WHERE tipo=? AND id=? ORDER BY versao",
+                                  (cls.__name__, id)).fetchall()
+        return [de_dict(cls, json.loads(x[0])) for x in linhas]
+
+
+class ArmazenamentoAuditoriaSQLite:
+    """Interface de armazenamento da TrilhaAuditoria, no mesmo banco do repositório.
+
+    Registrar eventos sempre dentro de Repositorio.transacao(), para que a leitura
+    do último evento e a gravação do novo sejam atômicas.
+    """
+
+    def __init__(self, repo: Repositorio):
+        self.repo = repo
+
+    def ultimo(self) -> Optional[EventoAuditoria]:
+        linha = self.repo.con.execute(
+            "SELECT dados FROM auditoria ORDER BY sequencia DESC LIMIT 1").fetchone()
+        return de_dict(EventoAuditoria, json.loads(linha[0])) if linha else None
+
+    def anexar(self, ev: EventoAuditoria) -> None:
+        with self.repo.transacao():
+            self.repo.con.execute("INSERT INTO auditoria VALUES (?,?,?)",
+                                  (ev.sequencia, json.dumps(para_dict(ev), ensure_ascii=False), ev.hash_evento))
+
+    def todos(self) -> list[EventoAuditoria]:
+        linhas = self.repo.con.execute("SELECT dados FROM auditoria ORDER BY sequencia").fetchall()
+        return [de_dict(EventoAuditoria, json.loads(x[0])) for x in linhas]

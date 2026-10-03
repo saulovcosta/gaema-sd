@@ -19,8 +19,8 @@ Inspira-se funcionalmente no SIPADE (IFTM e MPMG), sem copiar código, textos ou
 | Fase | Conteúdo | Situação |
 |---|---|---|
 | 1 | Descoberta, fontes, arquitetura, estrutura | Concluída |
-| 2 | Núcleo: entidades, fluxo de estados, validações, auditoria | Próxima |
-| 3 | Protótipo local ponta a ponta e relatório | Não iniciada |
+| 2 | Núcleo: entidades, fluxo de estados, validações, auditoria | Concluída (testada localmente) |
+| 3 | Protótipo local ponta a ponta e relatório | Próxima |
 | 4 | Robustez: offline, sincronização, segurança | Não iniciada |
 | 5 | Preparação institucional: ArcGIS, formulário XLSForm, homologação | Não iniciada |
 
@@ -32,7 +32,21 @@ Detalhes do andamento: `docs/ESTADO.md`.
 - `docs/decisoes.md` — escolhas de arquitetura com justificativa
 - `docs/requisitos.md` — requisitos com origem e nível de pronto
 - `docs/riscos.md` — riscos e mitigação
+- `docs/dominio.md` — as 20 entidades: o que guardam, regras e retenção
+- `docs/estados.md` — fluxo da demanda: 23 situações, quem pode mudar e quando
+- `docs/protocolo.md` — como o diagnóstico será calculado (ainda não implementado)
 - `docs/prompt-gaema-sd.md` — especificação original
+
+## O que já existe (Fase 2)
+
+- Cadastro das 20 entidades com regras de preenchimento.
+- Fluxo da demanda com 23 situações e 79 mudanças possíveis, cada uma com quem pode fazer, condições e motivo.
+- Controle de acesso por papel, feito no núcleo (não depende da tela).
+- Registro de auditoria encadeado, que denuncia qualquer alteração ou remoção.
+- Proteção contra perda silenciosa (edições simultâneas geram aviso de conflito) e contra duplicidade em reenvio.
+- Conferência de geometria, GPS, unidades de medida e anexos.
+
+Ainda não há tela nem relatório.
 
 ## Para quem programa
 

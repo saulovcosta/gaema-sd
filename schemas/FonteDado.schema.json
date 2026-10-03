@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/FonteDado.schema.json",
+  "title": "FonteDado",
+  "description": "FonteDado(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, nome: 'str', tipo: 'TipoFonte', provedor: 'str', data_referencia: 'Optional[date]' = None, resolucao_m: 'Optional[float]' = None, autorizacao_uso: 'str' = 'PENDENTE', url_referencia: 'str' = '', nota_qualidade: 'str' = '', proveniencia: 'Proveniencia' = <Proveniencia.PENDENTE: 'PENDENTE'>)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "nome": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "CAMADA_RASTER",
+        "CAMADA_VETORIAL",
+        "TABELA",
+        "REGISTRO_MANUAL"
+      ]
+    },
+    "provedor": {
+      "type": "string"
+    },
+    "data_referencia": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolucao_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "autorizacao_uso": {
+      "type": "string"
+    },
+    "url_referencia": {
+      "type": "string"
+    },
+    "nota_qualidade": {
+      "type": "string"
+    },
+    "proveniencia": {
+      "type": "string",
+      "enum": [
+        "INSTITUCIONAL",
+        "OBSERVACAO_PUBLICA",
+        "DOCUMENTACAO_OFICIAL",
+        "CIENTIFICO",
+        "AUTORAL",
+        "PENDENTE"
+      ]
+    }
+  },
+  "required": [
+    "nome",
+    "tipo",
+    "provedor"
+  ],
+  "additionalProperties": false
+}

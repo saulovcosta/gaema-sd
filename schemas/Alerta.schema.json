@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Alerta.schema.json",
+  "title": "Alerta",
+  "description": "Alerta(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, origem: 'OrigemAlerta', descricao: 'str', data_alerta: 'date', area_candidata_id: 'Optional[str]' = None, geometria_wkt: 'str' = '')",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "SINAL_REMOTO",
+        "NOTICIA_EXTERNA",
+        "DEMANDA_INTERNA",
+        "MONITORAMENTO"
+      ]
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "data_alerta": {
+      "type": "string",
+      "format": "date"
+    },
+    "area_candidata_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "geometria_wkt": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "origem",
+    "descricao",
+    "data_alerta"
+  ],
+  "additionalProperties": false
+}

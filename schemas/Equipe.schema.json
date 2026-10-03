@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Equipe.schema.json",
+  "title": "Equipe",
+  "description": "Equipe(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, nome: 'str', membros: 'list[MembroEquipe]' = <factory>)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "nome": {
+      "type": "string"
+    },
+    "membros": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "usuario_id": {
+            "type": "string"
+          },
+          "papel": {
+            "type": "string",
+            "enum": [
+              "ANALISTA_TRIAGEM",
+              "COORDENADOR",
+              "TECNICO_CAMPO",
+              "REVISOR_TECNICO",
+              "MEMBRO_MP",
+              "AUDITOR",
+              "ADMINISTRADOR",
+              "SISTEMA"
+            ]
+          },
+          "funcao": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "usuario_id",
+          "papel"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "nome"
+  ],
+  "additionalProperties": false
+}

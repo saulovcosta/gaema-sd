@@ -4,7 +4,9 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 
 ## Comandos
 - Testes: `scripts/testar.sh` (ou `python3 -m pytest`)
-- Teste único: `python3 -m pytest tests/test_fumaca.py -k nome`
+- Teste único: `python3 -m pytest tests/test_estados.py -k nome`
+- Após mudar entidades, estados ou fixtures: `python3 scripts/gerar_contratos.py` (regera `schemas/`, `docs/estados.md`, `docs/dominio.md`, `fixtures/sinteticos/`; `tests/test_contratos.py` falha se esquecer)
+- Textos de `docs/dominio.md` ficam em `src/gaema_sd/dominio/documento.py`; nunca editar os arquivos gerados à mão
 
 ## Regras que não podem ser quebradas
 - IMPORTANTE: não inventar fórmulas, pesos, limiares (NDVI, penetrometria etc.), protocolos validados, APIs ou textos oficiais. Parâmetro sem fonte fica sem valor padrão ou é rotulado AUTORAL/PENDENTE.
@@ -20,4 +22,7 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 ## Fluxo
 - Ao fim de cada fase: testes, atualizar README.md, CLAUDE.md, `docs/ESTADO.md`; commit; push na branch designada.
 - Decisões novas: `docs/decisoes.md`. Riscos: `docs/riscos.md`.
-- Código em `src/gaema_sd/` (domínio, estados, validação, auditoria, acesso, persistência). Escrita sempre via política de acesso + auditoria.
+- Código em `src/gaema_sd/`. Toda escrita passa por `nucleo.Nucleo` (acesso → validação → gravação → auditoria na mesma transação). Não gravar direto no `Repositorio` fora de testes.
+- Estado da Demanda só muda por `Nucleo.transitar`. Tabela única em `estados/maquina.py`.
+- Evidencia, VersaoProtocolo, Relatorio e RevisaoTecnica são imutáveis: correção = novo registro vinculado.
+- Parâmetros operacionais em `config/parametros.json`, sempre com proveniência.

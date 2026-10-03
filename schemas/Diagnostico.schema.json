@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Diagnostico.schema.json",
+  "title": "Diagnostico",
+  "description": "Resultado computado. Descritivo; só vale após RevisaoTecnica.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "campanha_id": {
+      "type": "string"
+    },
+    "versao_protocolo_id": {
+      "type": "string"
+    },
+    "hash_definicao_protocolo": {
+      "type": "string"
+    },
+    "hash_entradas": {
+      "type": "string"
+    },
+    "resultado_descritivo": {
+      "type": "string"
+    },
+    "categoria_descritiva": {
+      "type": "string"
+    },
+    "regras_disparadas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitacoes": {
+      "type": "string"
+    },
+    "hipoteses_alternativas": {
+      "type": "string"
+    },
+    "rotulo_validade": {
+      "type": "string"
+    },
+    "situacao": {
+      "type": "string",
+      "enum": [
+        "COMPUTADO",
+        "EM_REVISAO",
+        "REVISADO",
+        "SUBSTITUIDO"
+      ]
+    },
+    "substitui_diagnostico_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "demanda_id",
+    "campanha_id",
+    "versao_protocolo_id",
+    "hash_definicao_protocolo",
+    "hash_entradas",
+    "resultado_descritivo"
+  ],
+  "additionalProperties": false
+}

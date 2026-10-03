@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/AreaCandidata.schema.json",
+  "title": "AreaCandidata",
+  "description": "AreaCandidata(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, geometria_wkt: 'str', fonte_ids: 'list[str]' = <factory>, sinais: 'list[SinalRemoto]' = <factory>, data_deteccao: 'date', metodo_selecao: 'str' = '', prioridade: 'Optional[int]' = None, chave_deduplicacao: 'str' = '')",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "geometria_wkt": {
+      "type": "string"
+    },
+    "fonte_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sinais": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unidade": {
+            "type": "string"
+          },
+          "fonte_id": {
+            "type": "string"
+          },
+          "data_referencia": {
+            "type": "string",
+            "format": "date"
+          },
+          "metodo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome",
+          "fonte_id",
+          "data_referencia"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "data_deteccao": {
+      "type": "string",
+      "format": "date"
+    },
+    "metodo_selecao": {
+      "type": "string"
+    },
+    "prioridade": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "chave_deduplicacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "geometria_wkt",
+    "data_deteccao"
+  ],
+  "additionalProperties": false
+}
