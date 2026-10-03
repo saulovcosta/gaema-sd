@@ -15,8 +15,8 @@ from .interfaces import (
     NaoConfiguradoPublicador,
     PublicadorCampo,
 )
-from .traducao import traduzir_submissao
+from .traducao import campos_de_campanha, nao_traduzidos, traduzir_submissao
 
 __all__ = ["AmbienteIndisponivel", "CamadaExterna", "CatalogoCamadas", "ConfigArcGIS", "ImportadorCampo",
            "NaoConfiguradoCatalogo", "NaoConfiguradoImportador", "NaoConfiguradoPublicador", "PublicadorCampo",
-           "traduzir_submissao"]
+           "campos_de_campanha", "nao_traduzidos", "traduzir_submissao"]

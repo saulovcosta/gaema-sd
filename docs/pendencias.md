@@ -39,6 +39,8 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 | Backup agendado, destino e retenção; ancoragem externa do último hash da trilha | PENDENTES |
 | Carga e desempenho (índices citados na DEC-007) | NÃO EXECUTADOS |
 | Teste com leitor de tela e pessoas usuárias | NÃO EXECUTADO |
-| Revisão independente de código das Fases 4 e 5 | NÃO EXECUTADA (feita nas Fases 2 e 3) |
+| Revisão independente **humana ou de terceiros** das Fases 4 e 5 | NÃO EXECUTADA (nas Fases 2 e 3 houve revisão independente; nas Fases 4 e 5 houve só a revisão por agente separado, DEC-020) |
+| Separar a API de entrada de campo da API administrativa na implantação (R-28) | PENDENTE |
+| Comando ou rotina para o aparelho consultar as decisões de conflito (`Sincronizador.reconciliar` só existe como função) | PENDENTE |
 | Varredura de dependências em rotina automática | NÃO existe (executada manualmente) |
 | Banco institucional (opção PostgreSQL/PostGIS da DEC-002) | Decisão pendente |

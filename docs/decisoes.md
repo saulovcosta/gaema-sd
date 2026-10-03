@@ -179,3 +179,27 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Risco:** o teste de linguagem cobre só estes documentos; a regra continua valendo para os demais.
 - **Teste:** `tests/test_documentos.py`.
 
+## DEC-020 — Revisão independente das Fases 4 e 5: achados e correções (03/10/2026)
+
+- **Hipótese:** um revisor separado, instruído a quebrar o que foi feito, acha o que os testes do autor não acharam.
+- **Método:** um agente separado (de IA, não humano) rodou mais de mil cenários de falha e 35 mutações em cópia do repositório, sem editar nada. Cada achado foi reproduzido por um teste novo que **falhou no código anterior** e passa agora; 20 mutações nas correções novas foram todas pegas pelos testes.
+- **Corrigidos (número do achado do relatório):**
+  1. (alta) dado de campo aceito sem ponto/campanha, de usuário fora da equipe e com a demanda já adiante (alterava o que sustenta o diagnóstico) → origem, equipe e estado conferidos em `receber_sincronizacao`; reenvio idempotente segue valendo.
+  2. (alta) erro de acesso transformava todo o campo em REJEITADO definitivo → `AcessoNegado` interrompe a rodada sem rejeitar; `reenfileirar_rejeitados` (não reenfileira o que a decisão do coordenador descartou).
+  3. item sem arquivo de evidência travava a fila → vira REJEITADO e a fila segue.
+  4. ACEITAR_DISPOSITIVO apagava alteração posterior da central do estado corrente → recusado se a versão mudou depois do conflito.
+  5. e 16. backup "conferia" sem arquivos e confiava no manifesto → confere hashes contra o banco, contagens, eventos, conflitos, lista fechada, sem link simbólico, `-wal` órfão no destino, manifesto malformado e CLI com banco inexistente; `criar_backup` verifica o que criou.
+  6. e 11. tradução descartava fotos e nota de acesso em silêncio, e repetição de penetrometria duplicada colidia → erro explícito (`ignorar_nao_traduzidos`, `campos_de_campanha`).
+  7. id de registro formava caminho do relatório → UUID obrigatório e conferência do caminho.
+  8. pacote de exportação levava id de usuário e texto livre do protocolo → só papéis; categoria e rótulo só em padrão fechado; código de categoria do protocolo restrito; id opaco.
+  9. `observador_id` forjável (alimentava a regra de independência do revisor) → autoria imutável e igual ao usuário.
+  10. XLSForm obrigava sim/não e usava `now()` → presença não obrigatória ("não observado" = em branco); sem valor padrão.
+  12. CRIAR reenviado após alteração da central virava conflito falso → compara com a versão 1 do histórico.
+  13. falha ao mover a demanda perdia o conflito → conflito gravado e auditado antes; a transição é tentada depois e a cada reenvio.
+  14. técnico B lia decisão de A → coluna `enviado_por`; **esquema 2** com migração do 1 (17).
+  15. aplicar a mesma decisão duas vezes desfazia trabalho novo → idempotente; descartes passam a ser auditados.
+  18. integração ATIVA em ambiente de desenvolvimento → recusada.
+  19. e 20. guia e gabarito imprecisos (ponto da interrupção; conflito só muda a demanda em AGUARDANDO_SINCRONIZACAO; papéis; mascaramento) → corrigidos e conferidos por teste; mascaramento de CPF cobre mais formatos e a chave sensível não casa pedaço de palavra; testes novos para contagens e último hash do manifesto e para a permissão no caminho de conflito.
+- **Não corrigidos (limites aceitos e registrados):** `Nucleo.registrar` direto na central não aplica as regras de origem/equipe/estado, porque o aparelho usa o mesmo método sem ter a campanha (R-28, H-S07); a fila do aparelho é estado local e grava fora da trilha (os descartes por decisão agora são auditados); trilha truncada e banco trocado com manifesto refeito seguem possíveis para quem controla a pasta (R-19, ancoragem externa PENDENTE); conflitos antigos (esquema 1) ficam visíveis a qualquer técnico (`enviado_por` vazio).
+- **Risco:** o revisor foi um agente de IA; não substitui revisão humana ou de terceiros (H-S02, R-30).
+- **Teste:** `tests/test_regressao_revisao_f4f5.py`, `tests/test_regressao_revisao_f4f5_b.py`.

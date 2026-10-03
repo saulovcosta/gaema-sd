@@ -11,6 +11,7 @@ import dataclasses
 import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
@@ -76,6 +77,7 @@ AUTORIA: dict[type, str] = {
     E.Providencia: "decidido_por",
     E.Evidencia: "registrado_por",
     E.Relatorio: "gerado_por",
+    E.Observacao: "observador_id",
 }
 
 
@@ -85,6 +87,11 @@ TIPOS_SINCRONIZAVEIS: dict[str, type] = {c.__name__: c for c in
 ATOR_SINCRONIZACAO = Ator.de("processo-sincronizacao", Papel.SISTEMA)
 DECISOES_CONFLITO = ("MANTER_CENTRAL", "ACEITAR_DISPOSITIVO")
 _META = {"versao", "atualizado_em", "status_sincronizacao", "criado_por", "criado_em"}
+
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
+# Dado de campo só entra enquanto a demanda está em coleta/envio; depois do diagnóstico a correção é registro novo.
+ESTADOS_DE_COLETA = (Estado.EM_CAMPO, Estado.COLETA_PARCIAL, Estado.AGUARDANDO_SINCRONIZACAO,
+                     Estado.CONFLITO_SINCRONIZACAO)
 
 ESTADOS_COM_RELATORIO = (Estado.DIAGNOSTICO_EMITIDO, Estado.EM_TRATATIVA, Estado.EM_MONITORAMENTO,
                          Estado.ENCERRADA, Estado.REABERTA)
@@ -115,6 +122,8 @@ class Nucleo:
 
     def _regras_de_criacao(self, ator: Ator, obj) -> list[Problema]:
         problemas = []
+        if not _UUID.fullmatch(obj.id or ""):
+            problemas.append(erro("ID_INVALIDO", "id", "identificador deve ser um UUID (hexadecimal e hífens)"))
         if obj.versao != 1:
             problemas.append(erro("VERSAO_INICIAL", "versao", "registro novo começa na versão 1"))
         if isinstance(obj, E.Demanda) and (obj.estado is not Estado.CANDIDATA or obj.estado_anterior is not None):
@@ -179,6 +188,9 @@ class Nucleo:
                 if isinstance(obj, E.Demanda) and (obj.estado, obj.estado_anterior) != (
                         original.estado, original.estado_anterior):
                     raise ErroGaema("estado da Demanda só muda por transição (Nucleo.transitar)")
+                campo_autoria = AUTORIA.get(type(obj))
+                if campo_autoria and getattr(obj, campo_autoria) != getattr(original, campo_autoria):
+                    raise ErroGaema("autoria do registro não pode ser alterada")
                 if getattr(obj, "chave_idempotencia", "") != getattr(original, "chave_idempotencia", ""):
                     raise ErroGaema("chave de envio não pode ser alterada")
                 obj = dataclasses.replace(obj, criado_por=original.criado_por, criado_em=original.criado_em)
@@ -358,7 +370,10 @@ class Nucleo:
         diag = montagem.diagnostico_vigente(self.repo, demanda.id)
         revisao = montagem.revisao_aprovada(self.repo, demanda.id, diag.id, eventos)
         conteudo = (relatorio_pdf if formato is FormatoRelatorio.PDF else relatorio_html).renderizar(dados)
-        caminho = self.saida / "relatorios" / f"relatorio-{demanda.id[:8]}-v{numero}.{formato.value.lower()}"
+        pasta_relatorios = (self.saida / "relatorios").resolve()
+        caminho = pasta_relatorios / f"relatorio-{re.sub('[^0-9a-fA-F]', '', demanda.id)[:8]}-v{numero}.{formato.value.lower()}"
+        if caminho.resolve().parent != pasta_relatorios:
+            raise ErroGaema("caminho do relatório fora da pasta de relatórios")
         if caminho.exists():
             raise ErroGaema(f"{caminho.name} já existe; relatório emitido não é sobrescrito")
         rel = E.Relatorio(demanda_id=demanda.id, numero_versao=numero, diagnostico_id=diag.id,
@@ -392,6 +407,37 @@ class Nucleo:
         except RegistroNaoEncontrado:
             return ""
 
+    def _contexto_de_coleta(self, ator: Ator, obj) -> E.Demanda:
+        """Confere que os registros de origem existem na central e que o usuário é da equipe da campanha.
+        Devolve a demanda. Levanta ErroGaema (nada é gravado)."""
+        def achar(cls, id_, nome):
+            try:
+                return self.repo.obter(cls, id_)
+            except RegistroNaoEncontrado:
+                raise ErroGaema(f"{nome} de origem não encontrado(a) na central; envie os registros de origem antes") \
+                    from None
+        if isinstance(obj, E.PontoAmostral):
+            campanha = achar(E.CampanhaVistoria, obj.campanha_id, "campanha")
+        elif isinstance(obj, (E.Observacao, E.MedicaoPenetracao)):
+            campanha = achar(E.CampanhaVistoria, achar(E.PontoAmostral, obj.ponto_id, "ponto").campanha_id, "campanha")
+        else:  # Evidencia
+            campanha = achar(E.CampanhaVistoria, obj.campanha_id, "campanha")
+            if obj.ponto_id and achar(E.PontoAmostral, obj.ponto_id, "ponto").campanha_id != campanha.id:
+                raise ErroGaema("o ponto da evidência pertence a outra campanha")
+            if obj.observacao_id:
+                achar(E.Observacao, obj.observacao_id, "observação")
+        equipe = achar(E.Equipe, campanha.equipe_id, "equipe")
+        if not any(m.usuario_id == ator.id for m in equipe.membros):
+            raise ErroGaema("o usuário não faz parte da equipe desta campanha")
+        return achar(E.Demanda, campanha.demanda_id, "demanda")
+
+    @staticmethod
+    def _exigir_estado_de_coleta(demanda: E.Demanda) -> None:
+        if demanda.estado not in ESTADOS_DE_COLETA:
+            esperados = ", ".join(e.value for e in ESTADOS_DE_COLETA)
+            raise ErroGaema(f"demanda em estado {demanda.estado.value} não aceita dado novo de campo "
+                            f"(estados de coleta: {esperados})")
+
     def _recusar_sincronizacao(self, ator: Ator, item: ItemSincronizacao, e: Exception) -> None:
         self._auditar_recusa(ator, "SINCRONIZACAO_RECUSADA", item.tipo, item.entidade_id, e)
 
@@ -418,14 +464,33 @@ class Nucleo:
             if obj.id != item.entidade_id:
                 raise ErroGaema("identificador do item não confere com o registro")
             obj = dataclasses.replace(obj, status_sincronizacao=StatusSincronizacao.SINCRONIZADO)
+            campo_autoria = AUTORIA.get(cls)
+            if campo_autoria and getattr(obj, campo_autoria) not in ("", ator.id):
+                raise ErroGaema("autoria do registro deve ser o próprio usuário que envia")
+            demanda = self._contexto_de_coleta(ator, obj)
         except ErroGaema as e:
             self._recusar_sincronizacao(ator, item, e)
             raise
         if item.operacao == "CRIAR":
-            return self._sincronizar_criacao(ator, item, cls, obj, conteudo)
-        return self._sincronizar_atualizacao(ator, item, cls, obj)
+            return self._sincronizar_criacao(ator, item, cls, obj, conteudo, demanda)
+        return self._sincronizar_atualizacao(ator, item, cls, obj, demanda)
 
-    def _sincronizar_criacao(self, ator, item, cls, obj, conteudo) -> ResultadoSincronizacao:
+    def _sincronizar_criacao(self, ator, item, cls, obj, conteudo, demanda) -> ResultadoSincronizacao:
+        existente = self._existente_por_chave_ou_id(cls, obj)
+        if existente is not None and existente.id == obj.id and any(
+                h.versao == 1 and self._conteudo_comparavel(h) == self._conteudo_comparavel(obj)
+                for h in self.repo.historico(cls, existente.id)):
+            # reenvio da criação original, ainda que a central já tenha alterado o registro depois
+            with self.repo.transacao():
+                self.trilha.registrar(ator, "REENVIO_IDEMPOTENTE", item.tipo, obj.id,
+                                      detalhes={"versao_central": existente.versao})
+            return ResultadoSincronizacao.REENVIO_IDEMPOTENTE
+        if existente is None:
+            try:
+                self._exigir_estado_de_coleta(demanda)
+            except ErroGaema as e:
+                self._recusar_sincronizacao(ator, item, e)
+                raise
         try:
             if isinstance(obj, E.Evidencia):
                 if conteudo is None:
@@ -450,13 +515,18 @@ class Nucleo:
     def _conteudo_comparavel(registro) -> str:
         return json_canonico({k: v for k, v in para_dict(registro).items() if k not in _META})
 
-    def _sincronizar_atualizacao(self, ator, item, cls, obj) -> ResultadoSincronizacao:
+    def _sincronizar_atualizacao(self, ator, item, cls, obj, demanda) -> ResultadoSincronizacao:
         try:
             atual = self.repo.obter(cls, obj.id)
         except RegistroNaoEncontrado as e:
             self._recusar_sincronizacao(ator, item, e)
             raise
         if atual.versao == item.versao_base:
+            try:
+                self._exigir_estado_de_coleta(demanda)
+            except ErroGaema as e:
+                self._recusar_sincronizacao(ator, item, e)
+                raise
             try:
                 self.atualizar(ator, obj, item.versao_base)
                 return ResultadoSincronizacao.APLICADO
@@ -478,16 +548,20 @@ class Nucleo:
                 tipo=item.tipo, entidade_id=atual.id if atual else obj.id, demanda_id=demanda_id,
                 versao_base=versao_base, versao_central=atual.versao if atual else 0,
                 hash_central=sha256_texto(self._conteudo_comparavel(atual)) if atual else "",
-                dados_dispositivo=json_canonico(item.dados), hash_dispositivo=item.hash_dados)
+                dados_dispositivo=json_canonico(item.dados), hash_dispositivo=item.hash_dados,
+                enviado_por=ator.id)
             if novo:
                 self.trilha.registrar(ator, "CONFLITO_SINCRONIZACAO", item.tipo, obj.id,
                                       detalhes={"conflito_id": conflito_id, "versao_base": versao_base,
                                                 "versao_central": atual.versao if atual else 0})
-                if demanda_id:
-                    demanda = self.repo.obter(E.Demanda, demanda_id)
-                    if demanda.estado is Estado.AGUARDANDO_SINCRONIZACAO:
-                        self.transitar(ATOR_SINCRONIZACAO, demanda_id, Estado.CONFLITO_SINCRONIZACAO,
-                                       motivo="Versões divergentes entre dispositivo e central.")
+        # A transição é tentada fora da transação do registro: se falhar, o conflito já está gravado e
+        # auditado, e um reenvio tenta de novo (o conflito aberto bloqueia a validação de qualquer forma).
+        if demanda_id and self.repo.obter(E.Demanda, demanda_id).estado is Estado.AGUARDANDO_SINCRONIZACAO:
+            try:
+                self.transitar(ATOR_SINCRONIZACAO, demanda_id, Estado.CONFLITO_SINCRONIZACAO,
+                               motivo="Versões divergentes entre dispositivo e central.")
+            except (AcessoNegado, TransicaoInvalida, ConflitoAtualizacao):
+                pass  # já auditado por transitar
         return ResultadoSincronizacao.CONFLITO
 
     def resolver_conflito_sincronizacao(self, ator: Ator, conflito_id: str, decisao: str, motivo: str) -> None:
@@ -511,6 +585,11 @@ class Nucleo:
                     if dados["id"] != c["entidade_id"]:
                         raise ErroGaema("o registro do dispositivo tem outro identificador; só MANTER_CENTRAL")
                     atual = self.repo.obter(cls, c["entidade_id"])
+                    if atual.versao != c["versao_central"]:
+                        raise ErroGaema(
+                            f"o registro mudou na central depois do conflito (versão {c['versao_central']} → "
+                            f"{atual.versao}); aceitar o aparelho apagaria essa alteração do estado corrente. "
+                            "Use MANTER_CENTRAL ou peça novo envio a partir da versão atual")
                     obj = dataclasses.replace(de_dict(cls, dados), criado_por=atual.criado_por,
                                               criado_em=atual.criado_em,
                                               status_sincronizacao=StatusSincronizacao.SINCRONIZADO)
@@ -519,7 +598,9 @@ class Nucleo:
                 self.repo.resolver_conflito(conflito_id, decisao=decisao, resolvido_por=ator.id,
                                             motivo=motivo.strip())
                 self.trilha.registrar(ator, "CONFLITO_SINCRONIZACAO_RESOLVIDO", c["tipo"], c["entidade_id"],
-                                      motivo=motivo.strip(), detalhes={"conflito_id": conflito_id, "decisao": decisao})
+                                      motivo=motivo.strip(), detalhes={
+                                          "conflito_id": conflito_id, "decisao": decisao,
+                                          "versao_central_no_conflito": c["versao_central"]})
         except ErroGaema as e:
             self._auditar_recusa(ator, "RESOLUCAO_CONFLITO_RECUSADA", "ConflitoSincronizacao", conflito_id, e)
             raise
@@ -535,6 +616,8 @@ class Nucleo:
             linha = self.repo.conflito_por_hash(tipo, hash_dados)
             cls = TIPOS_SINCRONIZAVEIS.get(tipo)
             if not linha or linha["situacao"] != "RESOLVIDO" or cls is None:
+                continue
+            if linha["enviado_por"] not in ("", ator.id):   # '' = conflito anterior ao registro de origem
                 continue
             try:
                 atual = self.repo.obter(cls, linha["entidade_id"])
@@ -561,7 +644,7 @@ class Nucleo:
                         gerado_em: datetime | None = None) -> dict:
         """Pacote aberto de exportação (formato próprio; ver exportacao/painel.py). Somente leitura + auditoria."""
         self._exigir(ator, Acao.EXPORTAR, "Exportacao", "painel")
-        pacote = exportacao_painel.montar_pacote(self.repo, gerado_por=ator.id,
+        pacote = exportacao_painel.montar_pacote(self.repo, gerado_por_papeis=[p.value for p in ator.papeis],
                                                  gerado_em=gerado_em or datetime.now(timezone.utc),
                                                  demanda_ids=demanda_ids)
         with self.repo.transacao():

@@ -162,6 +162,8 @@ def test_interrupcao_do_processo_na_consulta_e_retomada(tmp_path, atores, cenari
 
 def test_conflito_de_evidencia_registra_a_decisao_sem_mexer_no_arquivo(amb):
     a, c = amb.a, amb.c
+    amb.central.registrar(a["tecnico"], c["PontoAmostral"][0])      # origem da evidência precisa existir na central
+    amb.central.registrar(a["tecnico"], c["Observacao"][0])
     amb.central.registrar_evidencia(a["tecnico"], c["Evidencia"][0], FOTO_SINTETICA)
     outra = com(c["Evidencia"][0], categoria=c["Evidencia"][0].categoria.__class__("FOTO_PANORAMICA"),
                 chave_idempotencia="outra-chave")
@@ -231,9 +233,11 @@ def test_banco_da_fase_4_sem_as_tabelas_novas_abre_e_ganha_as_tabelas(tmp_path):
     repo = Repositorio(caminho)
     for t in ("decisoes_conflito", "deslocamento_versao"):
         repo.con.execute(f"DROP TABLE {t}")
+    repo.con.execute("ALTER TABLE conflitos_sincronizacao DROP COLUMN enviado_por")
+    repo.con.execute("PRAGMA user_version = 1")
     repo.fechar()
     novo = Repositorio(caminho)
     tabelas = {l[0] for l in novo.con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"decisoes_conflito", "deslocamento_versao", "fila_envio", "conflitos_sincronizacao"} <= tabelas
-    assert novo.con.execute("PRAGMA user_version").fetchone()[0] == 1   # esquema inalterado: só tabelas novas
+    assert novo.con.execute("PRAGMA user_version").fetchone()[0] == 2   # banco da Fase 4 (versão 1) migrou para 2
     novo.fechar()

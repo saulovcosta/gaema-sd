@@ -1,6 +1,7 @@
 """XLSForm do formulário de vistoria, GERADO do domínio (sem valores inventados).
 
-Uma submissão = um ponto amostral. Só repetições de um nível (sem repetição aninhada), porque o
+Uma submissão = um ponto amostral. Presença/ausência não é obrigatória: o campo em branco significa "não observado"
+(o motor trata a falta de observação como regra não avaliável). Nenhum campo tem valor padrão. Só repetições de um nível (sem repetição aninhada), porque o
 comportamento de repetições aninhadas no Survey123 não foi verificado. Nada aqui define limiar,
 profundidade padrão ou número mínimo de repetições (LA-04); GPS ruim gera alerta no núcleo, não bloqueio.
 
@@ -69,7 +70,8 @@ def survey() -> list[dict]:
           hint="Fornecido pela coordenação; ver missão baixada."),
         L(type="text", name="dispositivo_id", label="Identificação do aparelho", required="yes"),
         L(type="text", name="observador_id", label="Identificador de quem coleta", required="yes"),
-        L(type="dateTime", name="capturado_em", label="Data e hora da coleta", required="yes", default="now()"),
+        L(type="dateTime", name="capturado_em", label="Data e hora da coleta", required="yes",
+          hint="Informe quando o ponto foi coletado; o formulário não assume a hora de abertura."),
         L(type="select_one condicao_acesso", name="condicao_acesso", label="Condição de acesso à área",
           required="yes"),
         L(type="text", name="nota_acesso", label="Nota sobre o acesso", relevant="${condicao_acesso} = 'SEM_ACESSO'",
@@ -83,7 +85,8 @@ def survey() -> list[dict]:
         L(type="begin_group", name="presenca", label="Presença ou ausência"),
     ]
     for v in VARIAVEIS_PRESENCA:
-        s.append(L(type="select_one sim_nao", name=nome_presenca(v), label=ROTULO_VARIAVEL[v], required="yes",
+        s.append(L(type="select_one sim_nao", name=nome_presenca(v), label=ROTULO_VARIAVEL[v],
+                   hint="Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.",
                    appearance="horizontal"))
     s += [
         L(type="end_group", name="presenca"),

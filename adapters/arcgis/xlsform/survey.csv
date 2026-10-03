@@ -3,7 +3,7 @@ begin_group,identificacao,Identificação da vistoria,,,,,,,
 text,campanha_id,Identificador da campanha,Fornecido pela coordenação; ver missão baixada.,yes,,,,,
 text,dispositivo_id,Identificação do aparelho,,yes,,,,,
 text,observador_id,Identificador de quem coleta,,yes,,,,,
-dateTime,capturado_em,Data e hora da coleta,,yes,,,,now(),
+dateTime,capturado_em,Data e hora da coleta,Informe quando o ponto foi coletado; o formulário não assume a hora de abertura.,yes,,,,,
 select_one condicao_acesso,condicao_acesso,Condição de acesso à área,,yes,,,,,
 text,nota_acesso,Nota sobre o acesso,Obrigatória quando não houve acesso.,${condicao_acesso} = 'SEM_ACESSO',${condicao_acesso} = 'SEM_ACESSO',,,,
 end_group,identificacao,,,,,,,,
@@ -12,13 +12,13 @@ text,codigo_ponto,Código do ponto,,yes,,,,,
 geopoint,localizacao,Localização (GPS),O núcleo registra a precisão e alerta se for ruim; não bloqueia o registro.,yes,,,,,
 end_group,ponto,,,,,,,,
 begin_group,presenca,Presença ou ausência,,,,,,,
-select_one sim_nao,presenca_plantas_invasoras,Plantas invasoras,,yes,,,,,horizontal
-select_one sim_nao,presenca_cupins_monticulo,Cupins (montículo),,yes,,,,,horizontal
-select_one sim_nao,presenca_erosao_laminar,Erosão laminar,,yes,,,,,horizontal
-select_one sim_nao,presenca_sulcos,Sulcos,,yes,,,,,horizontal
-select_one sim_nao,presenca_ravinas,Ravinas,,yes,,,,,horizontal
-select_one sim_nao,presenca_vocorocas,Voçorocas,,yes,,,,,horizontal
-select_one sim_nao,presenca_solo_exposto,Solo exposto,,yes,,,,,horizontal
+select_one sim_nao,presenca_plantas_invasoras,Plantas invasoras,Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
+select_one sim_nao,presenca_cupins_monticulo,Cupins (montículo),Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
+select_one sim_nao,presenca_erosao_laminar,Erosão laminar,Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
+select_one sim_nao,presenca_sulcos,Sulcos,Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
+select_one sim_nao,presenca_ravinas,Ravinas,Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
+select_one sim_nao,presenca_vocorocas,Voçorocas,Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
+select_one sim_nao,presenca_solo_exposto,Solo exposto,Deixe em branco se não foi observado: o sistema registra a falta como não avaliável.,,,,,,horizontal
 end_group,presenca,,,,,,,,
 text,hipotese_alternativa,Hipótese alternativa (texto livre),Explicação alternativa que a equipe considere plausível.,,,,,,
 begin_repeat,outras_observacoes,Outras observações,,,,,,,

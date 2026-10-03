@@ -111,5 +111,5 @@ def test_exportacao_vazia_e_valida(tmp_path):
 
 def test_montar_pacote_so_le(nucleo_demo):
     antes = nucleo_demo.repo.con.execute("SELECT COUNT(*) FROM registros").fetchone()[0]
-    montar_pacote(nucleo_demo.repo, gerado_por="x", gerado_em=QUANDO)
+    montar_pacote(nucleo_demo.repo, gerado_por_papeis=["COORDENADOR"], gerado_em=QUANDO)
     assert nucleo_demo.repo.con.execute("SELECT COUNT(*) FROM registros").fetchone()[0] == antes

@@ -58,6 +58,8 @@ class Dispositivo:
 
     def aplicar_decisao(self, d: DecisaoConflito) -> str:
         """Traz para o dispositivo o desfecho de um conflito. Devolve um texto curto do que foi feito."""
+        if self.fila.decisao_registrada(d.hash_dados):
+            return "já aplicada"   # aplicar de novo desfaria trabalho feito depois
         item = self.fila.item_por_hash(d.hash_dados)
         if item is None:
             self.fila.registrar_decisao(d, aplicada=False, observacao="item não está mais na fila local")
@@ -69,6 +71,9 @@ class Dispositivo:
             if d.decisao == "MANTER_CENTRAL":
                 descartados = self.fila.rejeitar_pendentes(
                     d.tipo, item["entidade_id"], "descartado: decisão do coordenador manteve a versão da central")
+                if descartados:
+                    self.nucleo.trilha.registrar(self.ator, "ENVIO_DESCARTADO_POR_DECISAO", d.tipo,
+                                                 item["entidade_id"], detalhes={"quantidade": descartados})
                 if cls is E.Evidencia or not mesmo_registro or d.dados_central is None:
                     self.fila.registrar_decisao(d, aplicada=False, observacao=(
                         "decisão registrada; registro local não substituído (evidência imutável ou outro identificador)"))

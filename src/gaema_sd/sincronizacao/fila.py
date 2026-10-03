@@ -98,6 +98,18 @@ class FilaLocal:
                 "UPDATE fila_envio SET situacao='REJEITADO', erro=?, atualizado_em=? WHERE tipo=? AND entidade_id=?"
                 " AND situacao='PENDENTE'", (motivo[:_LIMITE_ERRO], _agora(), tipo, entidade_id)).rowcount
 
+    def reenfileirar_rejeitados(self) -> int:
+        """Devolve a PENDENTE os itens REJEITADOS por falha operacional. Não reenfileira os descartados por decisão
+        do coordenador (conteúdo que a decisão rejeitou)."""
+        with self.repo.transacao():
+            return self.repo.con.execute(
+                "UPDATE fila_envio SET situacao='PENDENTE', tentativas=0, erro='', atualizado_em=?"
+                " WHERE situacao='REJEITADO' AND erro NOT LIKE 'descartado:%'", (_agora(),)).rowcount
+
+    def decisao_registrada(self, hash_dados: str) -> bool:
+        return self.repo.con.execute("SELECT 1 FROM decisoes_conflito WHERE hash_dados=?",
+                                     (hash_dados,)).fetchone() is not None
+
     def registrar_decisao(self, d, *, aplicada: bool, observacao: str = "") -> None:
         with self.repo.transacao():
             self.repo.con.execute(

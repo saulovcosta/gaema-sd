@@ -9,7 +9,7 @@
     "versao_formato",
     "aviso",
     "gerado_em",
-    "gerado_por",
+    "gerado_por_papeis",
     "todos_sinteticos",
     "demandas",
     "agregados"
@@ -27,8 +27,11 @@
     "gerado_em": {
       "type": "string"
     },
-    "gerado_por": {
-      "type": "string"
+    "gerado_por_papeis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "todos_sinteticos": {
       "type": "boolean"

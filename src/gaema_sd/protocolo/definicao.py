@@ -8,6 +8,7 @@ validado (lacunas LA-02 a LA-04, LA-08).
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,6 +51,9 @@ class DefinicaoProtocolo:
     regras: tuple[Regra, ...]
     categorias: dict[str, str]
     limitacoes: tuple[str, ...]
+
+
+CODIGO_CATEGORIA = re.compile(r"[A-Z][A-Z0-9_-]{0,19}")
 
 
 def _exigir(cond: bool, mensagem: str) -> None:
@@ -95,6 +99,9 @@ def carregar_definicao(dados: dict) -> DefinicaoProtocolo:
     regras_brutas = dados.get("regras", [])
     categorias = dados.get("categorias", {})
     _exigir(isinstance(regras_brutas, list) and isinstance(categorias, dict), "regras/categorias mal formadas")
+    _exigir(all(isinstance(k, str) and CODIGO_CATEGORIA.fullmatch(k) for k in categorias),
+            "código de categoria fora do padrão (letra maiúscula seguida de letras maiúsculas, dígitos, _ ou -; "
+            "até 20 caracteres). Texto livre vai na descrição, não no código")
     if modo is ModoProtocolo.DESCRITIVO:
         _exigir(not regras_brutas and not categorias, "modo DESCRITIVO não tem regras nem categorias")
         _exigir(rotulo == "", "modo DESCRITIVO não tem rótulo (o sistema usa texto fixo)")

@@ -17,6 +17,11 @@ from gaema_sd.adaptadores import (
     PublicadorCampo,
     traduzir_submissao,
 )
+
+
+def _traduzir(sub):
+    return traduzir_submissao(sub, ignorar_nao_traduzidos=True)   # o exemplo traz condicao_acesso (campanha)
+
 from gaema_sd.dominio import entidades as E
 from gaema_sd.erros import AcessoNegado, ErroGaema
 from gaema_sd.sincronizacao import ResultadoSincronizacao
@@ -81,7 +86,7 @@ def test_config_so_informa_se_esta_definida_e_nunca_expoe_o_valor():
 
 
 def test_traducao_gera_ponto_observacoes_e_medicoes_em_ordem():
-    itens = traduzir_submissao(_submissao())
+    itens = _traduzir(_submissao())
     assert [i.tipo for i in itens] == ["PontoAmostral"] + ["Observacao"] * 9 + ["MedicaoPenetracao"]
     ponto = itens[0].dados
     assert (ponto["latitude"], ponto["longitude"], ponto["altitude_m"], ponto["precisao_gps_m"]) == \
@@ -94,8 +99,8 @@ def test_traducao_gera_ponto_observacoes_e_medicoes_em_ordem():
 
 
 def test_traducao_e_deterministica_e_nao_inventa_valores():
-    assert traduzir_submissao(_submissao()) == traduzir_submissao(_submissao())
-    sem_pen = traduzir_submissao(_submissao(penetrometria=[], outras_observacoes=[], hipotese_alternativa=""))
+    assert _traduzir(_submissao()) == _traduzir(_submissao())
+    sem_pen = _traduzir(_submissao(penetrometria=[], outras_observacoes=[], hipotese_alternativa=""))
     assert [i.tipo for i in sem_pen].count("MedicaoPenetracao") == 0
     assert all(i.dados["valor_normalizado"] is None for i in sem_pen if i.tipo == "Observacao")
 
@@ -107,12 +112,12 @@ def test_traducao_e_deterministica_e_nao_inventa_valores():
 ])
 def test_traducao_recusa_submissao_malformada(mudanca, trecho):
     with pytest.raises(ErroGaema, match=trecho):
-        traduzir_submissao(_submissao(**mudanca))
+        _traduzir(_submissao(**mudanca))
 
 
 def test_submissao_entra_pelo_nucleo_e_reimportacao_nao_duplica(tmp_path, atores, cenario):
     amb = Ambiente(tmp_path, atores, cenario)
-    itens = traduzir_submissao(_submissao())
+    itens = _traduzir(_submissao())
     r1 = [amb.central.receber_sincronizacao(atores["tecnico"], i) for i in itens]
     assert set(r1) == {ResultadoSincronizacao.APLICADO}
     r2 = [amb.central.receber_sincronizacao(atores["tecnico"], i) for i in itens]
@@ -124,9 +129,9 @@ def test_submissao_entra_pelo_nucleo_e_reimportacao_nao_duplica(tmp_path, atores
 
 def test_submissao_editada_no_campo_com_mesma_chave_vira_conflito_e_nao_sobrescreve(tmp_path, atores, cenario):
     amb = Ambiente(tmp_path, atores, cenario)
-    for i in traduzir_submissao(_submissao()):
+    for i in _traduzir(_submissao()):
         amb.central.receber_sincronizacao(atores["tecnico"], i)
-    outra = traduzir_submissao(_submissao(localizacao="-10.4999 -48.4999 250.0 4.0"))[0]
+    outra = _traduzir(_submissao(localizacao="-10.4999 -48.4999 250.0 4.0"))[0]
     assert amb.central.receber_sincronizacao(atores["tecnico"], outra) is ResultadoSincronizacao.CONFLITO
     assert amb.na_central(E.PontoAmostral)[0].latitude == -10.495
 
@@ -134,4 +139,4 @@ def test_submissao_editada_no_campo_com_mesma_chave_vira_conflito_e_nao_sobrescr
 def test_importacao_exige_papel_de_campo(tmp_path, atores, cenario):
     amb = Ambiente(tmp_path, atores, cenario)
     with pytest.raises(AcessoNegado):
-        amb.central.receber_sincronizacao(atores["analista"], traduzir_submissao(_submissao())[0])
+        amb.central.receber_sincronizacao(atores["analista"], _traduzir(_submissao())[0])

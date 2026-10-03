@@ -22,7 +22,7 @@ Inspira-se funcionalmente no SIPADE (IFTM e MPMG), sem copiar código, textos ou
 | 2 | Núcleo: entidades, fluxo de estados, validações, auditoria | Concluída (testada localmente) |
 | 3 | Protótipo local ponta a ponta e relatório | Concluída (testada localmente) |
 | 4 | Robustez: offline, sincronização, segurança, backup, acessibilidade | Concluída (testada localmente, com rede simulada) |
-| 5 | Preparação institucional: adaptadores, formulário XLSForm, pontos de integração, homologação, capacitação | Concluída como preparação (testada localmente); **nada foi integrado** |
+| 5 | Preparação institucional: adaptadores, formulário XLSForm, pontos de integração, homologação, capacitação | Concluída como preparação, com revisão independente por agente de IA; testada localmente; **nada foi integrado** |
 
 Detalhes do andamento: `docs/ESTADO.md`.
 
@@ -83,6 +83,11 @@ Preparação institucional. **Nada aqui está integrado a ArcGIS, ao Radar Ambie
 - **Formulário de vistoria em XLSForm**, gerado do próprio modelo de dados, sem profundidade, número de repetições ou limiar inventados. Conferido por estrutura e sintaxe; **não** foi aberto no Survey123 Connect.
 - **Pacote de exportação em formato próprio** (sem coordenadas, textos livres nem pessoas) como base de conversa com a equipe do Radar.
 - **Checklist de homologação** (nenhum item aprovado), **lista de pendências** e **guia de capacitação** com exercícios e gabarito.
+- **Revisão independente das Fases 4 e 5** (feita por um agente de IA separado, não por pessoas): 20 falhas reproduzidas e corrigidas, cada uma com teste. As mais sérias: dado de campo aceito de quem não é da equipe ou depois de a demanda avançar, e um erro de acesso que rejeitava todo o campo. Ver `docs/decisoes.md` (DEC-020).
+
+### Nível de pronto real
+
+Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados inventados, rede simulada). Em especial: **o formulário XLSForm foi conferido por testes próprios e pelo pyxform, mas não foi aberto no Survey123 Connect**; adaptadores ArcGIS são só interface; o relatório não foi testado com leitor de tela; não houve revisão humana nem de terceiros; nenhuma turma foi capacitada. A tabela completa está em `docs/ESTADO.md`.
 
 ## Para quem programa
 

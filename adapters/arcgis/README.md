@@ -22,6 +22,8 @@ Para gerar o `.xlsx` (não fica no git): `python -m gaema_sd.adaptadores.xlsform
 - Condição de acesso: a nota passa a ser obrigatória quando for "sem acesso".
 - GPS: o núcleo registra a precisão e emite alerta se for ruim; o formulário não bloqueia.
 - Todo campo está mapeado para um campo real do domínio (`mapeamento.csv`, conferido por teste).
+- Presença/ausência não é obrigatória: em branco significa "não observado". Nenhum campo tem valor padrão (nem a hora: o técnico informa quando coletou).
+- A tradução **não descarta em silêncio** o que não leva ao núcleo: condição/nota de acesso (são da campanha) e fotos (entram com arquivo e hash) fazem a tradução recusar, a menos que quem chama declare que cuidará deles.
 
 ## O que NÃO foi verificado
 
@@ -29,7 +31,8 @@ Para gerar o `.xlsx` (não fica no git): `python -m gaema_sd.adaptadores.xlsform
 - O **formato real de exportação** do Survey123 (o formato de entrada da tradução é neutro, definido aqui).
 - Repetições aninhadas (por isso não são usadas), mapa base offline (FC-11), Field Maps, Experience Builder.
 - Camadas de referência: só entram se autorizadas (LA-07, LA-09). `CamadaExterna.autorizada` nasce falso.
-- O que foi conferido: estrutura do XLSForm por testes próprios e sintaxe XLSForm/ODK com **pyxform** (não é o Survey123).
+- **A abertura do formulário no Survey123 Connect não foi feita.**
+- O que foi conferido: estrutura do XLSForm por testes próprios e sintaxe XLSForm/ODK com **pyxform 4.5.0** (conversão sem erro em 03/10/2026; único aviso: tamanho máximo de imagem não definido, de propósito). pyxform não é o Survey123.
 
 ## Fatos técnicos a respeitar (fontes em `docs/fontes.md`)
 

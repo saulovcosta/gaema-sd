@@ -8,17 +8,35 @@ rótulos de validade e hashes. Critério de priorização é registro humano; na
 
 from __future__ import annotations
 
-import json
+import hashlib
+import re
 from collections import Counter
 from datetime import datetime
 
 from ..dominio import entidades as E
+from ..dominio.entidades import ROTULO_PROTOTIPO
 from ..dominio.serializacao import json_canonico
 
 FORMATO = "gaema-sd-exportacao"
 VERSAO_FORMATO = "0.1"
 AVISO = ("Formato PRÓPRIO do GAEMA SD, não é o do Painel do art. 18 nem o do Radar Ambiental. Protótipo; sem validade "
          "científica ou jurídica. Sem geometria, coordenadas, nomes ou textos livres. Nenhuma integração declarada.")
+
+
+NAO_EXPORTADO = "[FORA DO PADRÃO; NÃO EXPORTADO]"
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
+_CATEGORIAS = re.compile(r"(?:[A-Z][A-Z0-9_-]{0,19}: \d+ ponto\(s\)(?:; [A-Z][A-Z0-9_-]{0,19}: \d+ ponto\(s\))*)?")
+_ROTULOS = {ROTULO_PROTOTIPO, "MODO DESCRITIVO: sem classificação"}
+
+
+def _id_seguro(id_: str) -> str:
+    """Identificador técnico (UUID) ou, se fugir do formato, um código opaco: id é texto e não pode vazar nada."""
+    return id_ if _UUID.fullmatch(id_ or "") else "id-opaco-" + hashlib.sha256(str(id_).encode("utf-8")).hexdigest()[:16]
+
+
+def _so_se_padrao(texto: str, padrao) -> str:
+    """Texto livre não sai. Só sai o que segue o padrão fechado que o sistema mesmo produz."""
+    return texto if isinstance(texto, str) and padrao(texto) else NAO_EXPORTADO
 
 
 def _contagem(itens) -> dict[str, int]:
@@ -35,7 +53,7 @@ def _demanda(repo, d: E.Demanda, alertas, campanhas, pontos, obs, med, evid, dia
         ultimos[r.formato.value] = r
     ids_plano = {p.id for p in planos if p.demanda_id == d.id}
     return {
-        "demanda_id": d.id,
+        "demanda_id": _id_seguro(d.id),
         "sintetico": d.sintetico,
         "estado": d.estado.value,
         "criterio_priorizacao": d.criterio_priorizacao.value if d.criterio_priorizacao else None,
@@ -46,8 +64,8 @@ def _demanda(repo, d: E.Demanda, alertas, campanhas, pontos, obs, med, evid, dia
         "medicoes_penetracao": sum(m.ponto_id in ids_ponto for m in med),
         "evidencias": sum(e.campanha_id in ids_campanha for e in evid),
         "diagnostico": None if vigente is None else {
-            "categoria_descritiva": vigente.categoria_descritiva,
-            "rotulo_validade": vigente.rotulo_validade,
+            "categoria_descritiva": _so_se_padrao(vigente.categoria_descritiva, _CATEGORIAS.fullmatch),
+            "rotulo_validade": _so_se_padrao(vigente.rotulo_validade, _ROTULOS.__contains__),
             "hash_definicao_protocolo": vigente.hash_definicao_protocolo,
             "hash_entradas": vigente.hash_entradas},
         "relatorios": [{"formato": f, "numero_versao": r.numero_versao, "hash_conteudo": r.hash_conteudo,
@@ -59,7 +77,7 @@ def _demanda(repo, d: E.Demanda, alertas, campanhas, pontos, obs, med, evid, dia
     }
 
 
-def montar_pacote(repo, *, gerado_por: str, gerado_em: datetime, demanda_ids: list[str] | None = None) -> dict:
+def montar_pacote(repo, *, gerado_por_papeis: list[str], gerado_em: datetime, demanda_ids: list[str] | None = None) -> dict:
     todas = repo.listar(E.Demanda)
     if demanda_ids is not None:
         pedidas = set(demanda_ids)
@@ -73,7 +91,7 @@ def montar_pacote(repo, *, gerado_por: str, gerado_em: datetime, demanda_ids: li
     marcos = [m for d in demandas for m in d["marcos"]]
     return {
         "formato": FORMATO, "versao_formato": VERSAO_FORMATO, "aviso": AVISO,
-        "gerado_em": gerado_em.isoformat(), "gerado_por": gerado_por,
+        "gerado_em": gerado_em.isoformat(), "gerado_por_papeis": sorted(gerado_por_papeis),
         "todos_sinteticos": all(d["sintetico"] for d in demandas),
         "demandas": demandas,
         "agregados": {
@@ -129,11 +147,12 @@ def esquema_json() -> dict:
         "title": "Pacote de exportação GAEMA SD (formato próprio)",
         "description": AVISO,
         "type": "object", "additionalProperties": False,
-        "required": ["formato", "versao_formato", "aviso", "gerado_em", "gerado_por", "todos_sinteticos",
+        "required": ["formato", "versao_formato", "aviso", "gerado_em", "gerado_por_papeis", "todos_sinteticos",
                      "demandas", "agregados"],
         "properties": {
             "formato": {"const": FORMATO}, "versao_formato": {"const": VERSAO_FORMATO}, "aviso": texto,
-            "gerado_em": texto, "gerado_por": texto, "todos_sinteticos": {"type": "boolean"},
+            "gerado_em": texto, "gerado_por_papeis": {"type": "array", "items": texto},
+            "todos_sinteticos": {"type": "boolean"},
             "demandas": {"type": "array", "items": demanda},
             "agregados": {"type": "object", "additionalProperties": False,
                           "required": ["demandas", "por_estado", "por_criterio_priorizacao", "por_origem_alerta",

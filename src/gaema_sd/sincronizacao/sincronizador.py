@@ -14,8 +14,9 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
+from ..auditoria.trilha import sanear_texto
 from ..config import parametro
-from ..erros import ErroGaema
+from ..erros import AcessoNegado, ErroGaema
 from .canal import CanalSimulado
 from .dispositivo import Dispositivo
 from .item import ErroTransporte, ResultadoSincronizacao
@@ -73,6 +74,10 @@ class Sincronizador:
                  resumo.pendentes_restantes)
         return resumo
 
+    def reenfileirar_rejeitados(self) -> int:
+        """Ação explícita do operador: volta a PENDENTE o que foi rejeitado por falha operacional."""
+        return self.disp.fila.reenfileirar_rejeitados()
+
     def reconciliar(self) -> ResumoReconciliacao:
         """Pergunta à central o desfecho dos conflitos abertos neste dispositivo e aplica o que já foi decidido."""
         resumo = ResumoReconciliacao()
@@ -102,7 +107,14 @@ class Sincronizador:
     def _enviar_com_reenvio(self, seq, item, resumo: ResumoSincronizacao) -> bool:
         conteudo = None
         if item.tipo == "Evidencia":
-            conteudo = self.disp.conteudo_evidencia(item.dados["sha256"])
+            try:
+                conteudo = self.disp.conteudo_evidencia(item.dados["sha256"])
+            except OSError:
+                # item sem arquivo não pode ser enviado nem pode travar o resto da fila
+                self.disp.fila.marcar(seq, "REJEITADO", erro="arquivo da evidência ausente ou ilegível no aparelho")
+                resumo.rejeitados += 1
+                log.warning("item %s sem arquivo de evidência no aparelho", seq)
+                return True
         for tentativa in range(1, self.tentativas_maximas + 1):
             self.disp.fila.registrar_tentativa(seq)
             try:
@@ -113,6 +125,11 @@ class Sincronizador:
                     self.esperar(self.espera_inicial_s * 2 ** (tentativa - 1))
                     continue
                 resumo.motivo_interrupcao = f"{type(e).__name__} após {tentativa} tentativas"
+                return False
+            except AcessoNegado as e:
+                # usuário inativo ou papel mal configurado: erro operacional recuperável; nada é rejeitado
+                log.warning("acesso negado ao enviar o item %s", seq)
+                resumo.motivo_interrupcao = f"AcessoNegado após {tentativa} tentativa(s): {sanear_texto(str(e))[:120]}"
                 return False
             except ErroGaema as e:
                 self.disp.fila.marcar(seq, "REJEITADO", erro=f"{type(e).__name__}: {e}")

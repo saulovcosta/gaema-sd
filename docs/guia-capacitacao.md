@@ -25,10 +25,10 @@ Ele **não conclui** autoria, ilicitude, dano jurídico, responsabilidade ou nex
 | Papel | Em linguagem comum |
 |---|---|
 | Analista de triagem | Registra fontes, áreas candidatas e alertas; faz a triagem |
-| Coordenador | Forma a equipe, publica o protocolo, planeja campanhas, decide conflitos de sincronização, pode emitir relatório |
+| Coordenador | Forma a equipe, publica o protocolo, planeja campanhas (o técnico de campo também pode planejar), decide conflitos de sincronização, pode emitir relatório e também pode abrir a averiguação |
 | Técnico de campo | Coleta no campo (pontos, observações, medições, fotos) e envia os dados |
 | Revisor técnico | Revisa o diagnóstico e libera a emissão. Quem participou da coleta não pode revisar |
-| Membro do Ministério Público | Abre a averiguação, registra providências, conduz tratativa e monitoramento |
+| Membro do Ministério Público | Abre a averiguação (o coordenador também pode), registra providências, conduz tratativa e monitoramento |
 | Auditor | Confere a trilha de auditoria. Não move o fluxo |
 | Administrador | Cuida do ambiente. Não move o fluxo |
 | Sistema | Executa passos automáticos (por exemplo, computar o diagnóstico) |
@@ -41,8 +41,8 @@ Cada ação é conferida pelo **papel**, no núcleo do sistema, e fica registrad
 |---|---|
 | CANDIDATA / ALERTA | Há um indício. Nenhuma conclusão |
 | EM_TRIAGEM | Uma pessoa analisa o alerta |
-| DEMANDA_ABERTA | A averiguação foi formalmente aberta (decisão do membro, com motivo) |
-| ATRIBUIDA / PLANEJADA | Há equipe, protocolo e campanha de vistoria |
+| DEMANDA_ABERTA | A averiguação foi formalmente aberta (decisão do membro ou do coordenador, com motivo) |
+| ATRIBUIDA / PLANEJADA | Há equipe, protocolo e campanha de vistoria (a passagem para PLANEJADA é do coordenador; o técnico de campo também pode fazê-la) |
 | EM_CAMPO / COLETA_PARCIAL | Vistoria em andamento; pode ser interrompida e retomada |
 | AGUARDANDO_SINCRONIZACAO | Dados coletados esperando envio ao sistema central |
 | EM_VALIDACAO | Conferência dos dados recebidos |
@@ -73,13 +73,17 @@ O relatório tem 16 seções e uma lista de avisos. Leia nesta ordem:
 
 ## 7. O que é um conflito de sincronização
 
-Acontece quando o aparelho de campo e o sistema central alteraram o **mesmo registro** a partir da mesma versão. O sistema **não escolhe**: guarda as duas versões, leva a demanda para "conflito de sincronização" e espera o coordenador.
+Acontece quando o aparelho de campo e o sistema central alteraram o **mesmo registro** a partir da mesma versão. O sistema **não escolhe**: guarda as duas versões e espera o coordenador. Enquanto o conflito estiver aberto, a validação dos dados fica bloqueada, e novos envios daquele registro ficam retidos no aparelho.
+
+A demanda passa para "conflito de sincronização" só quando a demanda está em AGUARDANDO_SINCRONIZACAO. Nas outras situações (por exemplo, EM_CAMPO) a situação não muda, mas o conflito continua aberto e visível.
 
 O coordenador decide, com motivo escrito:
 - **Manter a versão do sistema central**: o aparelho passa a ter a versão central e as correções que ficaram na fila para aquele registro são descartadas (com registro).
-- **Aceitar a versão do aparelho**: ela vira a versão corrente do sistema central; o histórico preserva a anterior.
+- **Aceitar a versão do aparelho**: ela vira a versão corrente do sistema central, o histórico preserva a anterior. Só é possível se o registro não mudou na central depois do conflito; se mudou, só se pode manter a central.
 
-A decisão volta ao aparelho na próxima consulta. Evidências (fotos e documentos) não são alteradas: só se mantém a versão central.
+Depois de decidir, o coordenador precisa mover a demanda de volta para "aguardando sincronização": o sistema não faz isso sozinho.
+
+A decisão chega ao aparelho quando ele consulta o sistema central. Hoje essa consulta existe como função testada com rede simulada, mas ainda não há comando nem rotina automática para executá-la. Evidências (fotos e documentos) não são alteradas: só se mantém a versão central.
 
 ## 8. Exercícios com o cenário sintético
 
@@ -97,7 +101,7 @@ Peça à equipe técnica para executar a demonstração (`scripts/demo.sh`) e ab
 
 1. Em **monitoramento** (EM_MONITORAMENTO).
 2. **Três** pontos (P01, P02, P03). O **P03** tem precisão de 18 m, acima do limite operacional de 10 m (valor provisório, sem fundamento científico).
-3. Sim, durante o ponto P02, por chuva forte (registro sintético): a demanda foi para COLETA_PARCIAL e voltou a EM_CAMPO.
+3. Sim: depois de coletar o P02 e antes do P03, por chuva forte (registro sintético). A demanda foi para COLETA_PARCIAL e voltou a EM_CAMPO.
 4. **Três arquivos**: HTML versão 1 e versão 2 (esta com o plano de recuperação e os marcos, e o motivo da reemissão) e PDF versão 1.
 5. "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA".
 6. Providência: o **membro do Ministério Público**. Revisão: o **revisor técnico**, que não pode ter participado da coleta.
@@ -105,7 +109,7 @@ Peça à equipe técnica para executar a demonstração (`scripts/demo.sh`) e ab
 
 ## 9. Boas práticas
 
-- Registre o **motivo** com clareza: ele fica na trilha de auditoria. Não escreva dado pessoal sensível no campo de motivo; o sistema mascara padrões óbvios (como CPF e e-mail), mas não reconhece nome de pessoa.
+- Registre o **motivo** com clareza: ele fica na trilha de auditoria. Não escreva dado pessoal sensível no campo de motivo; o sistema mascara alguns formatos de CPF e de e-mail, mas não reconhece nome de pessoa, CNPJ nem telefone com máscara.
 - Não trate o resultado do protótipo como laudo.
 - Em dúvida sobre prioridade, critério ou providência, a decisão é humana e deve ser registrada como tal.
 - Trabalhe só com dados sintéticos enquanto a instituição não concluir a homologação do sistema (ver `docs/homologacao.md`).

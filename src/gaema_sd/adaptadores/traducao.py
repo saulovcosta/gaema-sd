@@ -43,8 +43,33 @@ def _geopoint(texto: str) -> tuple[float, float, float | None, float | None]:
     return p[0], p[1], (p[2] if len(p) > 2 else None), (p[3] if len(p) > 3 else None)
 
 
-def traduzir_submissao(sub: dict[str, Any]) -> list[ItemSincronizacao]:
-    """Devolve, em ordem de envio: ponto, observações, medições. Fotos não são traduzidas aqui (anexo com hash)."""
+def nao_traduzidos(sub: dict[str, Any]) -> list[str]:
+    """Campos preenchidos que esta tradução NÃO leva ao núcleo: condição e nota de acesso são da campanha
+    (`campos_de_campanha`) e as fotos entram por `Nucleo.registrar_evidencia`, com o arquivo e o hash."""
+    achados = []
+    if sub.get("condicao_acesso"):
+        achados.append("condicao_acesso")
+    if sub.get("nota_acesso"):
+        achados.append("nota_acesso")
+    if sub.get("fotos"):
+        achados.append("fotos")
+    return achados
+
+
+def campos_de_campanha(sub: dict[str, Any]) -> dict[str, str]:
+    """Condição e nota de acesso declaradas em campo, para quem for atualizar a CampanhaVistoria (decisão humana)."""
+    return {"condicao_acesso": sub.get("condicao_acesso") or "", "nota_acesso": sub.get("nota_acesso") or ""}
+
+
+def traduzir_submissao(sub: dict[str, Any], *, ignorar_nao_traduzidos: bool = False) -> list[ItemSincronizacao]:
+    """Devolve, em ordem de envio: ponto, observações, medições.
+
+    Campo coletado que não tem destino aqui (condição/nota de acesso e fotos) NÃO é descartado em silêncio: levanta
+    ErroGaema, a menos que quem chama declare que cuidará deles (`ignorar_nao_traduzidos=True`)."""
+    pendentes = nao_traduzidos(sub)
+    if pendentes and not ignorar_nao_traduzidos:
+        raise ErroGaema("a submissão traz campos que esta tradução não leva ao núcleo: " + ", ".join(pendentes)
+                        + " (trate-os à parte e repita com ignorar_nao_traduzidos=True)")
     _exigir(sub, "campanha_id", "dispositivo_id", "observador_id", "capturado_em", "codigo_ponto", "localizacao")
     quando = datetime.fromisoformat(sub["capturado_em"])
     lat, lon, alt, precisao = _geopoint(sub["localizacao"])
@@ -80,6 +105,9 @@ def traduzir_submissao(sub: dict[str, Any]) -> list[ItemSincronizacao]:
             raise ErroGaema(f"variável desconhecida: {o['outra_variavel']}") from e
         registros.append(obs(f"outra{i}", variavel, str(o["outra_valor_bruto"]), o["outra_unidade_bruta"],
                              o.get("outra_nota") or ""))
+    repeticoes = [str(m.get("pen_repeticao")) for m in (sub.get("penetrometria") or [])]
+    if len(repeticoes) != len(set(repeticoes)):
+        raise ErroGaema("penetrometria com número de repetição duplicada no mesmo ponto")
     for i, m in enumerate(sub.get("penetrometria") or [], 1):
         _exigir(m, "pen_repeticao", "pen_profundidade", "pen_profundidade_unidade", "pen_resistencia",
                 "pen_resistencia_unidade")
