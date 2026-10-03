@@ -1,0 +1,21 @@
+# Segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Bancos e dados locais (nunca versionar dados reais)
+*.db
+*.sqlite
+*.sqlite3
+dados/
+dados_reais/
+saida/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
