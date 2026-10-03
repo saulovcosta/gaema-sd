@@ -8,13 +8,17 @@ auditadas em transação própria, depois de desfeita a operação recusada.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import TypeVar
 
 from .acesso.politica import Acao, Ator, exigir
 from .auditoria.trilha import TrilhaAuditoria
 from .dominio import entidades as E
-from .dominio.enums import Estado, Sensibilidade
+from .dominio.enums import Estado, FormatoRelatorio, Sensibilidade
 from .dominio.serializacao import json_canonico
 from .erros import (
     AcessoNegado,
@@ -29,6 +33,10 @@ from .estados.contexto import montar_contexto
 from .persistencia.sqlite import ArmazenamentoAuditoriaSQLite, Repositorio
 from .protocolo.definicao import canonizar, carregar_definicao
 from .protocolo.motor import avaliar, entradas_de, hash_entradas, resultado_para_json
+from .relatorio import html as relatorio_html
+from .relatorio import montagem
+from .relatorio import pdf as relatorio_pdf
+from .validacao.anexos import validar_anexo
 from .validacao.entidades import validar
 from .validacao.problemas import Problema, erro, exigir_sem_erros
 
@@ -68,9 +76,14 @@ AUTORIA: dict[type, str] = {
 }
 
 
+ESTADOS_COM_RELATORIO = (Estado.DIAGNOSTICO_EMITIDO, Estado.EM_TRATATIVA, Estado.EM_MONITORAMENTO,
+                         Estado.ENCERRADA, Estado.REABERTA)
+
+
 class Nucleo:
-    def __init__(self, repo: Repositorio):
+    def __init__(self, repo: Repositorio, diretorio_saida: str | Path = "saida"):
         self.repo = repo
+        self.saida = Path(diretorio_saida)
         self.trilha = TrilhaAuditoria(ArmazenamentoAuditoriaSQLite(repo))
 
     # ------------------------------------------------------------ apoio
@@ -258,6 +271,81 @@ class Nucleo:
                                   detalhes={"reproduzido": saida["reproduzido"],
                                             "entradas_atuais_iguais": saida["entradas_atuais_iguais"]})
         return saida
+
+    # ------------------------------------------------------------ evidências
+
+    def _caminho_evidencia(self, sha256: str) -> Path:
+        return self.saida / "evidencias" / sha256
+
+    def registrar_evidencia(self, ator: Ator, evidencia: E.Evidencia, conteudo: bytes) -> E.Evidencia:
+        """Valida o arquivo, guarda o original (endereçado pelo hash, nunca sobrescrito) e registra."""
+        self._exigir(ator, Acao.REGISTRAR_EVIDENCIA, "Evidencia", evidencia.id)
+        r = validar_anexo(conteudo, evidencia.nome_arquivo_original, evidencia.tipo_mime)
+        problemas = list(r.problemas)
+        if evidencia.sha256 and evidencia.sha256 != r.sha256:
+            problemas.append(erro("HASH_DIVERGENTE", "sha256", "hash informado difere do arquivo recebido"))
+        if problemas:
+            falha = ValidacaoFalhou(problemas)
+            self._auditar_recusa(ator, "ANEXO_RECUSADO", "Evidencia", evidencia.id, falha)
+            raise falha
+        caminho = self._caminho_evidencia(r.sha256)
+        if caminho.exists():
+            if hashlib.sha256(caminho.read_bytes()).hexdigest() != r.sha256:
+                raise ErroGaema(f"arquivo guardado {caminho.name} não confere com o hash; verificar armazenamento")
+        else:
+            caminho.parent.mkdir(parents=True, exist_ok=True)
+            temporario = caminho.with_suffix(".parcial")
+            temporario.write_bytes(conteudo)
+            os.replace(temporario, caminho)
+        evidencia = dataclasses.replace(evidencia, sha256=r.sha256, tamanho_bytes=r.tamanho_bytes,
+                                        armazenamento_ref=f"evidencias/{r.sha256}")
+        return self._registrar(ator, evidencia)[0]
+
+    def verificar_evidencia(self, ator: Ator, evidencia_id: str) -> bool:
+        """Confere se o arquivo guardado ainda tem o hash registrado."""
+        self._exigir(ator, Acao.LER_RESTRITO, "Evidencia", evidencia_id)
+        ev = self.repo.obter(E.Evidencia, evidencia_id)
+        caminho = self.saida / ev.armazenamento_ref if ev.armazenamento_ref else None
+        integro = bool(caminho and caminho.exists()
+                       and hashlib.sha256(caminho.read_bytes()).hexdigest() == ev.sha256)
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "VERIFICACAO_EVIDENCIA", "Evidencia", ev.id, detalhes={"integro": integro})
+        return integro
+
+    # ------------------------------------------------------------ relatório
+
+    def emitir_relatorio(self, ator: Ator, demanda_id: str, formato: FormatoRelatorio = FormatoRelatorio.HTML,
+                         *, motivo_reemissao: str = "", gerado_em: datetime | None = None
+                         ) -> tuple[E.Relatorio, Path]:
+        """Gera o arquivo, grava hash e registro. Reemissão = nova versão vinculada, com motivo."""
+        self._exigir(ator, Acao.EMITIR_RELATORIO, "Relatorio", demanda_id)
+        demanda = self.repo.obter(E.Demanda, demanda_id)
+        if demanda.estado not in ESTADOS_COM_RELATORIO:
+            raise ErroGaema("relatório só é emitido depois de DIAGNOSTICO_EMITIDO")
+        anteriores = sorted((r for r in self.repo.listar(E.Relatorio)
+                             if r.demanda_id == demanda.id and r.formato is formato), key=lambda r: r.numero_versao)
+        if anteriores and len(motivo_reemissao.strip()) < 10:
+            raise ErroGaema("reemissão exige motivo (mínimo 10 caracteres)")
+        numero = anteriores[-1].numero_versao + 1 if anteriores else 1
+        gerado_em = gerado_em or datetime.now(timezone.utc)
+        dados = montagem.montar(self.repo, demanda.id, numero_versao=numero, gerado_em=gerado_em,
+                                gerado_por=ator.id, motivo_reemissao=motivo_reemissao.strip(),
+                                anteriores=anteriores)
+        diag = montagem.diagnostico_vigente(self.repo, demanda.id)
+        revisao = montagem.revisao_aprovada(self.repo, diag.id)
+        conteudo = (relatorio_pdf if formato is FormatoRelatorio.PDF else relatorio_html).renderizar(dados)
+        caminho = self.saida / "relatorios" / f"relatorio-{demanda.id[:8]}-v{numero}.{formato.value.lower()}"
+        if caminho.exists():
+            raise ErroGaema(f"{caminho.name} já existe; relatório emitido não é sobrescrito")
+        rel = E.Relatorio(demanda_id=demanda.id, numero_versao=numero, diagnostico_id=diag.id,
+                          revisao_id=revisao.id, versao_protocolo_id=diag.versao_protocolo_id, formato=formato,
+                          hash_conteudo=hashlib.sha256(conteudo).hexdigest(), gerado_por=ator.id,
+                          gerado_em=gerado_em, substitui_relatorio_id=anteriores[-1].id if anteriores else None,
+                          motivo_reemissao=motivo_reemissao.strip())
+        gravado = self._registrar(ator, rel)[0]
+        caminho.parent.mkdir(parents=True, exist_ok=True)
+        caminho.write_bytes(conteudo)
+        return gravado, caminho
 
     # ------------------------------------------------------------ leitura
 

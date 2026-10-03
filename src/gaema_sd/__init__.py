@@ -3,4 +3,4 @@
 Protótipo com dados sintéticos. Não integrado a sistemas institucionais.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
