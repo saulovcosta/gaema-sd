@@ -62,6 +62,7 @@ Atualizado em: 03/10/2026, fim da Fase 6 (interface local e segurança da centra
 - Endosso só por `config/endosso.json` (vazio); sem número e data válidos, o relatório nunca afirma endosso (teste com configuração vazia, parcial, inválida, futura e válida).
 - Tabela de pontos com coordenadas em uma linha; mapa maior e centralizado.
 - Interface: nome por extenso, faixa curta, "Papel em teste" e entrada em um toque (a partir dos artefatos enviados pelo usuário).
+- **Revisão do PR 4 antes da mescla** (DEC-028): 6 achados (3 médios, 3 baixos), todos corrigidos com teste; o técnico agora só lê demandas e registros da própria equipe.
 - Primeira página do HTML impresso pelo Chromium e do PDF do reportlab convertida em imagem e conferida. O PDF ficou com espaço livre no fim da página 1, porque o mapa maior começa na página 2 junto com o título da seção 3.
 
 ## Nível de pronto real de cada entrega
@@ -90,7 +91,7 @@ Nenhuma entrega passou de TESTADO LOCALMENTE: nada está INTEGRÁVEL, VALIDADO E
 ## Testes executados
 
 Fase 6, em 03/10/2026:
-- `scripts/testar.sh` → **463 passed** depois do cabeçalho institucional (antes, 443: 329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6).
+- `scripts/testar.sh` → **475 passed** depois da revisão do PR 4 (DEC-028; 463 após o cabeçalho institucional; 443 antes dele: 329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6).
 - `scripts/demo.sh` → "Resultado: OK". `scripts/demo_sincronizacao.sh` → "Resultado: OK" (conflito, decisão, aparelho converge).
 - `python3 scripts/gerar_contratos.py` → nenhum arquivo gerado mudou. `pip-audit -r requirements-dev.txt` → "No known vulnerabilities found".
 - `scripts/interface.sh` → a interface abriu em http://127.0.0.1:8765/ (resposta 200 em `/entrar`); login, navegação e coleta em etapas feitos por Chromium automatizado.

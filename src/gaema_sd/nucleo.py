@@ -221,11 +221,7 @@ class Nucleo:
                 if isinstance(obj, E.Demanda) and (obj.estado, obj.estado_anterior) != (
                         original.estado, original.estado_anterior):
                     raise ErroGaema("estado da Demanda só muda por transição (Nucleo.transitar)")
-                campo_autoria = AUTORIA.get(type(obj))
-                if campo_autoria and getattr(obj, campo_autoria) != getattr(original, campo_autoria):
-                    raise ErroGaema("autoria do registro não pode ser alterada")
-                if getattr(obj, "chave_idempotencia", "") != getattr(original, "chave_idempotencia", ""):
-                    raise ErroGaema("chave de envio não pode ser alterada")
+                self._exigir_identidade_inalterada(original, obj)
                 obj = dataclasses.replace(obj, criado_por=original.criado_por, criado_em=original.criado_em)
                 alertas = exigir_sem_erros(validar(obj))
                 novo = self.repo.atualizar(obj, versao_lida)
@@ -269,6 +265,27 @@ class Nucleo:
     @staticmethod
     def _so_tecnico(ator: Ator) -> bool:
         return Papel.TECNICO_CAMPO in ator.papeis and not (ator.papeis - {Papel.TECNICO_CAMPO})
+
+    # Tipos cuja leitura pelo técnico é limitada às demandas da própria equipe.
+    _TIPOS_POR_DEMANDA = (E.Demanda, E.CampanhaVistoria, E.PontoAmostral, E.Observacao, E.MedicaoPenetracao,
+                          E.Evidencia, E.Relatorio)
+
+    def _demanda_de(self, obj) -> str:
+        if isinstance(obj, E.Demanda):
+            return obj.id
+        if isinstance(obj, (E.CampanhaVistoria, E.Relatorio)):
+            return obj.demanda_id
+        return self._demanda_da_coleta(obj)
+
+    def _demandas_da_equipe(self, ator: Ator) -> set[str]:
+        return {d.id for d in self.repo.listar(E.Demanda) if ator.id in self._membros_da_demanda(d)}
+
+    def _exigir_demanda_visivel(self, ator: Ator, demanda_id: str, entidade: str, entidade_id: str) -> None:
+        """Quem só é técnico de campo lê apenas demandas (e seus registros) da própria equipe."""
+        if self._so_tecnico(ator) and demanda_id not in self._demandas_da_equipe(ator):
+            e = AcessoNegado("técnico de campo só vê demanda da própria equipe")
+            self._auditar_recusa(ator, "ACESSO_NEGADO", entidade, entidade_id, e)
+            raise e
 
     def _exigir_equipe_do_tecnico(self, ator: Ator, demanda: E.Demanda, destino: Estado) -> None:
         """Quem só pode mover a demanda como técnico de campo precisa ser da equipe dela (ou de uma campanha dela)."""
@@ -490,6 +507,15 @@ class Nucleo:
         return achar(E.Demanda, campanha.demanda_id, "demanda")
 
     @staticmethod
+    def _exigir_identidade_inalterada(gravado, obj) -> None:
+        """Autoria e chave de envio não mudam em nenhuma correção (atualizar ou "aceitar o aparelho")."""
+        campo_autoria = AUTORIA.get(type(obj))
+        if campo_autoria and getattr(obj, campo_autoria) != getattr(gravado, campo_autoria):
+            raise ErroGaema("autoria do registro não pode ser alterada")
+        if getattr(obj, "chave_idempotencia", "") != getattr(gravado, "chave_idempotencia", ""):
+            raise ErroGaema("chave de envio não pode ser alterada")
+
+    @staticmethod
     def _exigir_vinculo_inalterado(gravado, obj) -> None:
         """Correção de dado de campo não muda a que ponto/campanha ele pertence (senão sairia de uma demanda para outra)."""
         for campo in VINCULOS.get(type(obj), ()):
@@ -671,6 +697,7 @@ class Nucleo:
                                               criado_em=atual.criado_em,
                                               status_sincronizacao=StatusSincronizacao.SINCRONIZADO)
                     self._exigir_vinculo_inalterado(atual, obj)
+                    self._exigir_identidade_inalterada(atual, obj)
                     demanda_id = self._demanda_da_coleta(atual)
                     if demanda_id:
                         self._exigir_estado_de_coleta(self.repo.obter(E.Demanda, demanda_id))
@@ -741,8 +768,9 @@ class Nucleo:
         restrito = cls.SENSIBILIDADE in (Sensibilidade.RESTRITA, Sensibilidade.SIGILOSA)
         self._exigir(ator, Acao.LER_RESTRITO if restrito else Acao.LER, cls.__name__, "*")
         itens = self.repo.listar(cls)
-        if cls is E.Demanda and self._so_tecnico(ator):
-            itens = [d for d in itens if ator.id in self._membros_da_demanda(d)]
+        if issubclass(cls, self._TIPOS_POR_DEMANDA) and self._so_tecnico(ator):
+            visiveis = self._demandas_da_equipe(ator)
+            itens = [x for x in itens if self._demanda_de(x) in visiveis]
         if restrito:
             with self.repo.transacao():
                 self.trilha.registrar(ator, "LISTAGEM_RESTRITA", cls.__name__, "*", detalhes={"quantidade": len(itens)})
@@ -752,6 +780,7 @@ class Nucleo:
         """Para cada destino da situação atual: se este usuário pode agora e, se não, por quê. Não altera nada."""
         self._exigir(ator, Acao.LER_RESTRITO, "Demanda", demanda_id)
         d = self.repo.obter(E.Demanda, demanda_id)
+        self._exigir_demanda_visivel(ator, demanda_id, "Demanda", demanda_id)
         contexto = montar_contexto(self.repo, d, ator, self.trilha.eventos)
         saida = []
         for destino in maquina.destinos_possiveis(d.estado):
@@ -769,6 +798,7 @@ class Nucleo:
     def resumo_demanda(self, ator: Ator, demanda_id: str) -> dict:
         """Contagens, rótulo de validade e relatórios de uma demanda (sem geometria nem pessoas)."""
         self._exigir(ator, Acao.LER_RESTRITO, "Demanda", demanda_id)
+        self._exigir_demanda_visivel(ator, demanda_id, "Demanda", demanda_id)
         pacote = exportacao_painel.montar_pacote(self.repo, gerado_por_papeis=[], gerado_em=datetime.now(timezone.utc),
                                                  demanda_ids=[demanda_id])
         if not pacote["demandas"]:
@@ -779,6 +809,8 @@ class Nucleo:
         """Histórico de um registro. Com permissão de auditoria: todos os eventos. Sem ela: só as mudanças de
         situação, sem quem fez e sem motivo (a trilha completa é do auditor)."""
         self._exigir(ator, Acao.LER, entidade, entidade_id)
+        if entidade == "Demanda":
+            self._exigir_demanda_visivel(ator, entidade_id, entidade, entidade_id)
         eventos = [e for e in self.trilha.eventos if e.entidade == entidade and e.entidade_id == entidade_id]
         if not pode(ator, Acao.VERIFICAR_AUDITORIA):
             eventos = [dataclasses.replace(e, ator_id="", papeis=(), motivo="", detalhes={})
@@ -865,6 +897,8 @@ class Nucleo:
         restrito = cls.SENSIBILIDADE in (Sensibilidade.RESTRITA, Sensibilidade.SIGILOSA)
         self._exigir(ator, Acao.LER_RESTRITO if restrito else Acao.LER, cls.__name__, id)
         obj = self.repo.obter(cls, id)
+        if isinstance(obj, self._TIPOS_POR_DEMANDA):
+            self._exigir_demanda_visivel(ator, self._demanda_de(obj), cls.__name__, id)
         if restrito:
             with self.repo.transacao():
                 self.trilha.registrar(ator, "LEITURA_RESTRITA", cls.__name__, id)

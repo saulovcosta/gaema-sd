@@ -119,6 +119,16 @@ def _forma_do_manifesto(m) -> list[str]:
     return []
 
 
+def reservar_destino(destino: Path) -> Path:
+    """Reserva atômica da pasta: dois backups simultâneos no mesmo destino não se atropelam (o segundo desiste)."""
+    marca = destino / ".em-criacao"
+    try:
+        marca.open("x").close()
+    except FileExistsError:
+        raise ErroGaema("outro backup está sendo criado nesta pasta; aguarde e tente de novo") from None
+    return marca
+
+
 def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> dict:
     """Cria o backup em `destino` (pasta nova ou vazia) e o verifica antes de devolver. Se não conferir (por exemplo,
     `saida` errada, sem os arquivos que o banco cita), o backup incompleto é removido e o erro é levantado."""
@@ -127,11 +137,7 @@ def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> d
         raise ErroGaema("pasta de backup precisa estar vazia; backup anterior não é sobrescrito")
     existia = destino.exists()
     destino.mkdir(parents=True, exist_ok=True)
-    marca = destino / ".em-criacao"
-    try:  # reserva atômica: dois backups simultâneos no mesmo destino não se atropelam (o segundo desiste)
-        marca.open("x").close()
-    except FileExistsError:
-        raise ErroGaema("outro backup está sendo criado nesta pasta; aguarde e tente de novo") from None
+    marca = reservar_destino(destino)
     if any(p != marca for p in destino.iterdir()):
         marca.unlink()
         raise ErroGaema("pasta de backup precisa estar vazia; backup anterior não é sobrescrito")

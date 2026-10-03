@@ -151,8 +151,9 @@ def test_6_tecnico_so_ve_e_move_demanda_da_propria_equipe(mundo):
     assert {d.id for d in m.ce.listar(m.a["tecnico"], E.Demanda)} == {m.amb.demanda_id}
     assert {d.id for d in m.ce.listar(m.tec_b, E.Demanda)} == {m.dem_b.id}
     assert len(m.ce.listar(m.a["coord"], E.Demanda)) == 2
-    possiveis = m.ce.transicoes_possiveis(m.a["tecnico"], m.dem_b.id)
-    assert possiveis and not any(t["disponivel"] for t in possiveis)
+    with pytest.raises(AcessoNegado, match="própria equipe"):
+        m.ce.transicoes_possiveis(m.a["tecnico"], m.dem_b.id)
+    assert any(t["disponivel"] for t in m.ce.transicoes_possiveis(m.tec_b, m.dem_b.id))
     assert "TRANSICAO_RECUSADA" in [e.acao for e in m.ce.trilha.eventos]
 
 
@@ -456,3 +457,109 @@ def test_politica_de_referencia_nao_faz_o_navegador_mandar_origin_null(sistema):
     outro = Cliente(sistema[0])
     outro.get("/entrar")
     assert outro.post("/entrar", {"usuario": "coord"}, cabecalhos={"HTTP_ORIGIN": "null"}).status == 403
+
+
+# Revisão do PR 4 (antes da mescla) ---------------------------------------------------------------------------------------
+def _segundo_tecnico_na_equipe_b(m):
+    tec_b2 = Ator.de("usuario-sintetico-23", Papel.TECNICO_CAMPO)
+    eq = m.ce.repo.obter(E.Equipe, m.camp_b.equipe_id)
+    m.ce.atualizar(m.a["coord"], com(eq, membros=eq.membros + [E.MembroEquipe(
+        usuario_id=tec_b2.id, papel=Papel.TECNICO_CAMPO, funcao="vistoria")]), eq.versao)
+    return tec_b2
+
+
+def test_pr4_1_aceitar_aparelho_nao_troca_autoria_nem_chave(mundo):
+    m = mundo
+    tec_b2 = _segundo_tecnico_na_equipe_b(m)
+    o = m.ce.repo.obter(E.Observacao, m.oB.id)
+    m.ce.atualizar(m.tec_b, com(o, valor_bruto="10"), o.versao)                  # central anda para v2
+    m.ce.receber_sincronizacao(tec_b2, item("Observacao", "ATUALIZAR",
+                                            com(o, observador_id=tec_b2.id, valor_bruto="99"), 1))
+    m.ce.receber_sincronizacao(m.tec_b, item("Observacao", "ATUALIZAR",
+                                             com(o, chave_idempotencia="outra-chave", valor_bruto="98"), 1))
+    for k in m.ce.repo.listar_conflitos():
+        with pytest.raises(ErroGaema, match="autoria|chave"):
+            m.ce.resolver_conflito_sincronizacao(m.a["coord"], k["id"], "ACEITAR_DISPOSITIVO", "motivo de teste longo")
+        m.ce.resolver_conflito_sincronizacao(m.a["coord"], k["id"], "MANTER_CENTRAL", "motivo de teste longo")
+    depois = m.ce.repo.obter(E.Observacao, m.oB.id)
+    assert (depois.observador_id, depois.chave_idempotencia, depois.valor_bruto) == (m.tec_b.id, o.chave_idempotencia, "10")
+
+
+def test_pr4_2_tecnico_nao_le_demanda_nem_registros_de_outra_equipe(mundo):
+    m = mundo
+    tec = m.a["tecnico"]
+    for f in (lambda: m.ce.resumo_demanda(tec, m.dem_b.id), lambda: m.ce.historico_de(tec, "Demanda", m.dem_b.id),
+              lambda: m.ce.ler(tec, E.Demanda, m.dem_b.id), lambda: m.ce.ler(tec, E.PontoAmostral, m.pB.id),
+              lambda: m.ce.ler(tec, E.CampanhaVistoria, m.camp_b.id)):
+        with pytest.raises(AcessoNegado, match="própria equipe"):
+            f()
+    for cls, alheio in ((E.PontoAmostral, m.pB.id), (E.CampanhaVistoria, m.camp_b.id), (E.Observacao, m.oB.id),
+                        (E.MedicaoPenetracao, m.mB.id)):
+        ids = {x.id for x in m.ce.listar(tec, cls)}
+        assert alheio not in ids, cls.__name__
+        assert ids or cls is E.MedicaoPenetracao, cls.__name__             # vê os da própria equipe (A não tem medição)
+    assert m.pB.id in {x.id for x in m.ce.listar(m.a["coord"], E.PontoAmostral)}
+    assert m.ce.ler(m.tec_b, E.PontoAmostral, m.pB.id).id == m.pB.id
+
+
+def test_pr4_3_servidor_atende_um_pedido_por_vez_sem_erro(modelo, tmp_path):
+    """Vários usuários em paralelo no servidor real: sem a trava única, o SQLite compartilhado dá erro 500."""
+    import http.client
+    import re as _re
+    import shutil
+    import urllib.parse
+    from gaema_sd.interface import USUARIOS_DE_TESTE, servir
+    from gaema_sd.interface.campo import Campo
+    from gaema_sd.nucleo import Nucleo
+    destino = tmp_path / "srv"
+    shutil.copytree(modelo, destino)
+    repo = Repositorio(str(destino / "gaema-demo.db"))
+    central = Nucleo(repo, destino)
+    campo = Campo.criar(destino / "aparelho", central, USUARIOS_DE_TESTE["tecnico"])
+    srv = servir(central, 0, campo=campo)
+    porta = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    host, erros = f"127.0.0.1:{porta}", []
+
+    def pedir(metodo, caminho, cookie="", corpo=None):
+        c = http.client.HTTPConnection("127.0.0.1", porta, timeout=30)
+        h = {"Host": host, "Cookie": cookie, "Origin": f"http://{host}"}
+        if corpo is not None:
+            h["Content-Type"] = "application/x-www-form-urlencoded"
+        c.request(metodo, caminho, body=corpo, headers=h)
+        r = c.getresponse()
+        b, ck = r.read().decode("utf-8", "replace"), r.getheader("Set-Cookie")
+        c.close()
+        return r.status, b, (ck.split(";")[0] if ck else "")
+
+    def usuario(nome):
+        try:
+            _, b, ck = pedir("GET", "/entrar")
+            csrf = _re.search(r'name="csrf" value="([0-9a-f]+)"', b).group(1)
+            _, _, cookie = pedir("POST", "/entrar", ck, urllib.parse.urlencode({"csrf": csrf, "usuario": nome}))
+            for _ in range(3):
+                for caminho in ("/painel", "/campo", "/conflitos", "/auditoria", "/backup", "/ajuda"):
+                    st, b, _ = pedir("GET", caminho, cookie)
+                    if st >= 500:
+                        erros.append((nome, caminho, st))
+        except Exception as e:  # noqa: BLE001
+            erros.append((nome, "exceção", repr(e)))
+    try:
+        fios = [threading.Thread(target=usuario, args=(u,)) for u in list(USUARIOS_DE_TESTE) * 2]
+        for f in fios:
+            f.start()
+        for f in fios:
+            f.join(120)
+        assert erros == []
+    finally:
+        srv.shutdown()
+        srv.server_close()
+        campo.fechar()
+        repo.fechar()
+
+
+def test_pr4_6_reserva_do_backup_e_atomica(tmp_path):
+    from gaema_sd.backup.backup import reservar_destino
+    reservar_destino(tmp_path)
+    with pytest.raises(ErroGaema, match="outro backup"):
+        reservar_destino(tmp_path)

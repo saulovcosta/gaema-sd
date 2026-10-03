@@ -253,7 +253,22 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
   - O logo aparece **só no cabeçalho do relatório**; a interface mantém a identidade própria (DEC-025).
   - A frase institucional vem de uma única função, `relatorio/institucional.py::linha_institucional`.
   - O endosso vem só de `config/endosso.json`, vazio por padrão, e só vale com número e data do ato válidos e não futuros em relação à emissão. **Na dúvida (campo vazio, parcial ou malformado, arquivo ausente), o relatório sai como não endossado.**
-  - O estado do endosso fica nos dados do relatório.
+  - O estado do endosso ("sem endosso" ou "ato X de DD/MM/AAAA") fica **impresso no próprio arquivo**, cujo hash é registrado na emissão. `config/endosso.json` não é auditado nem entra no backup: mudar o arquivo só afeta relatórios emitidos depois (R-36).
+  - O número do ato precisa ter ao menos um dígito; a data, ano a partir de 2000 (AUTORAL).
 - **Também:** tabela de pontos com coordenadas em uma linha; mapa do relatório maior e centralizado (640×420 no HTML, largura útil no PDF); títulos do PDF presos ao conteúdo seguinte; tabelas curtas do HTML não se partem.
 - **Risco:** R-36.
 - **Teste:** `tests/test_relatorio_institucional.py`.
+
+## DEC-028 — Revisão do PR 4 antes da mescla (03/10/2026)
+
+- **Método:** agente de IA separado revisou todo o PR 4 em cópia, com scripts próprios e mutações.
+- **Corrigidos, com teste de regressão:**
+  1. "Aceitar o aparelho" podia trocar a autoria e a chave de envio → mesma conferência de `atualizar` (`_exigir_identidade_inalterada`).
+  2. O técnico de outra equipe lia, pelo id, a demanda, o resumo, o histórico, os pontos e as campanhas → recusa e filtro de equipe em `ler`, `resumo_demanda`, `historico_de` e `listar` dos tipos ligados à demanda.
+  3. Nenhum teste garantia a trava única do servidor (sem ela, dezenas de erros 500 com 8 usuários) → teste com servidor real e usuários em paralelo.
+  4. Número do ato sem dígito e ano 0001 aceitos → exigidos dígito e ano a partir de 2000.
+  5. A DEC-027 dizia mais do que o código fazia sobre o registro do endosso → texto corrigido.
+  6. Mutações sobreviventes (data do endosso na emissão, frase com endosso incompleto, reserva do backup) → agora pegas.
+- **Risco:** revisor é agente de IA (R-30).
+- **Teste:** `tests/test_regressao_fase6.py` (`test_pr4_*`), `tests/test_relatorio_institucional.py`.
+

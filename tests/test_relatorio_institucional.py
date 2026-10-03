@@ -50,6 +50,8 @@ def test_configuracao_do_repositorio_esta_vazia_por_padrao():
 @pytest.mark.parametrize("ato,data", [
     ("", ""), ("12/2026", ""), ("", "01/02/2026"), ("12/2026", "31/02/2026"), ("12/2026", "2026-02-01"),
     ("12/2026", "1/2/2026"), ("<script>", "01/02/2026"), ("x" * 41, "01/02/2026"),
+    ("-", "01/02/2026"), (".", "01/02/2026"), ("Sem endosso", "01/02/2026"), ("nao existe", "01/02/2026"),
+    ("12/2026", "01/01/0001"), ("12/2026", "31/12/1999"),
 ])
 def test_endosso_incompleto_ou_invalido_vale_como_sem_endosso(tmp_path, ato, data):
     assert config.endosso(_escrever(tmp_path, ato, data)) is None
@@ -61,6 +63,19 @@ def test_endosso_com_data_futura_ou_arquivo_ruim_vale_como_sem_endosso(tmp_path)
     ruim = tmp_path / "ruim.json"
     ruim.write_text("{ não é json", encoding="utf-8")
     assert config.endosso(ruim) is None and config.endosso(tmp_path / "nao-existe.json") is None
+
+
+def test_relatorio_com_endosso_de_data_posterior_a_emissao_continua_sem_endosso(n, atores, emitido, tmp_path,
+                                                                                  monkeypatch):
+    amanha = (date.today() + timedelta(days=2)).strftime("%d/%m/%Y")
+    monkeypatch.setattr(config, "CAMINHO_ENDOSSO", _escrever(tmp_path, "12/2026", amanha))
+    _so_negativa(re.sub(r"<[^>]+>", " ", _emitir(n, atores, emitido, FormatoRelatorio.HTML).read_text(encoding="utf-8")))
+
+
+def test_linha_institucional_so_afirma_com_ato_e_data():
+    for incompleto in ({}, {"ato": "12/2026"}, {"data": "01/02/2026"}, {"ato": "", "data": "01/02/2026"},
+                       {"ato": "12/2026", "data": ""}):
+        assert institucional.linha_institucional(incompleto) == institucional.SEM_ENDOSSO
 
 
 def test_linha_institucional():
