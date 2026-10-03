@@ -14,11 +14,19 @@ from .acesso.politica import Acao, Ator, exigir
 from .auditoria.trilha import TrilhaAuditoria
 from .dominio import entidades as E
 from .dominio.enums import Estado, Sensibilidade
-from .erros import AcessoNegado, ConflitoAtualizacao, ConflitoIdempotencia, ErroGaema, TransicaoInvalida
+from .erros import (
+    AcessoNegado,
+    ConflitoAtualizacao,
+    ConflitoIdempotencia,
+    ErroGaema,
+    TransicaoInvalida,
+    ValidacaoFalhou,
+)
 from .estados import maquina
+from .estados.contexto import montar_contexto
 from .persistencia.sqlite import ArmazenamentoAuditoriaSQLite, Repositorio
 from .validacao.entidades import validar
-from .validacao.problemas import Problema, exigir_sem_erros
+from .validacao.problemas import Problema, erro, exigir_sem_erros
 
 T = TypeVar("T")
 
@@ -45,7 +53,15 @@ ACAO_DE_ESCRITA: dict[type, Acao] = {
 }
 
 # Correção gera novo registro (com vínculo ao anterior), nunca alteração.
-IMUTAVEIS = (E.VersaoProtocolo, E.Evidencia, E.Relatorio, E.RevisaoTecnica)
+IMUTAVEIS = (E.VersaoProtocolo, E.Evidencia, E.Relatorio, E.RevisaoTecnica, E.Diagnostico)
+
+# Campos de autoria que devem coincidir com o usuário logado (vazio = preenchido pelo núcleo).
+AUTORIA: dict[type, str] = {
+    E.RevisaoTecnica: "revisor_id",
+    E.Providencia: "decidido_por",
+    E.Evidencia: "registrado_por",
+    E.Relatorio: "gerado_por",
+}
 
 
 class Nucleo:
@@ -70,13 +86,27 @@ class Nucleo:
 
     # ------------------------------------------------------------ escrita
 
+    def _regras_de_criacao(self, ator: Ator, obj) -> list[Problema]:
+        problemas = []
+        if obj.versao != 1:
+            problemas.append(erro("VERSAO_INICIAL", "versao", "registro novo começa na versão 1"))
+        if isinstance(obj, E.Demanda) and (obj.estado is not Estado.CANDIDATA or obj.estado_anterior is not None):
+            problemas.append(erro("ESTADO_INICIAL", "estado",
+                                  "demanda nasce em CANDIDATA; outros estados só por transição"))
+        campo = AUTORIA.get(type(obj))
+        if campo and getattr(obj, campo) not in ("", ator.id):
+            problemas.append(erro("AUTORIA_DIVERGENTE", campo, "deve ser o próprio usuário que registra"))
+        return problemas
+
     def registrar(self, ator: Ator, obj: T) -> tuple[T, list[Problema]]:
         """Grava registro novo. Devolve (registro, alertas). Reenvio idêntico não duplica."""
         tipo = type(obj).__name__
         self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], tipo, obj.id)
-        obj = dataclasses.replace(obj, criado_por=ator.id)  # autoria do registro vem do login
-        alertas = exigir_sem_erros(validar(obj))
+        campo = AUTORIA.get(type(obj))
+        preencher = {campo: ator.id} if campo and getattr(obj, campo) == "" else {}
+        obj = dataclasses.replace(obj, criado_por=ator.id, **preencher)  # autoria vem do login
         try:
+            alertas = exigir_sem_erros(self._regras_de_criacao(ator, obj) + validar(obj))
             with self.repo.transacao():
                 gravado, criado = self.repo.inserir(obj)
                 self.trilha.registrar(
@@ -85,33 +115,50 @@ class Nucleo:
         except ConflitoIdempotencia as e:
             self._auditar_recusa(ator, "CONFLITO_IDEMPOTENCIA", tipo, obj.id, e)
             raise
+        except ValidacaoFalhou as e:
+            if any(p.codigo in ("ESTADO_INICIAL", "AUTORIA_DIVERGENTE") for p in e.problemas):
+                self._auditar_recusa(ator, "CRIACAO_RECUSADA", tipo, obj.id, e)
+            raise
         return gravado, alertas
 
     def atualizar(self, ator: Ator, obj: T, versao_lida: int) -> tuple[T, list[Problema]]:
+        """Grava nova versão. Leitura, conferências e gravação na mesma transação."""
         tipo = type(obj).__name__
-        if isinstance(obj, IMUTAVEIS):
-            raise ErroGaema(f"{tipo} é imutável: registre nova versão vinculada à anterior")
         self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], tipo, obj.id)
-        original = self.repo.obter(type(obj), obj.id)
-        if isinstance(obj, E.Demanda) and (obj.estado, obj.estado_anterior) != (
-                original.estado, original.estado_anterior):
-            raise ErroGaema("estado da Demanda só muda por transição (Nucleo.transitar)")
-        obj = dataclasses.replace(obj, criado_por=original.criado_por, criado_em=original.criado_em)
-        alertas = exigir_sem_erros(validar(obj))
         try:
             with self.repo.transacao():
+                if isinstance(obj, IMUTAVEIS):
+                    raise ErroGaema(f"{tipo} é imutável: registre nova versão vinculada à anterior")
+                original = self.repo.obter(type(obj), obj.id)
+                if original.versao != versao_lida:
+                    raise ConflitoAtualizacao(
+                        f"{tipo} {obj.id}: alterado por outra pessoa (versão lida {versao_lida}, "
+                        f"atual {original.versao}). Recarregue e refaça a alteração.")
+                if isinstance(obj, E.Demanda) and (obj.estado, obj.estado_anterior) != (
+                        original.estado, original.estado_anterior):
+                    raise ErroGaema("estado da Demanda só muda por transição (Nucleo.transitar)")
+                if getattr(obj, "chave_idempotencia", "") != getattr(original, "chave_idempotencia", ""):
+                    raise ErroGaema("chave de envio não pode ser alterada")
+                obj = dataclasses.replace(obj, criado_por=original.criado_por, criado_em=original.criado_em)
+                alertas = exigir_sem_erros(validar(obj))
                 novo = self.repo.atualizar(obj, versao_lida)
                 self.trilha.registrar(ator, "ATUALIZAR", tipo, obj.id, detalhes={"versao": novo.versao})
         except ConflitoAtualizacao as e:
             self._auditar_recusa(ator, "CONFLITO_ATUALIZACAO", tipo, obj.id, e)
             raise
+        except ValidacaoFalhou:
+            raise
+        except ErroGaema as e:
+            self._auditar_recusa(ator, "ATUALIZACAO_RECUSADA", tipo, obj.id, e)
+            raise
         return novo, alertas
 
-    def transitar(self, ator: Ator, demanda_id: str, destino: Estado, *,
-                  contexto: maquina.ContextoTransicao, motivo: str = "") -> E.Demanda:
+    def transitar(self, ator: Ator, demanda_id: str, destino: Estado, *, motivo: str = "") -> E.Demanda:
+        """Muda o estado. As pré-condições são apuradas no banco, nunca informadas pelo chamador."""
         try:
             with self.repo.transacao():
                 atual = self.repo.obter(E.Demanda, demanda_id)
+                contexto = montar_contexto(self.repo, atual, ator, self.trilha.eventos)
                 nova = maquina.transitar(atual, destino, ator, contexto=contexto,
                                          trilha=self.trilha, motivo=motivo)
                 return self.repo.atualizar(nova, atual.versao)

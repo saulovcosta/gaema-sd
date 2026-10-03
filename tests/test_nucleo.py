@@ -5,9 +5,6 @@ import pytest
 from gaema_sd.dominio import entidades as E
 from gaema_sd.dominio.enums import Estado
 from gaema_sd.erros import AcessoNegado, ConflitoAtualizacao, ErroGaema, TransicaoInvalida, ValidacaoFalhou
-from .test_estados import CTX_OK
-
-
 def acoes(nucleo):
     return [e.acao for e in nucleo.trilha.eventos]
 
@@ -68,14 +65,16 @@ def test_conflito_de_atualizacao_auditado(nucleo, atores, cenario):
 
 
 def test_transicao_persistida_e_recusa_auditada(nucleo, atores, cenario):
+    nucleo.registrar(atores["analista"], cenario["FonteDado"][0])
+    nucleo.registrar(atores["analista"], cenario["AreaCandidata"][0])
     d, _ = nucleo.registrar(atores["coord"], cenario["Demanda"][0])
-    d2 = nucleo.transitar(atores["sistema"], d.id, Estado.ALERTA, contexto=CTX_OK)
+    d2 = nucleo.transitar(atores["sistema"], d.id, Estado.ALERTA)
     assert d2.estado is Estado.ALERTA and d2.versao == 2
     with pytest.raises(TransicaoInvalida):
-        nucleo.transitar(atores["analista"], d.id, Estado.ENCERRADA, contexto=CTX_OK)
+        nucleo.transitar(atores["analista"], d.id, Estado.ENCERRADA)
     assert nucleo.repo.obter(E.Demanda, d.id).estado is Estado.ALERTA
-    assert acoes(nucleo) == ["CRIAR", "TRANSICAO", "TRANSICAO_RECUSADA"]
-    assert nucleo.verificar_auditoria(atores["auditor"]) == 3
+    assert acoes(nucleo) == ["CRIAR", "CRIAR", "CRIAR", "TRANSICAO", "TRANSICAO_RECUSADA"]
+    assert nucleo.verificar_auditoria(atores["auditor"]) == 5
 
 
 def test_leitura_restrita_exige_papel_e_e_auditada(nucleo, atores, cenario):

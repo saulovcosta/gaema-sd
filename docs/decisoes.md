@@ -64,3 +64,11 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Motivo:** prompt §7 e §11.
 - **Impacto:** `Providencia` registra decisão humana em texto livre, com autor humano; `AreaInteresse` não é imóvel nem cadastro; pessoas vinculadas não existem no modelo desta fase.
 - **Teste:** `tests/test_fronteira_juridica.py` varre os campos das entidades.
+
+## DEC-007 — Condições das transições apuradas pelo núcleo (03/10/2026)
+
+- **Hipótese:** se quem pede a transição informa as condições (ex.: "revisão aprovada"), a revisão humana pode ser pulada.
+- **Motivo:** revisão independente do código reproduziu uma demanda chegando a DIAGNOSTICO_EMITIDO sem diagnóstico nem revisão gravados.
+- **Impacto:** `Nucleo.transitar` não recebe contexto; `estados/contexto.py` apura no banco e na trilha. A revisão que libera a emissão deve ser do próprio revisor que emite, e ele não pode ter participado da coleta (segregação de funções, AUTORAL). Reabertura só volta ao monitoramento se a demanda já teve diagnóstico emitido.
+- **Risco:** consulta ao banco a cada transição (lista e filtra registros); aceitável no protótipo, otimizar com índices na Fase 4.
+- **Teste:** `tests/test_regressao_revisao.py` (fluxo real pelo banco até DIAGNOSTICO_EMITIDO).

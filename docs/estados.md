@@ -124,6 +124,8 @@ stateDiagram-v2
 | `providencia_registrada` | Providência institucional registrada por membro do MP |
 | `ha_marcos` | Plano com ao menos um marco de monitoramento |
 | `marcos_resolvidos` | Nenhum marco pendente de verificação |
+| `ja_foi_aberta` | Demanda já passou por DEMANDA_ABERTA antes |
+| `ja_teve_diagnostico_emitido` | Demanda já passou por DIAGNOSTICO_EMITIDO antes |
 | `duplicada_de_informada` | Demanda original informada |
 | `destino_e_estado_anterior` | Destino igual ao estado anterior à exceção |
 
@@ -184,8 +186,8 @@ stateDiagram-v2
 | 51 | EM_MONITORAMENTO | CANCELADA_JUSTIFICADA | COORDENADOR, MEMBRO_MP | — | sim | não | Cancelamento justificado |
 | 52 | ENCERRADA | REABERTA | MEMBRO_MP | — | sim | não | Reabertura |
 | 53 | REABERTA | EM_TRIAGEM | COORDENADOR, MEMBRO_MP | — | não | não | Nova triagem |
-| 54 | REABERTA | ATRIBUIDA | COORDENADOR | `equipe_definida` | não | não | Nova vistoria |
-| 55 | REABERTA | EM_MONITORAMENTO | COORDENADOR, MEMBRO_MP | `ha_marcos` | não | não | Retomada do monitoramento |
+| 54 | REABERTA | ATRIBUIDA | COORDENADOR | `ja_foi_aberta`, `area_interesse_definida`, `equipe_definida` | não | não | Nova vistoria |
+| 55 | REABERTA | EM_MONITORAMENTO | COORDENADOR, MEMBRO_MP | `ja_teve_diagnostico_emitido`, `ha_marcos` | não | não | Retomada do monitoramento |
 | 56 | REABERTA | CANCELADA_JUSTIFICADA | COORDENADOR, MEMBRO_MP | — | sim | CANCELADA_JUSTIFICADA → REABERTA | Cancelamento justificado |
 | 57 | DUPLICADA | CANDIDATA | COORDENADOR | `destino_e_estado_anterior` | sim | CANDIDATA → DUPLICADA | Retorno ao estado anterior à exceção |
 | 58 | DUPLICADA | ALERTA | COORDENADOR | `destino_e_estado_anterior` | sim | ALERTA → DUPLICADA | Retorno ao estado anterior à exceção |

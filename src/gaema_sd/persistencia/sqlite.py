@@ -109,6 +109,7 @@ class Repositorio:
     def inserir(self, obj: T) -> tuple[T, bool]:
         """Grava registro novo. Devolve (registro, criado). criado=False em reenvio idêntico."""
         tipo = type(obj).__name__
+        obj = de_dict(type(obj), para_dict(obj))  # forma canônica (ex.: 10 e 10.0 viram o mesmo valor)
         chave = getattr(obj, "chave_idempotencia", "") or ""
         dados, hash_dados = _conteudo(obj)
         with self.transacao():
@@ -152,11 +153,15 @@ class Repositorio:
         nova = dataclasses.replace(obj, versao=versao_lida + 1,
                                    atualizado_em=datetime.now(timezone.utc))
         dados, hash_dados = _conteudo(nova)
+        chave = getattr(nova, "chave_idempotencia", "") or ""
         with self.transacao():
-            cur = self.con.execute(
-                "UPDATE registros SET versao=?, dados=?, hash_dados=?, gravado_em=?"
-                " WHERE tipo=? AND id=? AND versao=?",
-                (nova.versao, dados, hash_dados, _agora(), tipo, obj.id, versao_lida))
+            try:
+                cur = self.con.execute(
+                    "UPDATE registros SET versao=?, dados=?, hash_dados=?, chave_idempotencia=?, gravado_em=?"
+                    " WHERE tipo=? AND id=? AND versao=?",
+                    (nova.versao, dados, hash_dados, chave, _agora(), tipo, obj.id, versao_lida))
+            except sqlite3.IntegrityError as e:
+                raise ConflitoIdempotencia(f"{tipo} {obj.id}: chave de envio já usada por outro registro") from e
             if cur.rowcount == 0:
                 atual = self.con.execute("SELECT versao FROM registros WHERE tipo=? AND id=?",
                                          (tipo, obj.id)).fetchone()

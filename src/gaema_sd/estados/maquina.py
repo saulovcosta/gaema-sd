@@ -31,7 +31,7 @@ P = Papel
 
 @dataclass
 class ContextoTransicao:
-    """Fatos sobre a demanda, montados pelo chamador a partir do repositório."""
+    """Fatos sobre a demanda. No Nucleo, montados a partir do banco (estados/contexto.py)."""
 
     geometria_valida: bool = False
     fonte_registrada: bool = False
@@ -52,6 +52,7 @@ class ContextoTransicao:
     providencia_registrada: bool = False
     marcos_monitoramento: int = 0
     marcos_pendentes: int = 0
+    estados_percorridos: frozenset[str] = frozenset()
 
 
 Checagem = Callable[[Demanda, ContextoTransicao, Estado], Optional[str]]
@@ -104,6 +105,12 @@ PRECONDICOES: dict[str, tuple[str, Checagem]] = {
                   _se(lambda d, c, x: c.marcos_monitoramento > 0, "nenhum marco de monitoramento")),
     "marcos_resolvidos": ("Nenhum marco pendente de verificação",
                           _se(lambda d, c, x: c.marcos_pendentes == 0, "há marcos pendentes")),
+    "ja_foi_aberta": ("Demanda já passou por DEMANDA_ABERTA antes",
+                      _se(lambda d, c, x: Estado.DEMANDA_ABERTA.value in c.estados_percorridos,
+                          "a demanda nunca foi formalmente aberta")),
+    "ja_teve_diagnostico_emitido": ("Demanda já passou por DIAGNOSTICO_EMITIDO antes",
+                                    _se(lambda d, c, x: Estado.DIAGNOSTICO_EMITIDO.value in c.estados_percorridos,
+                                        "a demanda nunca teve diagnóstico emitido")),
     "duplicada_de_informada": ("Demanda original informada",
                                _se(lambda d, c, x: bool(d.duplicada_de) and d.duplicada_de != d.id,
                                    "informar a demanda original")),
@@ -162,8 +169,9 @@ _NORMAIS = [
     _t(S.ENCERRADA, S.REABERTA, {P.MEMBRO_MP}, motivo=True, descricao="Reabertura"),
     _t(S.CANCELADA_JUSTIFICADA, S.REABERTA, {P.MEMBRO_MP}, motivo=True, descricao="Reabertura"),
     _t(S.REABERTA, S.EM_TRIAGEM, {P.COORDENADOR, P.MEMBRO_MP}, descricao="Nova triagem"),
-    _t(S.REABERTA, S.ATRIBUIDA, {P.COORDENADOR}, ["equipe_definida"], descricao="Nova vistoria"),
-    _t(S.REABERTA, S.EM_MONITORAMENTO, {P.COORDENADOR, P.MEMBRO_MP}, ["ha_marcos"],
+    _t(S.REABERTA, S.ATRIBUIDA, {P.COORDENADOR}, ["ja_foi_aberta", "area_interesse_definida", "equipe_definida"],
+       descricao="Nova vistoria"),
+    _t(S.REABERTA, S.EM_MONITORAMENTO, {P.COORDENADOR, P.MEMBRO_MP}, ["ja_teve_diagnostico_emitido", "ha_marcos"],
        descricao="Retomada do monitoramento"),
 ]
 

@@ -16,6 +16,7 @@ from ..dominio.enums import (
     VariavelCampo,
 )
 from . import geometria, gps, unidades
+from .tipos import validar_tipos
 from .problemas import Problema, alerta, erro
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -254,6 +255,12 @@ REGRAS = {
 
 
 def validar(obj) -> list[Problema]:
-    """Todas as regras da entidade: obrigatórios + regras específicas."""
+    """Todas as regras da entidade: tipos, obrigatórios e regras específicas.
+
+    Com tipo errado, as regras específicas não rodam (poderiam falhar ao ler o valor).
+    """
+    tipos = validar_tipos(obj)
+    if tipos:
+        return tipos
     regra = REGRAS.get(type(obj))
     return _comum(obj) + (regra(obj) if regra else [])

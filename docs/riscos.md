@@ -16,5 +16,5 @@ Escala: Probabilidade e Impacto em Baixo / Médio / Alto.
 | R-10 | Ambiente de nuvem efêmero apagar trabalho | Média | Médio | Commit e push ao fim de cada fase | Ativo |
 | R-11 | Controle de acesso só na interface | Média | Alto | Política de acesso no núcleo (`acesso/politica.py`) | Mitigado na Fase 2 |
 | R-12 | Dependência vulnerável | Baixa | Médio | Poucas dependências e versões fixadas; análise na Fase 4 | Aberto |
-| R-13 | Contexto das transições (fatos como "revisão aprovada") é informado pelo chamador e poderia ser falseado | Média | Alto | Fase 3: montar o contexto a partir do repositório dentro do núcleo, sem aceitar valores externos | Aberto |
-| R-14 | Vídeos do SIPADE (F3, F10) não analisados | Alta | Baixo | Nada do conteúdo usado; análise se o usuário disponibilizar os arquivos por link | Aberto |
+| R-13 | Contexto das transições (fatos como "revisão aprovada") é informado pelo chamador e poderia ser falseado | Média | Alto | `Nucleo.transitar` monta o contexto a partir do banco e da trilha (`estados/contexto.py`); chamador não informa fatos | Mitigado na Fase 2 (após revisão independente) |
+| R-14 | Vídeos do SIPADE (F3, F10) não analisados | Alta | Baixo | Nada do conteúdo usado. YouTube exige login; conector do Drive limita a 10 MB; arquivos não compartilhados por link | Aberto |

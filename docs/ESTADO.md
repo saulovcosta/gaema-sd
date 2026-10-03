@@ -21,7 +21,7 @@ Atualizado em: 03/10/2026, Fase 2.
 
 ## Testes executados
 
-`python3 -m pytest` → **100 passed** (03/10/2026).
+`python3 -m pytest` → **111 passed** (03/10/2026), incluindo fluxo real pelo banco de CANDIDATA até DIAGNOSTICO_EMITIDO.
 
 Cenários obrigatórios do §14 cobertos nesta fase: envio duplicado, conflito de atualização (inclusive 8 conexões simultâneas), anexo inválido, GPS ruim, geometria inválida, variável obrigatória ausente, acesso indevido.
 
@@ -29,10 +29,10 @@ Cenários obrigatórios do §14 cobertos nesta fase: envio duplicado, conflito d
 
 ## Falta
 
-- Revisão independente do código da Fase 2: em andamento; correções em commit próprio.
-- R-13: o contexto das transições ainda é informado pelo chamador; na Fase 3 o núcleo deve montá-lo a partir do banco.
+- Revisão independente do código da Fase 2: **concluída**; 8 falhas reproduzidas e corrigidas, cada uma com teste de regressão (`tests/test_regressao_revisao.py`): demanda criada em estado avançado; condições de transição informadas pelo chamador (DEC-007); diagnóstico alterável após revisão; autoria forjável; tipo errado que tornava registro ilegível; reabertura que pulava o diagnóstico; troca de chave de envio gerando duplicidade; corrida que desfazia transição.
+- Vídeos do SIPADE (F3, F10): continuam sem análise (ver `docs/fontes.md`).
 - Fases 3 a 5.
 
 ## Próximo passo exato
 
-Fase 3: criar `src/gaema_sd/estados/contexto.py` com `montar_contexto(repo, demanda_id)` e fazer `Nucleo.transitar` usá-lo no lugar do contexto externo; em seguida, motor de protocolo (`src/gaema_sd/protocolo/`) conforme `docs/protocolo.md`.
+Fase 3: implementar o motor de protocolo em `src/gaema_sd/protocolo/` conforme `docs/protocolo.md` (modo descritivo e protótipo rotulado), começando por `protocolo/motor.py` com cálculo de `hash_entradas` e lista de regras disparadas.
