@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/CampanhaVistoria.schema.json",
+  "title": "CampanhaVistoria",
+  "description": "CampanhaVistoria(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, demanda_id: 'str', equipe_id: 'str', versao_protocolo_id: 'str', objetivo: 'str', data_planejada: 'date', inicio_em: 'Optional[datetime]' = None, fim_em: 'Optional[datetime]' = None, pacote_offline: 'str' = '', condicao_acesso: 'CondicaoAcesso' = <CondicaoAcesso.NAO_INFORMADA: 'NAO_INFORMADA'>, nota_acesso: 'str' = '')",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "equipe_id": {
+      "type": "string"
+    },
+    "versao_protocolo_id": {
+      "type": "string"
+    },
+    "objetivo": {
+      "type": "string"
+    },
+    "data_planejada": {
+      "type": "string",
+      "format": "date"
+    },
+    "inicio_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fim_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pacote_offline": {
+      "type": "string"
+    },
+    "condicao_acesso": {
+      "type": "string",
+      "enum": [
+        "NAO_INFORMADA",
+        "ACESSO_REALIZADO",
+        "ACESSO_PARCIAL",
+        "SEM_ACESSO"
+      ]
+    },
+    "nota_acesso": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "demanda_id",
+    "equipe_id",
+    "versao_protocolo_id",
+    "objetivo",
+    "data_planejada"
+  ],
+  "additionalProperties": false
+}

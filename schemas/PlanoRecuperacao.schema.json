@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/PlanoRecuperacao.schema.json",
+  "title": "PlanoRecuperacao",
+  "description": "PlanoRecuperacao(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, demanda_id: 'str', tipo: 'TipoPlano' = <TipoPlano.A_DEFINIR: 'A_DEFINIR'>, objetivos: 'str', acoes: 'list[str]' = <factory>, origem_documento: 'str' = '', elaborado_por: 'str' = '', prazo_meses: 'Optional[int]' = None)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "RECUPERACAO",
+        "RENOVACAO",
+        "A_DEFINIR"
+      ]
+    },
+    "objetivos": {
+      "type": "string"
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "origem_documento": {
+      "type": "string"
+    },
+    "elaborado_por": {
+      "type": "string"
+    },
+    "prazo_meses": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "demanda_id",
+    "objetivos"
+  ],
+  "additionalProperties": false
+}

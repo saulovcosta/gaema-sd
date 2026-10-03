@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/MedicaoPenetracao.schema.json",
+  "title": "MedicaoPenetracao",
+  "description": "MedicaoPenetracao(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, ponto_id: 'str', repeticao: 'int', profundidade_bruta: 'str', profundidade_unidade: 'str', resistencia_bruta: 'str', resistencia_unidade: 'str', profundidade_cm: 'Optional[float]' = None, resistencia_kpa: 'Optional[float]' = None, contexto_umidade: 'str' = '', equipamento: 'str' = '', medido_em: 'datetime', chave_idempotencia: 'str' = '', status_sincronizacao: 'StatusSincronizacao' = <StatusSincronizacao.LOCAL: 'LOCAL'>)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "ponto_id": {
+      "type": "string"
+    },
+    "repeticao": {
+      "type": "integer"
+    },
+    "profundidade_bruta": {
+      "type": "string"
+    },
+    "profundidade_unidade": {
+      "type": "string"
+    },
+    "resistencia_bruta": {
+      "type": "string"
+    },
+    "resistencia_unidade": {
+      "type": "string"
+    },
+    "profundidade_cm": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resistencia_kpa": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contexto_umidade": {
+      "type": "string"
+    },
+    "equipamento": {
+      "type": "string"
+    },
+    "medido_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "chave_idempotencia": {
+      "type": "string"
+    },
+    "status_sincronizacao": {
+      "type": "string",
+      "enum": [
+        "LOCAL",
+        "PENDENTE",
+        "SINCRONIZADO",
+        "CONFLITO"
+      ]
+    }
+  },
+  "required": [
+    "ponto_id",
+    "repeticao",
+    "profundidade_bruta",
+    "profundidade_unidade",
+    "resistencia_bruta",
+    "resistencia_unidade",
+    "medido_em"
+  ],
+  "additionalProperties": false
+}

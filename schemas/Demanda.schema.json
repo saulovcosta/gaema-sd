@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Demanda.schema.json",
+  "title": "Demanda",
+  "description": "Unidade de acompanhamento que percorre a máquina de estados.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "titulo": {
+      "type": "string"
+    },
+    "objetivo": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "CANDIDATA",
+        "ALERTA",
+        "EM_TRIAGEM",
+        "DEMANDA_ABERTA",
+        "ATRIBUIDA",
+        "PLANEJADA",
+        "EM_CAMPO",
+        "COLETA_PARCIAL",
+        "AGUARDANDO_SINCRONIZACAO",
+        "EM_VALIDACAO",
+        "AGUARDANDO_REVISAO",
+        "DIAGNOSTICO_EMITIDO",
+        "EM_TRATATIVA",
+        "EM_MONITORAMENTO",
+        "ENCERRADA",
+        "REABERTA",
+        "DUPLICADA",
+        "DADOS_INSUFICIENTES",
+        "SEM_ACESSO",
+        "GEOMETRIA_INCONSISTENTE",
+        "CONFLITO_SINCRONIZACAO",
+        "CANCELADA_JUSTIFICADA",
+        "DEVOLVIDA_COMPLEMENTACAO"
+      ]
+    },
+    "estado_anterior": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "CANDIDATA",
+            "ALERTA",
+            "EM_TRIAGEM",
+            "DEMANDA_ABERTA",
+            "ATRIBUIDA",
+            "PLANEJADA",
+            "EM_CAMPO",
+            "COLETA_PARCIAL",
+            "AGUARDANDO_SINCRONIZACAO",
+            "EM_VALIDACAO",
+            "AGUARDANDO_REVISAO",
+            "DIAGNOSTICO_EMITIDO",
+            "EM_TRATATIVA",
+            "EM_MONITORAMENTO",
+            "ENCERRADA",
+            "REABERTA",
+            "DUPLICADA",
+            "DADOS_INSUFICIENTES",
+            "SEM_ACESSO",
+            "GEOMETRIA_INCONSISTENTE",
+            "CONFLITO_SINCRONIZACAO",
+            "CANCELADA_JUSTIFICADA",
+            "DEVOLVIDA_COMPLEMENTACAO"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "alerta_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "area_candidata_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_interesse_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "equipe_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "duplicada_de": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "referencia_interna": {
+      "type": "string"
+    },
+    "criterio_priorizacao": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ART17_I",
+            "ART17_II",
+            "ART17_III",
+            "ART17_IV",
+            "OUTRO"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "motivo_priorizacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "titulo"
+  ],
+  "additionalProperties": false
+}

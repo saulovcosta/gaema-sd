@@ -1,0 +1,41 @@
+{
+  "codigo": "GAEMA-PROTOTIPO-TESTE",
+  "versao": "0.1.0",
+  "modo": "PROTOTIPO_TESTE",
+  "rotulo": "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA",
+  "descricao": "Categorias descritivas inspiradas nos cenários públicos do SIPADE (FC-04), avaliadas só por presença ou ausência informada em campo. Uso exclusivo em desenvolvimento e testes.",
+  "proveniencia": "AUTORAL",
+  "categorias": {
+    "CAT-A": "Sem indícios das variáveis de degradação observadas",
+    "CAT-B": "Presença de plantas invasoras",
+    "CAT-C": "Presença de plantas invasoras e de cupins de montículo",
+    "CAT-D": "Solo exposto e processo erosivo observados"
+  },
+  "regras": [
+    {"id": "R-A1", "categoria": "CAT-A", "descricao": "Invasoras, cupins e todas as formas de erosão ausentes",
+     "condicoes": [
+       {"operador": "ausente", "variavel": "PLANTAS_INVASORAS"},
+       {"operador": "ausente", "variavel": "CUPINS_MONTICULO"},
+       {"operador": "ausente", "variavel": "EROSAO_LAMINAR"},
+       {"operador": "ausente", "variavel": "SULCOS"},
+       {"operador": "ausente", "variavel": "RAVINAS"},
+       {"operador": "ausente", "variavel": "VOCOROCAS"}]},
+    {"id": "R-B1", "categoria": "CAT-B", "descricao": "Invasoras presentes e cupins ausentes",
+     "condicoes": [
+       {"operador": "presente", "variavel": "PLANTAS_INVASORAS"},
+       {"operador": "ausente", "variavel": "CUPINS_MONTICULO"}]},
+    {"id": "R-C1", "categoria": "CAT-C", "descricao": "Invasoras e cupins presentes",
+     "condicoes": [
+       {"operador": "presente", "variavel": "PLANTAS_INVASORAS"},
+       {"operador": "presente", "variavel": "CUPINS_MONTICULO"}]},
+    {"id": "R-D1", "categoria": "CAT-D", "descricao": "Solo exposto presente e alguma forma de erosão presente",
+     "condicoes": [
+       {"operador": "presente", "variavel": "SOLO_EXPOSTO"},
+       {"operador": "qualquer_presente", "variaveis": ["EROSAO_LAMINAR", "SULCOS", "RAVINAS", "VOCOROCAS"]}]}
+  ],
+  "limitacoes": [
+    "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA: categorias e regras criadas para desenvolvimento, sem validação.",
+    "Quando mais de uma categoria se aplica ao mesmo ponto, o ponto fica não classificado; não há regra de precedência.",
+    "Não há categoria da área inteira: o resultado é por ponto amostral."
+  ]
+}

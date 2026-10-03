@@ -1,0 +1,38 @@
+{
+  "_aviso": "Parâmetros operacionais. Nenhum tem validade científica. Alterar só com registro em docs/decisoes.md.",
+  "gps_precisao_maxima_m": {
+    "valor": 10.0,
+    "proveniencia": "AUTORAL",
+    "observacao": "Valor operacional provisório para disparar ALERTA de GPS ruim. Não bloqueia o registro. Sem fundamento científico; a confirmar com a equipe técnica."
+  },
+  "anexo_tamanho_maximo_bytes": {
+    "valor": 26214400,
+    "proveniencia": "AUTORAL",
+    "observacao": "25 MiB por arquivo. Limite técnico provisório."
+  },
+  "anexo_tipos_permitidos": {
+    "valor": ["image/jpeg", "image/png", "application/pdf"],
+    "proveniencia": "AUTORAL",
+    "observacao": "Tipo conferido pela assinatura do arquivo, não pela extensão."
+  },
+  "recorte_aproximado_tocantins": {
+    "valor": {"lon_min": -50.8, "lon_max": -45.6, "lat_min": -13.5, "lat_max": -5.1},
+    "proveniencia": "AUTORAL",
+    "observacao": "Retângulo envolvente aproximado, usado só para ALERTA de localização improvável. Não é limite oficial."
+  },
+  "ndvi": {
+    "valor": null,
+    "proveniencia": "PENDENTE",
+    "observacao": "Sinal configurável. Sem limiar padrão (lacuna LA-03)."
+  },
+  "penetrometria_profundidade_cm": {
+    "valor": null,
+    "proveniencia": "PENDENTE",
+    "observacao": "Depende de protocolo de campo (lacuna LA-04)."
+  },
+  "penetrometria_repeticoes_minimas": {
+    "valor": null,
+    "proveniencia": "PENDENTE",
+    "observacao": "Depende de protocolo de campo (lacuna LA-04)."
+  }
+}

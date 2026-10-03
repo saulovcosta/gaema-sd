@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/RevisaoTecnica.schema.json",
+  "title": "RevisaoTecnica",
+  "description": "RevisaoTecnica(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, diagnostico_id: 'str', revisor_id: 'str', resultado: 'ResultadoRevisao', fundamentacao: 'str', ressalvas: 'str' = '', revisado_em: 'datetime' = <factory>)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "diagnostico_id": {
+      "type": "string"
+    },
+    "revisor_id": {
+      "type": "string"
+    },
+    "resultado": {
+      "type": "string",
+      "enum": [
+        "APROVADO",
+        "APROVADO_COM_RESSALVAS",
+        "DEVOLVIDO",
+        "REJEITADO"
+      ]
+    },
+    "fundamentacao": {
+      "type": "string"
+    },
+    "ressalvas": {
+      "type": "string"
+    },
+    "revisado_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "diagnostico_id",
+    "revisor_id",
+    "resultado",
+    "fundamentacao"
+  ],
+  "additionalProperties": false
+}

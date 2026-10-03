@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Observacao.schema.json",
+  "title": "Observacao",
+  "description": "Observacao(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, ponto_id: 'str', variavel: 'VariavelCampo', valor_bruto: 'str', unidade_bruta: 'str', valor_normalizado: 'Optional[float]' = None, unidade_normalizada: 'str' = '', observado_em: 'datetime', observador_id: 'str', nota: 'str' = '', chave_idempotencia: 'str' = '', status_sincronizacao: 'StatusSincronizacao' = <StatusSincronizacao.LOCAL: 'LOCAL'>)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "ponto_id": {
+      "type": "string"
+    },
+    "variavel": {
+      "type": "string",
+      "enum": [
+        "COBERTURA_FORRAGEIRA",
+        "VIGOR_FORRAGEIRA",
+        "ALTURA_PASTO",
+        "SOLO_EXPOSTO",
+        "PLANTAS_INVASORAS",
+        "CUPINS_MONTICULO",
+        "EROSAO_LAMINAR",
+        "SULCOS",
+        "RAVINAS",
+        "VOCOROCAS",
+        "UMIDADE_SOLO",
+        "PRECIPITACAO_RECENTE",
+        "TIPO_SOLO",
+        "FORMACAO_GEOLOGICA",
+        "ANIMAIS_PASTEJO",
+        "CONTEXTO_SAZONAL",
+        "DRENAGEM",
+        "DECLIVIDADE",
+        "MANEJO_INFORMADO",
+        "HIPOTESE_ALTERNATIVA",
+        "OUTRA"
+      ]
+    },
+    "valor_bruto": {
+      "type": "string"
+    },
+    "unidade_bruta": {
+      "type": "string"
+    },
+    "valor_normalizado": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unidade_normalizada": {
+      "type": "string"
+    },
+    "observado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observador_id": {
+      "type": "string"
+    },
+    "nota": {
+      "type": "string"
+    },
+    "chave_idempotencia": {
+      "type": "string"
+    },
+    "status_sincronizacao": {
+      "type": "string",
+      "enum": [
+        "LOCAL",
+        "PENDENTE",
+        "SINCRONIZADO",
+        "CONFLITO"
+      ]
+    }
+  },
+  "required": [
+    "ponto_id",
+    "variavel",
+    "valor_bruto",
+    "unidade_bruta",
+    "observado_em",
+    "observador_id"
+  ],
+  "additionalProperties": false
+}

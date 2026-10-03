@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Evidencia.schema.json",
+  "title": "Evidencia",
+  "description": "Arquivo original nunca é sobrescrito; correção gera nova Evidencia.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "campanha_id": {
+      "type": "string"
+    },
+    "ponto_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observacao_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "FOTO_PANORAMICA",
+        "FOTO_SOLO",
+        "FOTO_FORRAGEIRA",
+        "FOTO_INVASORA",
+        "FOTO_CUPINZEIRO",
+        "FOTO_EROSAO",
+        "FOTO_MEDICAO",
+        "DOCUMENTO",
+        "OUTRA"
+      ]
+    },
+    "nome_arquivo_original": {
+      "type": "string"
+    },
+    "tipo_mime": {
+      "type": "string"
+    },
+    "tamanho_bytes": {
+      "type": "integer"
+    },
+    "sha256": {
+      "type": "string"
+    },
+    "registrado_por": {
+      "type": "string"
+    },
+    "capturado_em_declarado": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latitude_declarada": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "longitude_declarada": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "armazenamento_ref": {
+      "type": "string"
+    },
+    "substitui_evidencia_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "chave_idempotencia": {
+      "type": "string"
+    },
+    "status_sincronizacao": {
+      "type": "string",
+      "enum": [
+        "LOCAL",
+        "PENDENTE",
+        "SINCRONIZADO",
+        "CONFLITO"
+      ]
+    }
+  },
+  "required": [
+    "campanha_id",
+    "categoria",
+    "nome_arquivo_original",
+    "tipo_mime",
+    "tamanho_bytes",
+    "sha256",
+    "registrado_por"
+  ],
+  "additionalProperties": false
+}

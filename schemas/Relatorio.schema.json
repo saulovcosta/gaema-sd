@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/Relatorio.schema.json",
+  "title": "Relatorio",
+  "description": "Toda correção gera nova versão; a anterior é preservada.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "numero_versao": {
+      "type": "integer"
+    },
+    "diagnostico_id": {
+      "type": "string"
+    },
+    "revisao_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "versao_protocolo_id": {
+      "type": "string"
+    },
+    "formato": {
+      "type": "string",
+      "enum": [
+        "HTML",
+        "PDF"
+      ]
+    },
+    "hash_conteudo": {
+      "type": "string"
+    },
+    "gerado_por": {
+      "type": "string"
+    },
+    "gerado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "substitui_relatorio_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "motivo_reemissao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "demanda_id",
+    "diagnostico_id",
+    "versao_protocolo_id",
+    "hash_conteudo",
+    "gerado_por"
+  ],
+  "additionalProperties": false
+}

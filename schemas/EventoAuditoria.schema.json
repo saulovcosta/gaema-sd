@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/EventoAuditoria.schema.json",
+  "title": "EventoAuditoria",
+  "description": "Evento imutável, encadeado por hash ao anterior (ver auditoria/trilha.py).",
+  "type": "object",
+  "properties": {
+    "sequencia": {
+      "type": "integer"
+    },
+    "ocorrido_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ator_id": {
+      "type": "string"
+    },
+    "papeis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acao": {
+      "type": "string"
+    },
+    "entidade": {
+      "type": "string"
+    },
+    "entidade_id": {
+      "type": "string"
+    },
+    "estado_origem": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "estado_destino": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "motivo": {
+      "type": "string"
+    },
+    "detalhes": {
+      "type": "object"
+    },
+    "hash_anterior": {
+      "type": "string"
+    },
+    "hash_evento": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sequencia",
+    "ocorrido_em",
+    "ator_id",
+    "papeis",
+    "acao",
+    "entidade",
+    "entidade_id",
+    "hash_anterior",
+    "hash_evento"
+  ],
+  "additionalProperties": false
+}

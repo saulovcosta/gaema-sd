@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/VersaoProtocolo.schema.json",
+  "title": "VersaoProtocolo",
+  "description": "Imutável após publicação: mudança gera nova versão.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "codigo": {
+      "type": "string"
+    },
+    "versao_semantica": {
+      "type": "string"
+    },
+    "modo": {
+      "type": "string",
+      "enum": [
+        "DESCRITIVO",
+        "PROTOTIPO_TESTE",
+        "VALIDADO_CIENTIFICAMENTE"
+      ]
+    },
+    "rotulo": {
+      "type": "string"
+    },
+    "definicao_json": {
+      "type": "string"
+    },
+    "hash_definicao": {
+      "type": "string"
+    },
+    "vigente_desde": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "referencia_validacao": {
+      "type": "string"
+    },
+    "proveniencia": {
+      "type": "string",
+      "enum": [
+        "INSTITUCIONAL",
+        "OBSERVACAO_PUBLICA",
+        "DOCUMENTACAO_OFICIAL",
+        "CIENTIFICO",
+        "AUTORAL",
+        "PENDENTE"
+      ]
+    }
+  },
+  "required": [
+    "codigo",
+    "versao_semantica"
+  ],
+  "additionalProperties": false
+}

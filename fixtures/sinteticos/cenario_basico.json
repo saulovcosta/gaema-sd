@@ -1,0 +1,258 @@
+{
+  "_aviso": "DADOS SINTÉTICOS. Nada aqui corresponde a pessoa, imóvel ou procedimento real.",
+  "FonteDado": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "nome": "Camada sintética de cobertura",
+      "tipo": "CAMADA_RASTER",
+      "provedor": "GERADOR SINTÉTICO",
+      "data_referencia": "2026-01-01",
+      "resolucao_m": 30.0,
+      "autorizacao_uso": "PENDENTE",
+      "url_referencia": "",
+      "nota_qualidade": "",
+      "proveniencia": "AUTORAL"
+    }
+  ],
+  "AreaCandidata": [
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "geometria_wkt": "POLYGON ((-48.500 -10.500, -48.490 -10.500, -48.490 -10.490, -48.500 -10.490, -48.500 -10.500))",
+      "fonte_ids": [
+        "00000000-0000-4000-8000-000000000001"
+      ],
+      "sinais": [
+        {
+          "nome": "indice_sintetico",
+          "valor": 0.5,
+          "unidade": "",
+          "fonte_id": "00000000-0000-4000-8000-000000000001",
+          "data_referencia": "2026-01-01",
+          "metodo": "valor inventado para teste"
+        }
+      ],
+      "data_deteccao": "2026-01-10",
+      "metodo_selecao": "seleção manual sintética",
+      "prioridade": null,
+      "chave_deduplicacao": "sintetica-a"
+    }
+  ],
+  "Alerta": [
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "origem": "SINAL_REMOTO",
+      "descricao": "Alerta sintético de teste",
+      "data_alerta": "2026-01-11",
+      "area_candidata_id": "00000000-0000-4000-8000-000000000002",
+      "geometria_wkt": "",
+      "referencia_documento": ""
+    }
+  ],
+  "AreaInteresse": [
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "geometria_wkt": "POLYGON ((-48.500 -10.500, -48.490 -10.500, -48.490 -10.490, -48.500 -10.490, -48.500 -10.500))",
+      "descricao": "Área Sintética A",
+      "origem": "DE_CANDIDATA",
+      "area_candidata_id": "00000000-0000-4000-8000-000000000002",
+      "cruzamentos": []
+    }
+  ],
+  "Equipe": [
+    {
+      "id": "00000000-0000-4000-8000-000000000005",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "nome": "Equipe Sintética 1",
+      "membros": [
+        {
+          "usuario_id": "usuario-sintetico-02",
+          "papel": "TECNICO_CAMPO",
+          "funcao": "vistoria"
+        },
+        {
+          "usuario_id": "usuario-sintetico-03",
+          "papel": "COORDENADOR",
+          "funcao": "coordenação"
+        }
+      ]
+    }
+  ],
+  "VersaoProtocolo": [
+    {
+      "id": "00000000-0000-4000-8000-000000000006",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "codigo": "GAEMA-DESCRITIVO",
+      "versao_semantica": "0.1.0",
+      "modo": "DESCRITIVO",
+      "rotulo": "",
+      "definicao_json": "{\"codigo\":\"GAEMA-DESCRITIVO\",\"descricao\":\"Organiza e resume as observações de campo, sem classificar a pastagem.\",\"limitacoes\":[\"Modo descritivo: o sistema não classifica a pastagem; descreve o que foi registrado em campo.\",\"Nenhum limiar numérico foi aplicado.\"],\"modo\":\"DESCRITIVO\",\"proveniencia\":\"AUTORAL\",\"versao\":\"0.1.0\"}",
+      "hash_definicao": "a8349d9464b3a8061cf974ccbd93961d2a18fe2c35370a03a674f39b5939df9c",
+      "vigente_desde": "2026-01-01",
+      "referencia_validacao": "",
+      "proveniencia": "AUTORAL"
+    }
+  ],
+  "Demanda": [
+    {
+      "id": "00000000-0000-4000-8000-000000000007",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "titulo": "Demanda sintética A",
+      "objetivo": "Teste do fluxo",
+      "estado": "CANDIDATA",
+      "estado_anterior": null,
+      "alerta_ids": [
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "area_candidata_id": "00000000-0000-4000-8000-000000000002",
+      "area_interesse_id": "00000000-0000-4000-8000-000000000004",
+      "equipe_id": "00000000-0000-4000-8000-000000000005",
+      "duplicada_de": null,
+      "referencia_interna": "",
+      "criterio_priorizacao": null,
+      "motivo_priorizacao": ""
+    }
+  ],
+  "CampanhaVistoria": [
+    {
+      "id": "00000000-0000-4000-8000-000000000008",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "demanda_id": "00000000-0000-4000-8000-000000000007",
+      "equipe_id": "00000000-0000-4000-8000-000000000005",
+      "versao_protocolo_id": "00000000-0000-4000-8000-000000000006",
+      "objetivo": "Vistoria sintética",
+      "data_planejada": "2026-02-01",
+      "inicio_em": null,
+      "fim_em": null,
+      "pacote_offline": "pacote-sintetico",
+      "condicao_acesso": "NAO_INFORMADA",
+      "nota_acesso": ""
+    }
+  ],
+  "PontoAmostral": [
+    {
+      "id": "00000000-0000-4000-8000-000000000009",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "campanha_id": "00000000-0000-4000-8000-000000000008",
+      "codigo": "P01",
+      "latitude": -10.495,
+      "longitude": -48.495,
+      "precisao_gps_m": 4.0,
+      "altitude_m": null,
+      "capturado_em": "2026-01-15T12:00:00+00:00",
+      "dispositivo_id": "dispositivo-sintetico",
+      "geometria_wkt": "",
+      "chave_idempotencia": "disp-sint:P01",
+      "status_sincronizacao": "LOCAL"
+    }
+  ],
+  "Observacao": [
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "ponto_id": "00000000-0000-4000-8000-000000000009",
+      "variavel": "SOLO_EXPOSTO",
+      "valor_bruto": "35",
+      "unidade_bruta": "%",
+      "valor_normalizado": 35.0,
+      "unidade_normalizada": "%",
+      "observado_em": "2026-01-15T12:00:00+00:00",
+      "observador_id": "usuario-sintetico-02",
+      "nota": "",
+      "chave_idempotencia": "disp-sint:P01:obs1",
+      "status_sincronizacao": "LOCAL"
+    }
+  ],
+  "MedicaoPenetracao": [
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "ponto_id": "00000000-0000-4000-8000-000000000009",
+      "repeticao": 1,
+      "profundidade_bruta": "20",
+      "profundidade_unidade": "cm",
+      "resistencia_bruta": "1,5",
+      "resistencia_unidade": "MPa",
+      "profundidade_cm": 20.0,
+      "resistencia_kpa": 1500.0,
+      "contexto_umidade": "",
+      "equipamento": "",
+      "medido_em": "2026-01-15T12:00:00+00:00",
+      "chave_idempotencia": "disp-sint:P01:pen1",
+      "status_sincronizacao": "LOCAL"
+    }
+  ],
+  "Evidencia": [
+    {
+      "id": "00000000-0000-4000-8000-000000000012",
+      "versao": 1,
+      "criado_em": "2026-01-15T12:00:00+00:00",
+      "criado_por": "usuario-sintetico-01",
+      "atualizado_em": null,
+      "sintetico": true,
+      "campanha_id": "00000000-0000-4000-8000-000000000008",
+      "ponto_id": "00000000-0000-4000-8000-000000000009",
+      "observacao_id": "00000000-0000-4000-8000-000000000010",
+      "categoria": "FOTO_SOLO",
+      "nome_arquivo_original": "sintetica.jpg",
+      "tipo_mime": "image/jpeg",
+      "tamanho_bytes": 61,
+      "sha256": "d076c6e289cc2a8a81f48bc1a2ce6f94a5e2f96e440bc3d296a081a72d94b3eb",
+      "registrado_por": "usuario-sintetico-02",
+      "capturado_em_declarado": null,
+      "latitude_declarada": null,
+      "longitude_declarada": null,
+      "armazenamento_ref": "",
+      "substitui_evidencia_id": null,
+      "chave_idempotencia": "disp-sint:P01:foto1",
+      "status_sincronizacao": "LOCAL"
+    }
+  ]
+}

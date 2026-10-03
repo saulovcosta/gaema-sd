@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
+<title>{{ d.titulo }} (versão {{ d.versao.numero }})</title>
+<style>
+  :root { --texto:#111; --fundo:#fff; --borda:#666; --destaque:#8a1c1c; --suave:#f2f2f2; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:var(--texto);
+         background:var(--fundo); max-width: 60rem; margin: 0 auto; padding: 1rem; line-height: 1.45; }
+  h1 { font-size: 1.5rem; } h2 { font-size: 1.2rem; border-bottom: 2px solid var(--borda); margin-top: 2rem; }
+  table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem; font-size: .92rem; }
+  caption { text-align: left; font-weight: 600; padding: .25rem 0; }
+  th, td { border: 1px solid var(--borda); padding: .3rem .45rem; text-align: left; vertical-align: top; }
+  th { background: var(--suave); }
+  .faixa { border: 3px solid var(--destaque); color: var(--destaque); font-weight: 700; padding: .6rem;
+           margin: 1rem 0; text-align: center; }
+  .aviso { background: var(--suave); padding: .6rem; border-left: 4px solid var(--borda); }
+  .hash { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .8rem; word-break: break-all; }
+  @media print { h2 { break-after: avoid; } table { break-inside: auto; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ d.titulo }}</h1>
+  {% if d.rotulo_prototipo %}<p class="faixa" role="note">{{ d.rotulo_prototipo }}</p>{% endif %}
+  {% if d.sintetico %}<p class="faixa" role="note">DADOS SINTÉTICOS — documento de desenvolvimento</p>{% endif %}
+  <p>Versão do relatório: <strong>{{ d.versao.numero }}</strong> · emitido em {{ d.versao.gerado_em }}
+     por {{ d.versao.gerado_por }}{% if d.versao.motivo_reemissao %} · motivo da reemissão:
+     {{ d.versao.motivo_reemissao }}{% endif %}</p>
+</header>
+<main>
+<section aria-labelledby="s1"><h2 id="s1">1. Identificação da demanda</h2>
+  <table><caption>Demanda</caption><tbody>
+    <tr><th scope="row">Identificador</th><td class="hash">{{ d.demanda.id }}</td></tr>
+    <tr><th scope="row">Título</th><td>{{ d.demanda.titulo }}</td></tr>
+    <tr><th scope="row">Situação no fluxo</th><td>{{ d.demanda.estado }}</td></tr>
+    <tr><th scope="row">Referência interna</th><td>{{ d.demanda.referencia_interna or "—" }}</td></tr>
+    <tr><th scope="row">Critério de priorização (escolhido por pessoa)</th><td>{{ d.demanda.criterio_priorizacao }}{% if d.demanda.motivo_priorizacao %} — {{ d.demanda.motivo_priorizacao }}{% endif %}</td></tr>
+  </tbody></table>
+  {% if d.alertas %}<table><caption>Origem (alertas)</caption>
+    <thead><tr><th scope="col">Origem</th><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Documento de referência</th></tr></thead>
+    <tbody>{% for a in d.alertas %}<tr><td>{{ a.origem }}</td><td>{{ a.data }}</td><td>{{ a.descricao }}</td><td>{{ a.referencia_documento or "—" }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section aria-labelledby="s2"><h2 id="s2">2. Objetivo</h2><p>{{ d.demanda.objetivo or "—" }}</p>
+  <p>Objetivo da vistoria: {{ d.campanha.objetivo }} (planejada para {{ d.campanha.data_planejada }}; acesso: {{ d.campanha.condicao_acesso }}{% if d.campanha.nota_acesso %} — {{ d.campanha.nota_acesso }}{% endif %}).</p>
+</section>
+
+<section aria-labelledby="s3"><h2 id="s3">3. Área e mapa</h2>
+  <p>Área de interesse: {{ d.area.descricao }}. Recorte geográfico de análise; não identifica imóvel, cadastro, ocupante ou responsável.</p>
+  <figure>{{ mapa_svg }}<figcaption>Esquema da área e dos pontos amostrais (sem escala cartográfica).</figcaption></figure>
+  {% if d.area.cruzamentos %}<table><caption>Cruzamentos territoriais (indícios espaciais, não titularidade)</caption>
+    <thead><tr><th scope="col">Camada</th><th scope="col">Identificador externo</th><th scope="col">Sobreposição (%)</th><th scope="col">Observação</th></tr></thead>
+    <tbody>{% for c in d.area.cruzamentos %}<tr><td>{{ c.camada }}</td><td>{{ c.identificador_externo or "—" }}</td><td>{{ c.sobreposicao_percentual if c.sobreposicao_percentual is not none else "—" }}</td><td>{{ c.observacao or "—" }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section aria-labelledby="s4"><h2 id="s4">4. Fontes de dados</h2>
+  <table><caption>Fontes usadas na triagem</caption>
+    <thead><tr><th scope="col">Nome</th><th scope="col">Tipo</th><th scope="col">Provedor</th><th scope="col">Data</th><th scope="col">Resolução (m)</th><th scope="col">Autorização de uso</th><th scope="col">Proveniência</th></tr></thead>
+    <tbody>{% for f in d.fontes %}<tr><td>{{ f.nome }}</td><td>{{ f.tipo }}</td><td>{{ f.provedor }}</td><td>{{ f.data_referencia }}</td><td>{{ f.resolucao_m if f.resolucao_m is not none else "—" }}</td><td>{{ f.autorizacao_uso }}</td><td>{{ f.proveniencia }}</td></tr>{% else %}<tr><td colspan="7">Nenhuma fonte registrada.</td></tr>{% endfor %}</tbody></table>
+  {% if d.sinais %}<table><caption>Sinais remotos (indicativos; não são conclusão)</caption>
+    <thead><tr><th scope="col">Sinal</th><th scope="col">Valor</th><th scope="col">Data</th><th scope="col">Método</th></tr></thead>
+    <tbody>{% for s in d.sinais %}<tr><td>{{ s.nome }}</td><td>{{ s.valor if s.valor is not none else "—" }} {{ s.unidade }}</td><td>{{ s.data_referencia }}</td><td>{{ s.metodo or "—" }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section aria-labelledby="s5"><h2 id="s5">5. Metodologia e versão do protocolo</h2>
+  <p>Protocolo <strong>{{ d.metodologia.protocolo }}</strong>, versão {{ d.metodologia.versao }}, modo {{ d.metodologia.modo }}. {{ d.metodologia.descricao }}</p>
+  <p>Hash da definição do protocolo: <span class="hash">{{ d.metodologia.hash_definicao }}</span><br>
+     Hash das entradas de campo usadas: <span class="hash">{{ d.metodologia.hash_entradas }}</span></p>
+  {% if d.metodologia.regras %}<table><caption>Regras do protocolo</caption>
+    <thead><tr><th scope="col">Regra</th><th scope="col">Categoria</th><th scope="col">Descrição</th></tr></thead>
+    <tbody>{% for r in d.metodologia.regras %}<tr><td>{{ r.id }}</td><td>{{ r.categoria }} — {{ d.metodologia.categorias[r.categoria] }}</td><td>{{ r.descricao }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  {% if d.metodologia.metodo_penetrometria %}<p>Penetrometria: {{ d.metodologia.metodo_penetrometria }}</p>{% endif %}
+</section>
+
+<section aria-labelledby="s6"><h2 id="s6">6. Equipe</h2>
+  <table><caption>{{ d.equipe.nome }}</caption>
+    <thead><tr><th scope="col">Usuário</th><th scope="col">Papel</th><th scope="col">Função</th></tr></thead>
+    <tbody>{% for m in d.equipe.membros %}<tr><td>{{ m.usuario }}</td><td>{{ m.papel }}</td><td>{{ m.funcao or "—" }}</td></tr>{% endfor %}</tbody></table>
+</section>
+
+<section aria-labelledby="s7"><h2 id="s7">7. Pontos amostrados</h2>
+  <table><caption>Pontos (WGS84)</caption>
+    <thead><tr><th scope="col">Ponto</th><th scope="col">Latitude</th><th scope="col">Longitude</th><th scope="col">Precisão do GPS (m)</th><th scope="col">Capturado em</th></tr></thead>
+    <tbody>{% for p in d.pontos %}<tr><td>{{ p.codigo }}</td><td>{{ "%.6f"|format(p.latitude) }}</td><td>{{ "%.6f"|format(p.longitude) }}</td><td>{{ p.precisao_gps_m if p.precisao_gps_m is not none else "não informada" }}{% if p.gps_ruim %} (acima do limite operacional){% endif %}</td><td>{{ p.capturado_em }}</td></tr>{% endfor %}</tbody></table>
+</section>
+
+<section aria-labelledby="s8"><h2 id="s8">8. Observações de campo</h2>
+  <table><caption>Valores brutos, como registrados</caption>
+    <thead><tr><th scope="col">Ponto</th><th scope="col">Variável</th><th scope="col">Valor</th><th scope="col">Unidade</th><th scope="col">Nota</th></tr></thead>
+    <tbody>{% for o in d.observacoes %}<tr><td>{{ o.ponto }}</td><td>{{ o.variavel }}</td><td>{{ o.valor_bruto }}</td><td>{{ o.unidade_bruta }}</td><td>{{ o.nota or "—" }}</td></tr>{% else %}<tr><td colspan="5">Nenhuma observação.</td></tr>{% endfor %}</tbody></table>
+</section>
+
+<section aria-labelledby="s9"><h2 id="s9">9. Medições de resistência à penetração</h2>
+  <table><caption>Repetições brutas</caption>
+    <thead><tr><th scope="col">Ponto</th><th scope="col">Repetição</th><th scope="col">Profundidade</th><th scope="col">Resistência</th><th scope="col">Umidade (contexto)</th></tr></thead>
+    <tbody>{% for m in d.medicoes %}<tr><td>{{ m.ponto }}</td><td>{{ m.repeticao }}</td><td>{{ m.profundidade_bruta }} {{ m.profundidade_unidade }}</td><td>{{ m.resistencia_bruta }} {{ m.resistencia_unidade }}</td><td>{{ m.contexto_umidade or "—" }}</td></tr>{% else %}<tr><td colspan="5">Nenhuma medição.</td></tr>{% endfor %}</tbody></table>
+  {% if d.resultado.penetrometria %}<table><caption>Resumo descritivo por profundidade (kPa)</caption>
+    <thead><tr><th scope="col">Ponto</th><th scope="col">Profundidade (cm)</th><th scope="col">Repetições</th><th scope="col">Mínimo</th><th scope="col">Máximo</th><th scope="col">Média</th></tr></thead>
+    <tbody>{% for x in d.resultado.penetrometria %}<tr><td>{{ x.ponto }}</td><td>{{ x.profundidade_cm }}</td><td>{{ x.n }}</td><td>{{ x.min_kpa }}</td><td>{{ x.max_kpa }}</td><td>{{ x.media_kpa }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section aria-labelledby="s10"><h2 id="s10">10. Evidências</h2>
+  <table><caption>Arquivos originais preservados (hash SHA-256)</caption>
+    <thead><tr><th scope="col">Categoria</th><th scope="col">Arquivo</th><th scope="col">Ponto</th><th scope="col">Registrado por</th><th scope="col">Data declarada</th><th scope="col">Coordenada declarada</th><th scope="col">SHA-256</th></tr></thead>
+    <tbody>{% for e in d.evidencias %}<tr><td>{{ e.categoria }}</td><td>{{ e.nome }} ({{ e.tipo }}, {{ e.tamanho_bytes }} bytes)</td><td>{{ e.ponto }}</td><td>{{ e.registrado_por }}</td><td>{{ e.data_declarada }}</td><td>{{ e.coordenada_declarada }}</td><td class="hash">{{ e.sha256 }}</td></tr>{% else %}<tr><td colspan="7">Nenhuma evidência.</td></tr>{% endfor %}</tbody></table>
+</section>
+
+<section aria-labelledby="s11"><h2 id="s11">11. Resultado computado</h2>
+  <p>{{ d.resultado.rotulo_validade }}</p>
+  {% if d.resultado.categoria_resumo %}<p>Categorias por ponto: {{ d.resultado.categoria_resumo }}.</p>{% endif %}
+  {% if d.rotulo_prototipo %}<table><caption>Regras por ponto</caption>
+    <thead><tr><th scope="col">Ponto</th><th scope="col">Categoria descritiva</th><th scope="col">Regras disparadas</th><th scope="col">Regras não avaliáveis (motivo)</th></tr></thead>
+    <tbody>{% for p in d.resultado.por_ponto %}<tr><td>{{ p.codigo }}</td><td>{{ p.categoria }}</td><td>{{ p.disparadas|join(", ") or "nenhuma" }}</td><td>{% for r, m in p.nao_avaliaveis %}{{ r }}: {{ m }}{% if not loop.last %}; {% endif %}{% else %}—{% endfor %}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  <pre style="white-space: pre-wrap">{{ d.resultado.texto }}</pre>
+</section>
+
+<section aria-labelledby="s12"><h2 id="s12">12. Revisão técnica</h2>
+  <p>Resultado: <strong>{{ d.revisao.resultado }}</strong>, por {{ d.revisao.revisor }} em {{ d.revisao.revisado_em }}.</p>
+  <p>Fundamentação: {{ d.revisao.fundamentacao }}</p>
+  {% if d.revisao.ressalvas %}<p>Ressalvas: {{ d.revisao.ressalvas }}</p>{% endif %}
+</section>
+
+<section aria-labelledby="s13"><h2 id="s13">13. Limitações</h2>
+  <ul>{% for x in d.limitacoes %}<li>{{ x }}</li>{% endfor %}</ul>
+  {% if d.hipoteses_alternativas %}<p>Hipóteses alternativas registradas:</p><ul>{% for x in d.hipoteses_alternativas %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+</section>
+
+<section aria-labelledby="s14"><h2 id="s14">14. Recomendações (plano de recuperação ou renovação)</h2>
+  {% for r in d.recomendacoes %}<p><strong>{{ r.tipo }}</strong>: {{ r.objetivos }}{% if r.prazo_meses %} (prazo: {{ r.prazo_meses }} meses){% endif %}</p>
+  {% if r.acoes %}<ul>{% for a in r.acoes %}<li>{{ a }}</li>{% endfor %}</ul>{% endif %}
+  {% else %}<p>Nenhum plano registrado até a emissão desta versão.</p>{% endfor %}
+  {% if d.providencias %}<table><caption>Tratativa institucional (decisões humanas registradas)</caption>
+    <thead><tr><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col">Decidido por</th><th scope="col">Em</th></tr></thead>
+    <tbody>{% for p in d.providencias %}<tr><td>{{ p.tipo }}</td><td>{{ p.descricao }}</td><td>{{ p.decidido_por }}</td><td>{{ p.decidido_em }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section aria-labelledby="s15"><h2 id="s15">15. Monitoramento</h2>
+  <table><caption>Marcos</caption>
+    <thead><tr><th scope="col">Marco</th><th scope="col">Indicador</th><th scope="col">Previsto</th><th scope="col">Verificado</th><th scope="col">Situação</th></tr></thead>
+    <tbody>{% for m in d.monitoramento %}<tr><td>{{ m.descricao }}</td><td>{{ m.indicador or "—" }}</td><td>{{ m.data_prevista }}</td><td>{{ m.data_verificada }}</td><td>{{ m.situacao }}</td></tr>{% else %}<tr><td colspan="5">Nenhum marco registrado.</td></tr>{% endfor %}</tbody></table>
+</section>
+
+<section aria-labelledby="s16"><h2 id="s16">16. Versão do relatório e histórico</h2>
+  <p>Esta é a versão {{ d.versao.numero }}. Toda correção gera nova versão; as anteriores são preservadas.</p>
+  {% if d.versao.historico %}<table><caption>Versões anteriores</caption>
+    <thead><tr><th scope="col">Versão</th><th scope="col">Formato</th><th scope="col">Emitida em</th><th scope="col">Motivo</th><th scope="col">Hash</th></tr></thead>
+    <tbody>{% for h in d.versao.historico %}<tr><td>{{ h.numero }}</td><td>{{ h.formato }}</td><td>{{ h.gerado_em }}</td><td>{{ h.motivo }}</td><td class="hash">{{ h.hash }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section aria-labelledby="s17"><h2 id="s17">Avisos</h2>
+  <div class="aviso"><ul>{% for a in d.avisos %}<li>{{ a }}</li>{% endfor %}</ul></div>
+</section>
+</main>
+<footer><p>GAEMA SD — protótipo local. Não integrado a sistemas institucionais.</p></footer>
+</body>
+</html>
