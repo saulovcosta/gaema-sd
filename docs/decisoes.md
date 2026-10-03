@@ -94,3 +94,48 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Motivo:** revisão independente reproduziu relatório e evidência gravados sem arquivo, e arquivo sem registro.
 - **Impacto:** `Nucleo.registrar` recusa `Relatorio`, `Evidencia` e `Diagnostico`; cada um tem método próprio. Arquivo gravado em temporário e renomeado de forma atômica; se o registro falha, o arquivo é removido. Revisões ordenadas pela gravação no banco, não pela data declarada; data de revisão no futuro é recusada. Parâmetros operacionais usados entram na fotografia do diagnóstico.
 - **Teste:** `tests/test_regressao_fase3.py`.
+
+## DEC-011 — Sincronização: fila no dispositivo, aplicação só pelo núcleo da central (03/10/2026)
+
+- **Hipótese:** o dispositivo grava no SQLite local e enfileira; a central aplica cada item por `Nucleo.receber_sincronizacao`, que mantém a regra única de escrita (acesso → validação → gravação → auditoria na mesma transação).
+- **Motivo:** DEC-005 já previa versão otimista e chave de idempotência; faltava o caminho entre dois bancos. Duas versões divergentes não podem ser decididas por máquina.
+- **Impacto:**
+  - Envia-se como o técnico dono do dispositivo (nova ação `SINCRONIZAR`, só TECNICO_CAMPO); a autoria do registro na central é sempre quem enviou.
+  - Item novo igual ao já gravado = reenvio idempotente. Item com mesmo id/chave e conteúdo diferente, ou correção a partir de versão que a central já ultrapassou com conteúdo diferente = **conflito**: a versão do dispositivo fica guardada em `conflitos_sincronizacao`, a da central não muda e, se a demanda estava em AGUARDANDO_SINCRONIZACAO, vai a CONFLITO_SINCRONIZACAO (por `Nucleo.transitar`, ator interno SISTEMA).
+  - Resolução só por COORDENADOR (`resolver_conflito_sincronizacao`, nova ação), com motivo: MANTER_CENTRAL ou ACEITAR_DISPOSITIVO (nova versão; histórico preservado). Evidência é imutável: só MANTER_CENTRAL. A demanda não volta sozinha; o coordenador transita depois.
+  - Conflito aberto conta em `conflitos_abertos` e bloqueia a validação mesmo que a demanda não esteja em CONFLITO_SINCRONIZACAO.
+  - Tentativas máximas e espera inicial (dobra a cada tentativa) ficam em `config/parametros.json`, rotulados AUTORAL; não têm fundamento externo.
+- **Risco:** o canal é simulado (`CanalSimulado`); nada foi testado em rede real, aplicativo de campo ou Survey123. O dispositivo não recebe de volta a versão resolvida pela central (reconciliação do lado do dispositivo fica para a Fase 5). Itens dependentes de um registro em conflito seguem o envio normal.
+- **Teste:** `tests/test_sincronizacao.py`.
+
+## DEC-012 — Concorrência: SQLite em WAL e versão de esquema (03/10/2026)
+
+- **Hipótese:** WAL, `busy_timeout` e `BEGIN IMMEDIATE` bastam para várias conexões ao mesmo arquivo neste protótipo.
+- **Motivo:** o `Repositorio` só era exercitado com uma conexão em memória.
+- **Impacto:** arquivo em modo WAL; `PRAGMA user_version` = 1 (base para recusar backup de esquema mais novo). Banco em memória não muda.
+- **Risco:** testes usam threads em uma máquina; não são prova de carga nem de sistema de arquivos em rede.
+- **Teste:** `tests/test_concorrencia.py`.
+
+## DEC-013 — Backup lógico, restauração e rollback por arquivos (03/10/2026)
+
+- **Hipótese:** pasta com cópia consistente do banco (API de backup do SQLite), arquivos de evidência e relatório e manifesto com SHA-256 atende a RQ-44.
+- **Motivo:** restauração só vale se for conferida: o backup é verificado antes de restaurar e o resultado é conferido depois (trilha de auditoria, contagens, hash dos arquivos).
+- **Impacto:** `python -m gaema_sd.backup criar|verificar|restaurar|rollback`. Rollback move o estado atual para `<saida>.descartado-<hora>` (nunca apaga) e desfaz a troca se a restauração falhar. Backup anterior não é sobrescrito.
+- **Risco:** manifesto não é assinado; quem controla a pasta pode refazê-lo (a cadeia da trilha ainda denuncia alteração de eventos). Ancoragem externa do último hash segue PENDENTE. Retenção (RQ-45, LA-06) segue PENDENTE. Não há agendamento nem armazenamento institucional.
+- **Teste:** `tests/test_backup.py`.
+
+## DEC-014 — Logs sem dado sensível por construção, filtro como segunda barreira (03/10/2026)
+
+- **Hipótese:** o mais seguro é não logar conteúdo; o filtro mascara padrões óbvios (CPF, e-mail, `senha=`) e remove traceback.
+- **Motivo:** mensagens de erro e o campo `motivo` da trilha podiam repetir texto digitado.
+- **Impacto:** `auditoria.trilha.sanear_texto` aplicado a `motivo` e aos detalhes da trilha, ao erro guardado na fila e ao log (`observabilidade.py`). O log da sincronização leva só contagens e nomes de erro.
+- **Risco:** nome de pessoa em texto livre não é detectável por padrão. Mascaramento por padrão pode, em tese, ocultar um número de 11 dígitos legítimo no motivo.
+- **Teste:** `tests/test_seguranca.py`.
+
+## DEC-015 — Acessibilidade do relatório: o que foi verificado (03/10/2026)
+
+- **Hipótese:** verificações automáticas pegam as falhas estruturais mais comuns; não substituem leitor de tela.
+- **Impacto:** link de salto, foco visível, estilo só na folha (sem atributo `style`), contraste calculado pela fórmula pública do WCAG 2.x (critério AA como referência, AUTORAL).
+- **Risco:** leitor de tela e pessoas usuárias NÃO foram testados (RQ-74).
+- **Teste:** `tests/test_acessibilidade.py`.
+

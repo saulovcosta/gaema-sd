@@ -45,6 +45,8 @@ class Acao(str, Enum):
     LER_RESTRITO = "LER_RESTRITO"
     EXPORTAR = "EXPORTAR"
     VERIFICAR_AUDITORIA = "VERIFICAR_AUDITORIA"
+    SINCRONIZAR = "SINCRONIZAR"
+    RESOLVER_CONFLITO_SINCRONIZACAO = "RESOLVER_CONFLITO_SINCRONIZACAO"
 
 
 P = Papel
@@ -70,6 +72,8 @@ MATRIZ: dict[Acao, frozenset[Papel]] = {
                                   P.MEMBRO_MP, P.AUDITOR, P.ANALISTA_TRIAGEM}),
     Acao.EXPORTAR: frozenset({P.COORDENADOR, P.MEMBRO_MP}),
     Acao.VERIFICAR_AUDITORIA: frozenset({P.AUDITOR, P.ADMINISTRADOR}),
+    Acao.SINCRONIZAR: frozenset({P.TECNICO_CAMPO}),  # o dispositivo envia como o técnico dono dele
+    Acao.RESOLVER_CONFLITO_SINCRONIZACAO: frozenset({P.COORDENADOR}),
 }
 
 

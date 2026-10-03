@@ -21,7 +21,7 @@ Inspira-se funcionalmente no SIPADE (IFTM e MPMG), sem copiar código, textos ou
 | 1 | Descoberta, fontes, arquitetura, estrutura | Concluída |
 | 2 | Núcleo: entidades, fluxo de estados, validações, auditoria | Concluída (testada localmente) |
 | 3 | Protótipo local ponta a ponta e relatório | Concluída (testada localmente) |
-| 4 | Robustez: offline, sincronização, segurança | Próxima |
+| 4 | Robustez: offline, sincronização, segurança, backup, acessibilidade | Concluída (testada localmente, com rede simulada) |
 | 5 | Preparação institucional: ArcGIS, formulário XLSForm, homologação | Não iniciada |
 
 Detalhes do andamento: `docs/ESTADO.md`.
@@ -57,11 +57,24 @@ Detalhes do andamento: `docs/ESTADO.md`.
 
 Ainda não há tela (a operação é por linha de comando); está prevista para as próximas fases.
 
+## O que já existe (Fase 4)
+
+Tudo testado só em computador, com dados inventados e rede **simulada**.
+
+- **Sincronização** (`src/gaema_sd/sincronizacao/`): cada dispositivo tem uma fila local que sobrevive a reinício. Perda de rede, serviço fora do ar e confirmação perdida não perdem nem duplicam registro; o envio recomeça de onde parou. Se dispositivo e central alteraram o mesmo registro, nada é sobrescrito: a demanda vai para "conflito de sincronização", as duas versões ficam guardadas e só o coordenador decide, com motivo.
+- **Concorrência:** várias conexões ao mesmo arquivo sem perda de dados (modo WAL).
+- **Segurança básica:** acesso indevido recusado e auditado, anexo inválido barrado, logs e trilha sem CPF/e-mail/senha, análise das dependências sem achados (executada uma vez em 03/10/2026).
+- **Backup e rollback:** `python -m gaema_sd.backup criar|verificar|restaurar|rollback`. A restauração é conferida (hashes, contagens, trilha de auditoria); backup adulterado é recusado; o estado desfeito no rollback é guardado, não apagado.
+- **Relatório HTML mais acessível:** link de salto, foco visível, contraste conferido por cálculo. **Teste com leitor de tela ainda não foi feito.**
+
+Não existe rede, aplicativo de campo, ArcGIS ou MPTO reais nesta etapa.
+
 ## Para quem programa
 
 ```bash
 scripts/testar.sh     # todos os testes
 scripts/demo.sh       # fluxo completo com dados sintéticos; relatórios em saida/
+python -m gaema_sd.backup verificar PASTA_DO_BACKUP   # confere um backup
 ```
 
 Requer Python 3.11+. Dependências fixadas em `requirements-dev.txt`.

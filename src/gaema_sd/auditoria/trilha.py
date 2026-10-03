@@ -22,6 +22,17 @@ GENESE = "0" * 64
 _CHAVES_SENSIVEIS = re.compile(r"cpf|cnpj|rg|nome|email|e-mail|telefone|endereco|senha|token|chave_api|segredo",
                                re.IGNORECASE)
 _TAMANHO_MAX_TEXTO = 200
+_CPF = re.compile(r"(?<![\w])(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})(?![\w])")
+_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+_SEGREDO = re.compile(r"(?i)\b(senha|token|chave_api|segredo|cpf|cnpj)\b(\s*[=:]\s*)\S+")
+
+
+def sanear_texto(texto: str) -> str:
+    """Mascara padrões óbvios (CPF, e-mail, 'senha=...'). Higiene de log, não garantia: texto livre
+    com nome de pessoa não é detectável por padrão; por isso o log não carrega texto livre de usuário."""
+    texto = _SEGREDO.sub(lambda m: f"{m.group(1)}{m.group(2)}[REMOVIDO]", texto)
+    texto = _CPF.sub("[REMOVIDO]", texto)
+    return _EMAIL.sub("[REMOVIDO]", texto)
 
 
 def sanear_detalhes(detalhes: Optional[dict]) -> dict:
@@ -30,12 +41,13 @@ def sanear_detalhes(detalhes: Optional[dict]) -> dict:
     for k, v in (detalhes or {}).items():
         if _CHAVES_SENSIVEIS.search(str(k)):
             limpo[k] = "[REMOVIDO]"
-        elif isinstance(v, str) and len(v) > _TAMANHO_MAX_TEXTO:
-            limpo[k] = v[:_TAMANHO_MAX_TEXTO] + "…"
-        elif isinstance(v, (str, int, float, bool)) or v is None:
+        elif isinstance(v, str):
+            v = sanear_texto(v)
+            limpo[k] = v[:_TAMANHO_MAX_TEXTO] + "…" if len(v) > _TAMANHO_MAX_TEXTO else v
+        elif isinstance(v, (int, float, bool)) or v is None:
             limpo[k] = v
         else:
-            limpo[k] = str(v)[:_TAMANHO_MAX_TEXTO]
+            limpo[k] = sanear_texto(str(v))[:_TAMANHO_MAX_TEXTO]
     return limpo
 
 
@@ -70,6 +82,9 @@ class TrilhaAuditoria:
     def eventos(self) -> tuple[EventoAuditoria, ...]:
         return tuple(self._arm.todos())
 
+    def ultimo_evento(self) -> Optional[EventoAuditoria]:
+        return self._arm.ultimo()
+
     def registrar(self, ator: Ator, acao: str, entidade: str, entidade_id: str, *,
                   estado_origem: str | None = None, estado_destino: str | None = None,
                   motivo: str = "", detalhes: dict | None = None,
@@ -85,7 +100,7 @@ class TrilhaAuditoria:
             entidade_id=entidade_id,
             estado_origem=estado_origem,
             estado_destino=estado_destino,
-            motivo=motivo,
+            motivo=sanear_texto(motivo),
             detalhes=sanear_detalhes(detalhes),
             hash_anterior=anterior.hash_evento if anterior else GENESE,
             hash_evento="",

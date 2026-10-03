@@ -6,6 +6,7 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 - Testes: `scripts/testar.sh` (ou `python3 -m pytest`)
 - Teste único: `python3 -m pytest tests/test_estados.py -k nome`
 - Demonstração ponta a ponta: `scripts/demo.sh` (saída em `saida/`, fora do git)
+- Backup: `python -m gaema_sd.backup criar|verificar|restaurar|rollback` (restauração e rollback só sobre caminhos fechados/novos)
 - Após mudar entidades, estados ou fixtures: `python3 scripts/gerar_contratos.py` (regera `schemas/`, `docs/estados.md`, `docs/dominio.md`, `fixtures/sinteticos/`; `tests/test_contratos.py` falha se esquecer)
 - Textos de `docs/dominio.md` ficam em `src/gaema_sd/dominio/documento.py`; nunca editar os arquivos gerados à mão
 
@@ -29,3 +30,7 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 - Diagnóstico só por `Nucleo.computar_diagnostico` (motor em `protocolo/`); relatório só por `Nucleo.emitir_relatorio`; evidência com arquivo só por `Nucleo.registrar_evidencia`.
 - Protocolos em `config/protocolos/`: versão publicada não muda; alteração = nova versão. Só operadores de presença/ausência até haver protocolo validado.
 - Parâmetros operacionais em `config/parametros.json`, sempre com proveniência.
+- Sincronização em `src/gaema_sd/sincronizacao/`: o dispositivo grava local e enfileira; a central só aplica por `Nucleo.receber_sincronizacao`. Divergência = conflito (nunca sobrescrever); só COORDENADOR resolve (`resolver_conflito_sincronizacao`). `CanalSimulado` é simulação, não rede real.
+- Texto que vai para trilha, fila ou log passa por `auditoria.trilha.sanear_texto`; log não leva conteúdo de registro. Em testes, montar CPF/e-mail fictícios em tempo de execução (o varredor `test_sigilo_fixtures` proíbe literais).
+- Banco novo ou tabela nova: manter `VERSAO_ESQUEMA` (`persistencia/sqlite.py`) e o backup coerentes; backup de esquema mais novo é recusado.
+- Acessibilidade do relatório: `tests/test_acessibilidade.py` é automático; leitor de tela segue NÃO EXECUTADO.
