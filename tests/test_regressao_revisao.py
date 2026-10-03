@@ -53,7 +53,7 @@ def levar_ate_revisao(nucleo, a, c):
         nucleo.registrar(a["tecnico"], c[chave][0])
     t(a["tecnico"], d, S.AGUARDANDO_SINCRONIZACAO)
     t(a["sistema"], d, S.EM_VALIDACAO)
-    diag, _ = nucleo.registrar(a["sistema"], _diagnostico(c))
+    diag = nucleo.computar_diagnostico(a["sistema"], d, c["CampanhaVistoria"][0].id)
     t(a["coord"], d, S.AGUARDANDO_REVISAO)
     return d, diag
 
@@ -101,10 +101,16 @@ def test_2_revisao_de_outro_revisor_nao_vale_para_quem_emite(nucleo, atores, cen
 
 # 3 ------------------------------------------------------------------------
 def test_3_diagnostico_e_imutavel(nucleo, atores, cenario):
-    diag, _ = nucleo.registrar(atores["sistema"], _diagnostico(cenario))
+    _, diag = levar_ate_revisao(nucleo, atores, cenario)
     with pytest.raises(ErroGaema, match="imutável"):
         nucleo.atualizar(atores["coord"], dataclasses.replace(diag, resultado_descritivo="trocado"), 1)
     assert acoes(nucleo)[-1] == "ATUALIZACAO_RECUSADA"
+
+
+def test_3_diagnostico_nao_e_gravado_a_mao(nucleo, atores, cenario):
+    with pytest.raises(ErroGaema, match="motor de protocolo"):
+        nucleo.registrar(atores["sistema"], _diagnostico(cenario))
+    assert nucleo.repo.listar(E.Diagnostico) == []
 
 
 # 4 ------------------------------------------------------------------------

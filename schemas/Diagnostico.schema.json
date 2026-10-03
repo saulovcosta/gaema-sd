@@ -86,6 +86,12 @@
           "type": "null"
         }
       ]
+    },
+    "entradas_canonicas": {
+      "type": "string"
+    },
+    "resultado_json": {
+      "type": "string"
     }
   },
   "required": [

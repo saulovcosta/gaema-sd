@@ -21,12 +21,12 @@ from .dominio.enums import (
     TipoFonte,
     VariavelCampo,
 )
-from .dominio.serializacao import json_canonico, para_dict, sha256_texto
+from .dominio.serializacao import para_dict
+from .protocolo.definicao import canonizar, ler_arquivo
 
 T0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
 POLIGONO = "POLYGON ((-48.500 -10.500, -48.490 -10.500, -48.490 -10.490, -48.500 -10.490, -48.500 -10.500))"
 FOTO_SINTETICA = b"\xff\xd8\xff\xe0" + b"IMAGEM SINTETICA GAEMA SD" + b"\x00" * 32
-DEFINICAO_PROTOCOLO = {"modo": "DESCRITIVO", "variaveis": [v.value for v in VariavelCampo], "regras": []}
 
 
 def _id(n: int) -> str:
@@ -51,11 +51,10 @@ def cenario() -> dict[str, list]:
         E.MembroEquipe(usuario_id="usuario-sintetico-02", papel=Papel.TECNICO_CAMPO, funcao="vistoria"),
         E.MembroEquipe(usuario_id="usuario-sintetico-03", papel=Papel.COORDENADOR, funcao="coordenação"),
     ], **base)
-    definicao = json_canonico(DEFINICAO_PROTOCOLO)
+    definicao, hash_def = canonizar(ler_arquivo("gaema-descritivo-0.1.0.json"))
     protocolo = E.VersaoProtocolo(id=_id(6), codigo="GAEMA-DESCRITIVO", versao_semantica="0.1.0",
                                   modo=ModoProtocolo.DESCRITIVO, definicao_json=definicao,
-                                  hash_definicao=sha256_texto(definicao), vigente_desde=date(2026, 1, 1),
-                                  **base)
+                                  hash_definicao=hash_def, vigente_desde=date(2026, 1, 1), **base)
     demanda = E.Demanda(id=_id(7), titulo="Demanda sintética A", objetivo="Teste do fluxo",
                         alerta_ids=[alerta.id], area_candidata_id=candidata.id, area_interesse_id=area.id,
                         equipe_id=equipe.id, **base)

@@ -59,8 +59,10 @@ def montar_contexto(repo, demanda: E.Demanda, ator: Ator,
     coletores = {r.criado_por for r in coleta}
     coletores |= {o.observador_id for o in observacoes} | {e.registrado_por for e in evidencias}
 
-    diagnosticos = [d for d in repo.listar(E.Diagnostico)
-                    if d.demanda_id == demanda.id and d.situacao is not SituacaoDiagnostico.SUBSTITUIDO]
+    todos_diag = [d for d in repo.listar(E.Diagnostico) if d.demanda_id == demanda.id]
+    substituidos = {d.substitui_diagnostico_id for d in todos_diag if d.substitui_diagnostico_id}
+    diagnosticos = [d for d in todos_diag
+                    if d.situacao is not SituacaoDiagnostico.SUBSTITUIDO and d.id not in substituidos]
     ids_diag = {d.id for d in diagnosticos}
     revisoes = sorted((r for r in repo.listar(E.RevisaoTecnica) if r.diagnostico_id in ids_diag),
                       key=lambda r: r.revisado_em)

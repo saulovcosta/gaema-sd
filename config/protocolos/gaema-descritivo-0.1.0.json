@@ -1,0 +1,11 @@
+{
+  "codigo": "GAEMA-DESCRITIVO",
+  "versao": "0.1.0",
+  "modo": "DESCRITIVO",
+  "descricao": "Organiza e resume as observações de campo, sem classificar a pastagem.",
+  "proveniencia": "AUTORAL",
+  "limitacoes": [
+    "Modo descritivo: o sistema não classifica a pastagem; descreve o que foi registrado em campo.",
+    "Nenhum limiar numérico foi aplicado."
+  ]
+}

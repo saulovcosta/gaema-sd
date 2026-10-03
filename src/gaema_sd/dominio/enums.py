@@ -84,9 +84,21 @@ class Ambiente(str, Enum):
 
 class OrigemAlerta(str, Enum):
     SINAL_REMOTO = "SINAL_REMOTO"
+    PECA_INFORMACAO_TECNICA = "PECA_INFORMACAO_TECNICA"      # Portaria GAEMA 001/2026, art. 17, caput
+    ENCAMINHAMENTO_PROMOTORIA = "ENCAMINHAMENTO_PROMOTORIA"  # idem, art. 17, IV
     NOTICIA_EXTERNA = "NOTICIA_EXTERNA"
     DEMANDA_INTERNA = "DEMANDA_INTERNA"
     MONITORAMENTO = "MONITORAMENTO"
+
+
+class CriterioPriorizacao(str, Enum):
+    """Critério invocado por PESSOA ao priorizar (Portaria GAEMA 001/2026, art. 17). Sem cálculo automático."""
+
+    ART17_I = "ART17_I"      # erosão ativa de grande porte com risco a curso d'água ou rodovia
+    ART17_II = "ART17_II"    # pastagem degradada atestada com impacto supramunicipal
+    ART17_III = "ART17_III"  # registro humano; indicador de 40% PENDENTE (RQ-65)
+    ART17_IV = "ART17_IV"    # encaminhamento de Promotoria, mineração de grande escala
+    OUTRO = "OUTRO"
 
 
 class OrigemAreaInteresse(str, Enum):

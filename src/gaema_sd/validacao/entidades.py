@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import re
 
 from ..dominio import entidades as E
+from ..dominio.serializacao import sha256_texto
+from ..protocolo.definicao import DefinicaoInvalida, carregar_definicao
 from ..dominio.enums import (
     CondicaoAcesso,
     Estado,
@@ -84,6 +87,9 @@ def _demanda(o: E.Demanda):
     p = []
     if o.estado is Estado.DUPLICADA and not o.duplicada_de:
         p.append(erro("DUPLICADA_SEM_ORIGEM", "duplicada_de", "indicar a demanda original"))
+    if o.criterio_priorizacao is not None and len(o.motivo_priorizacao.strip()) < 10:
+        p.append(erro("PRIORIZACAO_SEM_MOTIVO", "motivo_priorizacao",
+                      "critério de priorização exige motivo (mín. 10 caracteres)"))
     if o.duplicada_de and o.duplicada_de == o.id:
         p.append(erro("DUPLICADA_DE_SI", "duplicada_de", "demanda não pode duplicar a si mesma"))
     return p
@@ -121,8 +127,13 @@ def _ponto(o: E.PontoAmostral):
     return p
 
 
+VALORES_PRESENCA = {"sim": True, "não": False, "nao": False}
+
+
 def _observacao(o: E.Observacao):
     p = []
+    if o.unidade_bruta.strip().lower() == "presenca" and o.valor_bruto.strip().lower() not in VALORES_PRESENCA:
+        p.append(erro("PRESENCA_INVALIDA", "valor_bruto", "para unidade 'presenca' use 'sim' ou 'não'"))
     if o.variavel in _PERCENTUAIS and o.unidade_bruta.strip() in unidades.PERCENTUAL:
         p += unidades.validar_percentual(o.valor_bruto, "valor_bruto")
     if o.variavel is VariavelCampo.OUTRA and not o.nota.strip():
@@ -169,6 +180,17 @@ def _protocolo(o: E.VersaoProtocolo):
                       "modo validado exige referência documental da validação"))
     if not _HEX64.match(o.hash_definicao or ""):
         p.append(erro("HASH_INVALIDO", "hash_definicao", "hash da definição ausente ou inválido"))
+    elif sha256_texto(o.definicao_json) != o.hash_definicao:
+        p.append(erro("HASH_DIVERGENTE", "hash_definicao", "hash não corresponde à definição gravada"))
+    else:
+        try:
+            d = carregar_definicao(json.loads(o.definicao_json))
+        except (ValueError, DefinicaoInvalida) as e:
+            p.append(erro("DEFINICAO_INVALIDA", "definicao_json", str(e)))
+        else:
+            if (d.codigo, d.versao, d.modo, d.rotulo) != (o.codigo, o.versao_semantica, o.modo, o.rotulo):
+                p.append(erro("DEFINICAO_DIVERGENTE", "definicao_json",
+                              "código, versão, modo ou rótulo diferem da definição"))
     return p
 
 
@@ -179,6 +201,8 @@ def _diagnostico(o: E.Diagnostico):
             p.append(erro("HASH_INVALIDO", campo, "hash ausente ou inválido"))
     if not o.limitacoes.strip():
         p.append(erro("SEM_LIMITACOES", "limitacoes", "todo diagnóstico declara limitações"))
+    if o.entradas_canonicas and sha256_texto(o.entradas_canonicas) != o.hash_entradas:
+        p.append(erro("HASH_DIVERGENTE", "hash_entradas", "hash não corresponde às entradas gravadas"))
     if o.categoria_descritiva and not o.rotulo_validade.strip():
         p.append(erro("CATEGORIA_SEM_ROTULO", "rotulo_validade",
                       "categoria exige rótulo de validade do protocolo"))

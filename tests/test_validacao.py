@@ -130,10 +130,20 @@ def test_alerta_sem_local():
 
 
 def test_prototipo_exige_rotulo_exato(cenario):
-    p = dataclasses.replace(cenario["VersaoProtocolo"][0], modo=ModoProtocolo.PROTOTIPO_TESTE, rotulo="teste")
-    assert "ROTULO_PROTOTIPO" in codigos(validar(p))
-    ok = dataclasses.replace(p, rotulo=E.ROTULO_PROTOTIPO)
+    from gaema_sd.protocolo.definicao import canonizar, ler_arquivo
+
+    texto, h = canonizar(ler_arquivo("gaema-prototipo-teste-0.1.0.json"))
+    ok = dataclasses.replace(cenario["VersaoProtocolo"][0], codigo="GAEMA-PROTOTIPO-TESTE",
+                             modo=ModoProtocolo.PROTOTIPO_TESTE, rotulo=E.ROTULO_PROTOTIPO,
+                             definicao_json=texto, hash_definicao=h)
     assert validar(ok) == []
+    assert "ROTULO_PROTOTIPO" in codigos(validar(dataclasses.replace(ok, rotulo="teste")))
+
+
+def test_protocolo_com_definicao_adulterada(cenario):
+    p = cenario["VersaoProtocolo"][0]
+    adulterado = dataclasses.replace(p, definicao_json=p.definicao_json.replace("descreve", "classifica"))
+    assert "HASH_DIVERGENTE" in codigos(validar(adulterado))
 
 
 def test_modo_validado_exige_referencia(cenario):

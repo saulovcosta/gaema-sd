@@ -103,6 +103,7 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 | `data_alerta` | date | sim |
 | `area_candidata_id` | str (opcional) | não |
 | `geometria_wkt` | str | não |
+| `referencia_documento` | str | não |
 
 **Relações.** 0..1 AreaCandidata; listado em Demanda.alerta_ids.
 
@@ -126,7 +127,8 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
   "descricao": "Alerta sintético de teste",
   "data_alerta": "2026-01-11",
   "area_candidata_id": "00000000-0000-4000-8000-000000000002",
-  "geometria_wkt": ""
+  "geometria_wkt": "",
+  "referencia_documento": ""
 }
 ```
 
@@ -154,6 +156,8 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 | `equipe_id` | str (opcional) | não |
 | `duplicada_de` | str (opcional) | não |
 | `referencia_interna` | str | não |
+| `criterio_priorizacao` | CriterioPriorizacao (lista fixa) (opcional) | não |
+| `motivo_priorizacao` | str | não |
 
 **Relações.** 0..n Alerta; 0..1 AreaCandidata, AreaInteresse, Equipe; 0..n CampanhaVistoria, Diagnostico, Providencia, PlanoRecuperacao, Relatorio.
 
@@ -184,7 +188,9 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
   "area_interesse_id": "00000000-0000-4000-8000-000000000004",
   "equipe_id": "00000000-0000-4000-8000-000000000005",
   "duplicada_de": null,
-  "referencia_interna": ""
+  "referencia_interna": "",
+  "criterio_priorizacao": null,
+  "motivo_priorizacao": ""
 }
 ```
 
@@ -633,8 +639,8 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
   "versao_semantica": "0.1.0",
   "modo": "DESCRITIVO",
   "rotulo": "",
-  "definicao_json": "{\"modo\":\"DESCRITIVO\",\"regras\":[],\"variaveis\":[\"COBERTURA_FORRAGEIRA\",\"VIGOR_FORRAGEIRA\",\"ALTURA_PASTO\",\"SOLO_EXPOSTO\",\"PLANTAS_INVASORAS\",\"CUPINS_MONTICULO\",\"EROSAO_LAMINAR\",\"SULCOS\",\"RAVINAS\",\"VOCOROCAS\",\"UMIDADE_SOLO\",\"PRECIPITACAO_RECENTE\",\"TIPO_SOLO\",\"FORMACAO_GEOLOGICA\",\"ANIMAIS_PASTEJO\",\"CONTEXTO_SAZONAL\",\"DRENAGEM\",\"DECLIVIDADE\",\"MANEJO_INFORMADO\",\"HIPOTESE_ALTERNATIVA\",\"OUTRA\"]}",
-  "hash_definicao": "5b67a9e38beb58f4e549921888d93830d07dbfeebcd31d3b8ab47771ccd2f83e",
+  "definicao_json": "{\"codigo\":\"GAEMA-DESCRITIVO\",\"descricao\":\"Organiza e resume as observações de campo, sem classificar a pastagem.\",\"limitacoes\":[\"Modo descritivo: o sistema não classifica a pastagem; descreve o que foi registrado em campo.\",\"Nenhum limiar numérico foi aplicado.\"],\"modo\":\"DESCRITIVO\",\"proveniencia\":\"AUTORAL\",\"versao\":\"0.1.0\"}",
+  "hash_definicao": "a8349d9464b3a8061cf974ccbd93961d2a18fe2c35370a03a674f39b5939df9c",
   "vigente_desde": "2026-01-01",
   "referencia_validacao": "",
   "proveniencia": "AUTORAL"
@@ -668,6 +674,8 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 | `rotulo_validade` | str | não |
 | `situacao` | SituacaoDiagnostico (lista fixa) | não |
 | `substitui_diagnostico_id` | str (opcional) | não |
+| `entradas_canonicas` | str | não |
+| `resultado_json` | str | não |
 
 **Relações.** 1 Demanda, 1 CampanhaVistoria, 1 VersaoProtocolo; 0..n RevisaoTecnica.
 

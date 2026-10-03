@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "gaema-sd/Alerta.schema.json",
   "title": "Alerta",
-  "description": "Alerta(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, origem: 'OrigemAlerta', descricao: 'str', data_alerta: 'date', area_candidata_id: 'Optional[str]' = None, geometria_wkt: 'str' = '')",
+  "description": "Alerta(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, origem: 'OrigemAlerta', descricao: 'str', data_alerta: 'date', area_candidata_id: 'Optional[str]' = None, geometria_wkt: 'str' = '', referencia_documento: 'str' = '')",
   "type": "object",
   "properties": {
     "id": {
@@ -36,6 +36,8 @@
       "type": "string",
       "enum": [
         "SINAL_REMOTO",
+        "PECA_INFORMACAO_TECNICA",
+        "ENCAMINHAMENTO_PROMOTORIA",
         "NOTICIA_EXTERNA",
         "DEMANDA_INTERNA",
         "MONITORAMENTO"
@@ -59,6 +61,9 @@
       ]
     },
     "geometria_wkt": {
+      "type": "string"
+    },
+    "referencia_documento": {
       "type": "string"
     }
   },

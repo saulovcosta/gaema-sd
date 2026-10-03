@@ -22,6 +22,7 @@ from .enums import (
     Ambiente,
     CategoriaEvidencia,
     CondicaoAcesso,
+    CriterioPriorizacao,
     Estado,
     FormatoRelatorio,
     ModoProtocolo,
@@ -146,6 +147,7 @@ class Alerta(Registro):
     data_alerta: date
     area_candidata_id: Optional[str] = None
     geometria_wkt: str = ""
+    referencia_documento: str = ""  # ex.: identificação da Peça de Informação Técnica; sem dado pessoal
 
 
 @dataclass(kw_only=True)
@@ -175,6 +177,8 @@ class Demanda(Registro):
     equipe_id: Optional[str] = None
     duplicada_de: Optional[str] = None
     referencia_interna: str = ""
+    criterio_priorizacao: Optional[CriterioPriorizacao] = None  # escolhido por pessoa
+    motivo_priorizacao: str = ""
 
 
 @dataclass(kw_only=True)
@@ -304,6 +308,8 @@ class Diagnostico(Registro):
     rotulo_validade: str = ""
     situacao: SituacaoDiagnostico = SituacaoDiagnostico.COMPUTADO
     substitui_diagnostico_id: Optional[str] = None
+    entradas_canonicas: str = ""  # fotografia das entradas usadas (reprodução histórica)
+    resultado_json: str = ""      # saída completa do motor, para explicação e relatório
 
 
 @dataclass(kw_only=True)

@@ -149,6 +149,26 @@
     },
     "referencia_interna": {
       "type": "string"
+    },
+    "criterio_priorizacao": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ART17_I",
+            "ART17_II",
+            "ART17_III",
+            "ART17_IV",
+            "OUTRO"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "motivo_priorizacao": {
+      "type": "string"
     }
   },
   "required": [

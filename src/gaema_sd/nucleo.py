@@ -8,12 +8,14 @@ auditadas em transação própria, depois de desfeita a operação recusada.
 from __future__ import annotations
 
 import dataclasses
+import json
 from typing import TypeVar
 
 from .acesso.politica import Acao, Ator, exigir
 from .auditoria.trilha import TrilhaAuditoria
 from .dominio import entidades as E
 from .dominio.enums import Estado, Sensibilidade
+from .dominio.serializacao import json_canonico
 from .erros import (
     AcessoNegado,
     ConflitoAtualizacao,
@@ -25,6 +27,8 @@ from .erros import (
 from .estados import maquina
 from .estados.contexto import montar_contexto
 from .persistencia.sqlite import ArmazenamentoAuditoriaSQLite, Repositorio
+from .protocolo.definicao import canonizar, carregar_definicao
+from .protocolo.motor import avaliar, entradas_de, hash_entradas, resultado_para_json
 from .validacao.entidades import validar
 from .validacao.problemas import Problema, erro, exigir_sem_erros
 
@@ -96,10 +100,21 @@ class Nucleo:
         campo = AUTORIA.get(type(obj))
         if campo and getattr(obj, campo) not in ("", ator.id):
             problemas.append(erro("AUTORIA_DIVERGENTE", campo, "deve ser o próprio usuário que registra"))
+        if isinstance(obj, E.VersaoProtocolo):
+            for v in self.repo.listar(E.VersaoProtocolo):
+                if (v.codigo, v.versao_semantica) == (obj.codigo, obj.versao_semantica) and \
+                        v.hash_definicao != obj.hash_definicao:
+                    problemas.append(erro("VERSAO_PROTOCOLO_REPETIDA", "versao_semantica",
+                                          "já existe esta versão com outro conteúdo; publique nova versão"))
         return problemas
 
     def registrar(self, ator: Ator, obj: T) -> tuple[T, list[Problema]]:
         """Grava registro novo. Devolve (registro, alertas). Reenvio idêntico não duplica."""
+        if isinstance(obj, E.Diagnostico):
+            raise ErroGaema("diagnóstico só é gravado pelo motor de protocolo (Nucleo.computar_diagnostico)")
+        return self._registrar(ator, obj)
+
+    def _registrar(self, ator: Ator, obj: T) -> tuple[T, list[Problema]]:
         tipo = type(obj).__name__
         self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], tipo, obj.id)
         campo = AUTORIA.get(type(obj))
@@ -166,6 +181,80 @@ class Nucleo:
             self._auditar_recusa(ator, "TRANSICAO_RECUSADA", "Demanda", demanda_id, e,
                                  estado_destino=destino.value)
             raise
+
+    # ------------------------------------------------------------ protocolo e diagnóstico
+
+    def publicar_protocolo(self, ator: Ator, dados: dict) -> E.VersaoProtocolo:
+        """Grava uma definição de protocolo como VersaoProtocolo imutável (idempotente)."""
+        definicao = carregar_definicao(dados)
+        texto, hash_def = canonizar(dados)
+        existente = next((v for v in self.repo.listar(E.VersaoProtocolo) if v.hash_definicao == hash_def), None)
+        if existente:
+            return existente
+        vp = E.VersaoProtocolo(codigo=definicao.codigo, versao_semantica=definicao.versao, modo=definicao.modo,
+                               rotulo=definicao.rotulo, definicao_json=texto, hash_definicao=hash_def,
+                               proveniencia=definicao.proveniencia)
+        return self._registrar(ator, vp)[0]
+
+    def _entradas_da_campanha(self, campanha_id: str) -> dict:
+        pontos = [p for p in self.repo.listar(E.PontoAmostral) if p.campanha_id == campanha_id]
+        ids = {p.id for p in pontos}
+        return entradas_de(pontos,
+                           [o for o in self.repo.listar(E.Observacao) if o.ponto_id in ids],
+                           [m for m in self.repo.listar(E.MedicaoPenetracao) if m.ponto_id in ids],
+                           [e for e in self.repo.listar(E.Evidencia) if e.campanha_id == campanha_id])
+
+    def computar_diagnostico(self, ator: Ator, demanda_id: str, campanha_id: str) -> E.Diagnostico:
+        """Roda o motor sobre os dados gravados e grava o Diagnostico (imutável, com fotografia das entradas)."""
+        self._exigir(ator, Acao.COMPUTAR_DIAGNOSTICO, "Diagnostico", demanda_id)
+        demanda = self.repo.obter(E.Demanda, demanda_id)
+        campanha = self.repo.obter(E.CampanhaVistoria, campanha_id)
+        if demanda.estado is not Estado.EM_VALIDACAO:
+            raise ErroGaema("diagnóstico só é computado com a demanda EM_VALIDACAO")
+        if campanha.demanda_id != demanda.id:
+            raise ErroGaema("campanha não pertence a esta demanda")
+        vp = self.repo.obter(E.VersaoProtocolo, campanha.versao_protocolo_id)
+        exigir_sem_erros(validar(vp))  # confere integridade da definição gravada
+        entradas = self._entradas_da_campanha(campanha.id)
+        if not entradas["pontos"]:
+            raise ErroGaema("campanha sem pontos amostrais")
+        resultado = avaliar(carregar_definicao(json.loads(vp.definicao_json)), vp.hash_definicao, entradas)
+        anteriores = [d for d in self.repo.listar(E.Diagnostico) if d.demanda_id == demanda.id]
+        substituidos = {d.substitui_diagnostico_id for d in anteriores}
+        vigente = next((d for d in anteriores if d.id not in substituidos), None)
+        diag = E.Diagnostico(
+            demanda_id=demanda.id, campanha_id=campanha.id, versao_protocolo_id=vp.id,
+            hash_definicao_protocolo=vp.hash_definicao, hash_entradas=resultado.hash_entradas,
+            resultado_descritivo=resultado.texto_descritivo(), categoria_descritiva=resultado.categoria_resumo,
+            regras_disparadas=resultado.regras_disparadas, limitacoes="\n".join(resultado.limitacoes),
+            hipoteses_alternativas="\n".join(resultado.hipoteses_alternativas),
+            rotulo_validade=vp.rotulo or "MODO DESCRITIVO: sem classificação",
+            substitui_diagnostico_id=vigente.id if vigente else None,
+            entradas_canonicas=json_canonico(entradas), resultado_json=resultado_para_json(resultado))
+        return self._registrar(ator, diag)[0]
+
+    def reproduzir_diagnostico(self, ator: Ator, diagnostico_id: str) -> dict:
+        """Recalcula com a versão de protocolo e as entradas gravadas; compara com o resultado gravado."""
+        self._exigir(ator, Acao.LER, "Diagnostico", diagnostico_id)
+        d = self.repo.obter(E.Diagnostico, diagnostico_id)
+        vp = self.repo.obter(E.VersaoProtocolo, d.versao_protocolo_id)
+        entradas = json.loads(d.entradas_canonicas)
+        r = avaliar(carregar_definicao(json.loads(vp.definicao_json)), vp.hash_definicao, entradas)
+        divergencias = []
+        if vp.hash_definicao != d.hash_definicao_protocolo:
+            divergencias.append("hash da definição do protocolo")
+        if r.hash_entradas != d.hash_entradas:
+            divergencias.append("hash das entradas")
+        if resultado_para_json(r) != d.resultado_json:
+            divergencias.append("resultado do motor")
+        atuais = self._entradas_da_campanha(d.campanha_id)
+        saida = {"reproduzido": not divergencias, "divergencias": divergencias,
+                 "entradas_atuais_iguais": hash_entradas(atuais) == d.hash_entradas}
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "REPRODUCAO_DIAGNOSTICO", "Diagnostico", d.id,
+                                  detalhes={"reproduzido": saida["reproduzido"],
+                                            "entradas_atuais_iguais": saida["entradas_atuais_iguais"]})
+        return saida
 
     # ------------------------------------------------------------ leitura
 
