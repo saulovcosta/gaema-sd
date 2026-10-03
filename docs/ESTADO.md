@@ -65,6 +65,12 @@ Atualizado em: 03/10/2026, fim da Fase 6 (interface local e segurança da centra
 - **Revisão do PR 4 antes da mescla** (DEC-028): 6 achados (3 médios, 3 baixos), todos corrigidos com teste; o técnico agora só lê demandas e registros da própria equipe.
 - Primeira página do HTML impresso pelo Chromium e do PDF do reportlab convertida em imagem e conferida. O PDF ficou com espaço livre no fim da página 1, porque o mapa maior começa na página 2 junto com o título da seção 3.
 
+### Teste por Codespaces (DEC-029)
+- `.devcontainer/devcontainer.json`: Python 3.12, dependências instaladas automaticamente, porta 8765 encaminhada com abertura do navegador, início por `scripts/interface.sh`.
+- A interface aceita o endereço encaminhado só dentro de um Codespace; continua escutando só em 127.0.0.1.
+- Suíte completa executada também em Python 3.12 nesta máquina: 475 testes passaram.
+- **NÃO EXECUTADO:** abertura num Codespace real. Foi simulado o pedido que o encaminhamento faz.
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |

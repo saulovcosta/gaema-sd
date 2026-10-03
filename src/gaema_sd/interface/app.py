@@ -17,6 +17,7 @@ import hmac
 import io
 import json
 import logging
+import os
 import re
 import secrets
 import threading
@@ -115,6 +116,7 @@ class Aplicacao:
         self.nucleo = nucleo
         self.campo = campo
         self.hosts = {h.lower() for h in hosts_permitidos}
+        self.hosts_https: set[str] = set()   # endereços encaminhados por HTTPS (Codespaces; ver hosts_codespaces)
         self.usuarios = usuarios or USUARIOS_DE_TESTE
         self.sessoes: dict[str, Sessao] = {}
         self.env = Environment(loader=FileSystemLoader(str(Path(__file__).parent / "modelos")),
@@ -252,7 +254,8 @@ class Aplicacao:
         # Atenção: com Referrer-Policy "no-referrer" o navegador manda "Origin: null" em todo formulário e esta
         # conferência recusaria a própria interface; por isso a política é "same-origin" (nada vaza para fora).
         origem = environ.get("HTTP_ORIGIN")
-        if origem is not None and origem.lower() != f"http://{host}":
+        esperada = f"https://{host}" if host in self.hosts_https else f"http://{host}"
+        if origem is not None and origem.lower() != esperada:
             return self._erro(403, "Pedido recusado: veio de outra página que não esta interface.",
                               "Use os botões desta interface, aberta em 127.0.0.1.")
         return None
@@ -898,13 +901,32 @@ class _Serializado:
             return self.app(environ, start_response)
 
 
-def servir(nucleo: Nucleo, porta: int = 8765, *, usuarios: dict[str, Ator] | None = None, campo: Campo | None = None):
+_NOME_CODESPACE = re.compile(r"[a-z0-9][a-z0-9-]{0,99}")
+_DOMINIO_CODESPACES = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+")
+
+
+def hosts_codespaces(porta: int, ambiente: dict | None = None) -> set[str]:
+    """Endereço público com que o GitHub Codespaces encaminha a porta (`<codespace>-<porta>.<domínio>`), SÓ quando o
+    processo roda dentro de um Codespace (variáveis CODESPACES, CODESPACE_NAME e
+    GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN, definidas pelo próprio GitHub). Fora dele, nenhum endereço a mais.
+    O servidor continua escutando só em 127.0.0.1: o encaminhamento do Codespaces entra por ali (DEC-029)."""
+    amb = os.environ if ambiente is None else ambiente
+    if amb.get("CODESPACES") != "true":
+        return set()
+    nome = (amb.get("CODESPACE_NAME") or "").lower()
+    dominio = (amb.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN") or "").lower()
+    if not _NOME_CODESPACE.fullmatch(nome) or not _DOMINIO_CODESPACES.fullmatch(dominio):
+        return set()
+    return {f"{nome}-{porta}.{dominio}"}
+
+
+def servir(nucleo: Nucleo, porta: int = 8765, *, usuarios: dict[str, Ator] | None = None, campo: Campo | None = None,
+           ambiente: dict | None = None):
     """Cria o servidor em 127.0.0.1 (nunca em outra interface). O chamador chama `serve_forever()`."""
-    hosts = {f"127.0.0.1:{porta}", f"localhost:{porta}"}
-    app = Aplicacao(nucleo, hosts_permitidos=hosts, usuarios=usuarios, campo=campo)
+    app = Aplicacao(nucleo, hosts_permitidos=set(), usuarios=usuarios, campo=campo)
     servidor = make_server("127.0.0.1", porta, _Serializado(app), server_class=_ServidorComThreads,
                            handler_class=_Silencioso)
-    if porta == 0:   # porta escolhida pelo sistema (testes): ajusta os hosts permitidos
-        real = servidor.server_address[1]
-        app.hosts = {f"127.0.0.1:{real}", f"localhost:{real}"}
+    real = servidor.server_address[1]   # porta 0 = escolhida pelo sistema (testes)
+    app.hosts_https = hosts_codespaces(real, ambiente)
+    app.hosts = {f"127.0.0.1:{real}", f"localhost:{real}"} | app.hosts_https
     return servidor
