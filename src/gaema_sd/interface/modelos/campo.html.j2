@@ -1,0 +1,45 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Campo{% endblock %}
+{% block conteudo %}
+<h1>Campo: aparelho de coleta</h1>
+<p class="aviso info">{{ c.icone("campo") }}<span>Simulação: este “aparelho” roda neste computador e a rede é simulada. Não há GPS real nem envio para fora.</span></p>
+{% if not campo_ativo %}
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">Ligue o aparelho simulado abrindo a interface pelo script indicado abaixo.</p></div>
+<div class="aviso atencao">{{ c.icone("atencao") }}<div><p><strong>O Campo não está ligado nesta execução.</strong></p><p>Abra a interface pelo <code>scripts/interface.sh</code>, que liga o aparelho simulado.</p></div></div>
+{% else %}
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{{ proxima }}</p></div>
+<div class="grade">
+  <section class="cartao" aria-labelledby="t-coleta"><h2 id="t-coleta">Coletar</h2>
+    {% if permissoes.COLETAR_CAMPO %}
+      {% if rascunho %}<p>Há uma coleta em andamento: ponto <strong>{{ rascunho.codigo or "sem código" }}</strong>, etapa {{ rascunho.etapa }} de 4 (salva neste aparelho).</p>
+      <p><a class="botao" href="/campo/coleta">Continuar a coleta</a></p>
+      {% else %}<p><a class="botao" href="/campo/coleta">Coletar novo ponto</a></p>{% endif %}
+    {% else %}<div class="acoes">{{ c.bloqueado("Coletar novo ponto", "só o técnico de campo coleta dados.", "coletar") }}</div>{% endif %}
+  </section>
+  <section class="cartao" aria-labelledby="t-sinc"><h2 id="t-sinc">Sincronizar</h2>
+    <p>Envia a fila para a central e busca as decisões de conflito já tomadas.</p>
+    {% if permissoes.SINCRONIZAR %}
+    <form method="post" action="/campo/sincronizar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+      <div class="acoes"><button type="submit">Sincronizar agora</button></div></form>
+    <form method="post" action="/campo/rede"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+      <div class="acoes"><button type="submit" class="secundario">{{ "Simular queda da rede" if barra_campo.conectado else "Simular volta da rede" }}</button></div></form>
+    {% else %}<div class="acoes">{{ c.bloqueado("Sincronizar agora", "só o técnico de campo sincroniza o aparelho.", "sinc") }}</div>{% endif %}
+  </section>
+</div>
+
+<h2>Fila do aparelho</h2>
+{% if fila %}
+<table class="tabela">
+  <caption>Registros no aparelho (os mais recentes primeiro)</caption>
+  <thead><tr><th scope="col">Registro</th><th scope="col">Situação</th><th scope="col" class="num">Tentativas</th><th scope="col">Observação</th></tr></thead>
+  <tbody>{% for i in fila %}
+    <tr><td data-rotulo="Registro">{{ i.tipo_leigo }}</td>
+        <td data-rotulo="Situação"><span class="etiqueta tom-{{ i.tom }}">{{ c.icone(i.tom) }}<span>{{ i.situacao_leiga }}</span></span></td>
+        <td class="num" data-rotulo="Tentativas">{{ i.tentativas }}</td><td data-rotulo="Observação">{{ i.obs or "—" }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% if pode_reenfileirar %}<form method="post" action="/campo/reenfileirar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <div class="acoes"><button type="submit" class="secundario">Tentar de novo os recusados por falha</button></div></form>{% endif %}
+{% else %}<p>A fila está vazia.</p>{% endif %}
+{% endif %}
+{% endblock %}

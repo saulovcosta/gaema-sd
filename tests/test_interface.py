@@ -219,11 +219,12 @@ def test_aviso_aparece_uma_vez_so(sistema):
 def test_cada_papel_so_ve_e_faz_o_que_pode(sistema):
     tec = cliente(sistema, "tecnico")
     assert tec.get("/conflitos").status == 403 and tec.get("/auditoria").status == 403 and tec.get("/backup").status == 403
-    assert "Exportar" not in tec.get("/painel").texto
+    painel_tec = tec.get("/painel").texto
+    assert "Exportar" in painel_tec and 'class="bloqueada"' in painel_tec        # aparece, desativado, com razão
     aud = cliente(sistema, "auditor")
     assert aud.get("/auditoria").status == 200 and aud.get("/conflitos").status == 403
     adm = cliente(sistema, "admin")
-    assert adm.get("/backup").status == 200 and "não lê demandas" in adm.get("/painel").texto
+    assert adm.get("/backup").status == 200 and "Seu papel não vê demandas" in adm.get("/painel").texto
     ana = cliente(sistema, "analista")
     r = ana.post("/exportar")
     assert r.status == 303
@@ -232,7 +233,7 @@ def test_cada_papel_so_ve_e_faz_o_que_pode(sistema):
 
 def test_painel_lista_a_demanda_com_situacao_e_prioridade(sistema):
     t = cliente(sistema, "membro").get("/painel").texto
-    assert "EM_MONITORAMENTO" in t and "ART17_II" in t and _demanda_id(sistema[1]) in t
+    assert "Em acompanhamento" in t and "Art. 17, II" in t and _demanda_id(sistema[1]) in t
 
 
 # ================= fluxos =====================================================================================
@@ -243,13 +244,14 @@ def test_transicao_pela_tela_muda_o_estado_e_fica_no_historico(sistema):
     did = _demanda_id(nucleo)
     pagina = c.get(f"/demanda/{did}").texto
     disponiveis = [t for t in nucleo.transicoes_possiveis(USUARIOS_DE_TESTE["membro"], did) if t["disponivel"]]
-    assert disponiveis and f"Mover para {disponiveis[0]['destino']}" in pagina
+    from gaema_sd.interface import linguagem as L
+    assert disponiveis and f"Mover para: {L.situacao(disponiveis[0]['destino']).nome}" in pagina
     alvo = disponiveis[0]
     r = c.post(f"/demanda/{did}/transitar", {"destino": alvo["destino"], "motivo": "Decisão registrada pela tela de operação."})
     assert r.status == 303
     depois = c.get(f"/demanda/{did}").texto
     assert nucleo.repo.obter(E.Demanda, did).estado.value == alvo["destino"]
-    assert f"Demanda movida para {alvo['destino']}" in depois and "TRANSICAO" in depois
+    assert f"Demanda movida para: {L.situacao(alvo['destino']).nome}" in depois and "Mudança de situação" in depois
 
 
 def test_transicao_recusada_mostra_motivo_e_nao_muda_nada(sistema):
@@ -266,7 +268,7 @@ def test_transicao_recusada_mostra_motivo_e_nao_muda_nada(sistema):
 
 def test_pagina_explica_por_que_uma_transicao_nao_esta_disponivel(sistema):
     t = cliente(sistema, "tecnico").get(f"/demanda/{_demanda_id(sistema[1])}").texto
-    assert "Indisponível para você agora" in t
+    assert "Por que não:" in t and "disabled" in t
 
 
 def test_relatorio_abre_com_conferencia_de_hash_e_recusa_arquivo_adulterado(sistema):
@@ -364,10 +366,10 @@ def com_conflito(tmp_path, atores, cenario):
 def test_coordenador_ve_compara_e_resolve_o_conflito_pela_tela(com_conflito):
     amb, app = com_conflito
     c = Cliente(app).entrar("coord")
-    assert "Conflitos de sincronização abertos: <strong>1</strong>" in c.get("/painel").texto
+    assert "1 conflito(s) de sincronização aguardando sua decisão" in c.get("/painel").texto
     cid = amb.central.repo.listar_conflitos()[0]["id"]
     t = c.get(f"/conflitos/{cid}").texto
-    assert "valor_bruto" in t and ">50<" in t and ">30<" in t and "Aceitar a versão do aparelho" in t
+    assert "Valor anotado" in t and ">50<" in t and ">30<" in t and 'value="ACEITAR_DISPOSITIVO"' in t
     c.post(f"/conflitos/{cid}/resolver", {"decisao": "MANTER_CENTRAL", "motivo": "curto"})
     assert "motivo" in c.get(f"/conflitos/{cid}").texto and amb.central.repo.conflitos_abertos() == 1
     c.post(f"/conflitos/{cid}/resolver", {"decisao": "APAGAR", "motivo": "Decisão inválida de propósito."})
@@ -385,7 +387,7 @@ def test_aceitar_o_aparelho_nao_e_oferecido_se_a_central_mudou_depois(com_confli
     c = Cliente(app).entrar("coord")
     cid = amb.central.repo.listar_conflitos()[0]["id"]
     t = c.get(f"/conflitos/{cid}").texto
-    assert "Aceitar a versão do aparelho" not in t and "não está disponível" in t
+    assert 'value="ACEITAR_DISPOSITIVO"' not in t and "não está disponível" in t
     c.post(f"/conflitos/{cid}/resolver", {"decisao": "ACEITAR_DISPOSITIVO", "motivo": "Tentativa de aceitar mesmo assim."})
     assert "mudou na central" in c.get(f"/conflitos/{cid}").texto
 
@@ -496,13 +498,21 @@ def test_acessibilidade_estrutural_de_todas_as_paginas(todas_as_paginas):
         assert ":focus-visible" in html and "pular" in html
 
 
-def test_contraste_dos_pares_de_cores_da_interface(todas_as_paginas):
+def _tokens(html, seletor):
+    bloco = re.search(re.escape(seletor) + r"\s*\{(.*?)\}", html, re.S).group(1)
+    return dict(re.findall(r"--([a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{6})", bloco))
+
+
+def test_contraste_aa_nos_temas_claro_e_escuro(todas_as_paginas):
     html = todas_as_paginas["painel"]
-    cores = dict(re.findall(r"--([a-z]+)\s*:\s*(#[0-9a-fA-F]{3,6})", html))
-    pares = {"texto/fundo": ("texto", "fundo"), "texto/suave": ("texto", "suave"), "destaque/fundo": ("destaque", "fundo"),
-             "destaque/suave": ("destaque", "suave"), "link/fundo": ("link", "fundo"), "ok/suave": ("ok", "suave")}
-    for nome, (a, b) in pares.items():
-        assert razao_contraste(cores[a], cores[b]) >= 4.5, nome
-    assert razao_contraste("#ffffff", cores["link"]) >= 4.5            # texto branco do botão
-    assert razao_contraste(cores["borda"], cores["fundo"]) >= 3.0
-    assert razao_contraste("#444444", cores["fundo"]) >= 4.5           # texto discreto
+    claro, escuro = _tokens(html, ":root"), _tokens(html, ':root[data-tema="escuro"]')
+    pares_texto = [("texto", "fundo"), ("texto", "superficie"), ("texto", "superficie-2"), ("texto-2", "superficie"),
+                   ("texto-2", "superficie-2"), ("link", "superficie"), ("link", "fundo"), ("marca", "superficie"),
+                   ("marca-texto", "marca"), ("ok", "ok-fundo"), ("atencao", "atencao-fundo"), ("critico", "critico-fundo"),
+                   ("info", "info-fundo"), ("ok", "superficie"), ("atencao", "superficie"), ("critico", "superficie"),
+                   ("info", "superficie")]
+    for nome, cores in (("claro", claro), ("escuro", escuro)):
+        for a, b in pares_texto:
+            assert razao_contraste(cores[a], cores[b]) >= 4.5, (nome, a, b, razao_contraste(cores[a], cores[b]))
+        for a, b in (("borda-campo", "superficie"), ("foco", "superficie"), ("foco", "fundo")):
+            assert razao_contraste(cores[a], cores[b]) >= 3.0, (nome, a, b)        # componentes de interface (1.4.11)

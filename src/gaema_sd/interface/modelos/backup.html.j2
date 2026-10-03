@@ -2,20 +2,15 @@
 {% block titulo %}Backup{% endblock %}
 {% block conteudo %}
 <h1>Backup</h1>
-<p>O backup é verificado ao ser criado (arquivos conferidos contra o banco e a trilha). Ele fica neste computador; <strong>guarde uma cópia fora dele</strong> (a política de guarda e retenção ainda é pendência institucional).</p>
-<form method="post" action="/backup/criar">
-  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
-  <button type="submit">Criar backup agora</button>
-</form>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{% if backups %}Confira o backup mais recente e guarde uma cópia fora deste computador.{% else %}Crie o primeiro backup.{% endif %}</p>
+  <p class="discreto">O backup é conferido ao ser criado (arquivos contra o banco e a trilha). A guarda e a retenção ainda são decisão institucional.</p></div>
+<form method="post" action="/backup/criar" class="cartao"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <div class="acoes"><button type="submit">Criar backup agora</button></div></form>
 {% if backups %}
-<table>
-  <caption>Backups neste computador</caption>
-  <thead><tr><th scope="col">Backup</th><th scope="col">Conferir</th></tr></thead>
-  <tbody>{% for b in backups %}
-    <tr><th scope="row">{{ b }}</th><td><form method="post" action="/backup/verificar" class="linha">
-      <input type="hidden" name="csrf" value="{{ sessao.csrf }}"><input type="hidden" name="nome" value="{{ b }}">
-      <button type="submit" class="secundario">Verificar {{ b }}</button></form></td></tr>
-  {% endfor %}</tbody>
-</table>
+<ul class="lista">{% for b in backups %}
+  <li><div class="linha-titulo"><h2>Backup {{ b }}</h2></div>
+    <form method="post" action="/backup/verificar" class="em-linha"><input type="hidden" name="csrf" value="{{ sessao.csrf }}"><input type="hidden" name="nome" value="{{ b }}">
+      <button type="submit" class="secundario">Conferir o backup {{ b }}</button></form></li>
+{% endfor %}</ul>
 {% else %}<p>Nenhum backup ainda.</p>{% endif %}
 {% endblock %}

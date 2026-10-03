@@ -40,6 +40,7 @@ class CanalSimulado:
                 raise ValueError(f"falha simulada desconhecida: {f}")
         self.chamadas = 0
         self.entregues = 0   # vezes em que a central realmente recebeu o item
+        self.fora_do_ar = False   # simulação de "sem rede" contínua (interruptor da tela de Campo)
 
     def programar(self, *falhas: Optional[str]) -> None:
         self._falhas.extend(falhas)
@@ -47,6 +48,8 @@ class CanalSimulado:
     def consultar_decisoes(self, consultas: list[tuple[str, str]]) -> list[DecisaoConflito]:
         """Pergunta à central o desfecho de conflitos. Usa a mesma lista de falhas simuladas de `enviar`."""
         self.chamadas += 1
+        if self.fora_do_ar:
+            raise ErroRede("sem rede (simulação)")
         falha = self._falhas.pop(0) if self._falhas else None
         if falha in ("PERDA_ANTES", "INDISPONIVEL", "INTERROMPER_ANTES"):
             self._levantar(falha)
@@ -67,6 +70,8 @@ class CanalSimulado:
 
     def enviar(self, item: ItemSincronizacao, conteudo: bytes | None = None) -> ResultadoSincronizacao:
         self.chamadas += 1
+        if self.fora_do_ar:
+            raise ErroRede("sem rede (simulação)")
         falha = self._falhas.pop(0) if self._falhas else None
         if falha == "PERDA_ANTES":
             raise ErroRede("requisição perdida (simulação)")

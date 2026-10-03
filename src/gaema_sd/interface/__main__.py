@@ -12,7 +12,9 @@ from pathlib import Path
 from .. import demo
 from ..nucleo import Nucleo
 from ..persistencia.sqlite import Repositorio
-from . import servir
+from . import USUARIOS_DE_TESTE, servir
+from .campo import Campo
+from .cenario import preparar_vistoria_em_campo
 
 
 def main() -> int:
@@ -28,13 +30,18 @@ def main() -> int:
             print(f"A pasta {pasta} não está vazia; use uma pasta nova para o cenário de demonstração.")
             return 2
         demo.executar(pasta, verbose=False)
+        repo_demo = Repositorio(str(pasta / "gaema-demo.db"))
+        preparar_vistoria_em_campo(Nucleo(repo_demo, pasta))   # 2ª demanda, já em campo, para o aparelho simulado
+        repo_demo.fechar()
     banco = pasta / "gaema-demo.db"
     if not banco.is_file():
         print(f"Não há banco em {pasta}. Use --demo numa pasta nova para criar o cenário sintético.")
         return 2
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     repo = Repositorio(str(banco))
-    servidor = servir(Nucleo(repo, pasta), a.porta)
+    central = Nucleo(repo, pasta)
+    campo = Campo.criar(pasta / "aparelho-simulado", central, USUARIOS_DE_TESTE["tecnico"])
+    servidor = servir(central, a.porta, campo=campo)
     print(f"Interface (PROTÓTIPO, dados sintéticos) em http://127.0.0.1:{a.porta}/  — Ctrl+C para encerrar.")
     try:
         servidor.serve_forever()
@@ -42,6 +49,7 @@ def main() -> int:
         print("\nEncerrado.")
     finally:
         servidor.server_close()
+        campo.fechar()
         repo.fechar()
     return 0
 
