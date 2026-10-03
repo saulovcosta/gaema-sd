@@ -67,3 +67,22 @@ Níveis atualizados ao fim de cada fase.
 |---|---|---|---|
 | RQ-50 | Adaptadores como interface e documentação, sem execução, até haver organização ArcGIS | INSTITUCIONAL + PENDENTE (LA-05) | ESPECIFICADO |
 | RQ-51 | Experience Builder Dev Edition exige conta ArcGIS Online/Enterprise e Client ID | DOCUMENTAÇÃO OFICIAL (FC-08) | ESPECIFICADO |
+
+## Portaria GAEMA nº 001/2026 — Linha de Atuação em Solos Degradados (arts. 16 a 20)
+
+Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **decisões humanas**; o sistema organiza indícios, indicadores e registros, sem deflagrar intervenção, sem modelar imóvel ou proprietário e sem produzir conclusão jurídica (DEC-006, DE-07).
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-60 | Escopo do módulo alinhado à Linha de Atuação em Solos Degradados, vigência 2026/2028 (art. 16) | INSTITUCIONAL | ESPECIFICADO |
+| RQ-61 | Registrar a Peça de Informação Técnica do CAOMA/NIMA como origem de alerta ou demanda, com referência ao documento (art. 17, caput) | INSTITUCIONAL | ESPECIFICADO |
+| RQ-62 | Registrar a prioridade atribuída por pessoa, indicando o critério do art. 17 (I a IV) invocado e o motivo; o sistema não atribui prioridade sozinho | INSTITUCIONAL + AUTORAL | ESPECIFICADO |
+| RQ-63 | Critério I (erosão ativa de grande porte, especialmente voçorocas, nas regiões indicadas, com risco a curso d'água perene ou rodovia pública): o sistema registra voçorocas observadas e cruzamentos com camadas autorizadas (regiões, hidrografia, rodovias) como indícios; o "risco comprovado" é juízo técnico humano | INSTITUCIONAL + PENDENTE (camadas e critério de risco, LA-09) | ESPECIFICADO |
+| RQ-64 | Critério II (pastagem degradada atestada pelo CAOMA/NIMA com impacto supramunicipal): cruzamento com camadas de municípios e bacias como indício; a atestação é registro de origem externa | INSTITUCIONAL + PENDENTE (camadas autorizadas, LA-09) | ESPECIFICADO |
+| RQ-65 | Critério III (acima de 1.000 ha e mais de 40% em degradação severa): **não implementado**; depende de protocolo científico validado para "degradação severa" (LA-08). A área de referência, quando houver, vem de área de interesse ou cruzamento informado por pessoa, nunca de cadastro de imóvel | INSTITUCIONAL + **PENDENTE** | ESPECIFICADO |
+| RQ-66 | Critério IV (casos encaminhados por Promotorias, com anuência do Promotor Natural, ligados a mineração de grande escala): registrar o encaminhamento como origem e a anuência como providência humana | INSTITUCIONAL | ESPECIFICADO |
+| RQ-67 | Dados do GAEMA SD exportáveis em formato aberto para eventual uso no Painel do art. 18; nenhuma integração declarada sem ambiente real | INSTITUCIONAL + PENDENTE (LA-10) | ESPECIFICADO |
+| RQ-68 | Apoio à capacitação (art. 18, parágrafo único): guia de uso e cenário sintético de treinamento | INSTITUCIONAL + AUTORAL | ESPECIFICADO |
+| RQ-69 | Diagnóstico de solo auditável e indicadores de avanço de PRAD aferidos semestralmente (art. 19, I): relatório reproduzível com trilha de auditoria e marcos de monitoramento com periodicidade configurável | INSTITUCIONAL | ESPECIFICADO |
+| RQ-70 | Recomendações, comunicações a instituições financeiras e ações judiciais (art. 19, II a IV) são providências humanas registradas como `Providencia`; o sistema não gera minuta nem conclusão. Compartilhar dados com terceiros exige base legal e exportação controlada | INSTITUCIONAL + PENDENTE (base legal do compartilhamento) | ESPECIFICADO |
+| RQ-71 | Relatórios agregados de atividade para os marcos de out./2026 (relatório prévio à PGJ) e mar./2027 (relatório consolidado ao CPJ), e acompanhamento dos marcos do art. 20 | INSTITUCIONAL | ESPECIFICADO |

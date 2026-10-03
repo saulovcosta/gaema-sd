@@ -17,6 +17,7 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | F8 | Survey123, mapas base offline | https://doc.arcgis.com/en/survey123/create/connect/preparebasemaps.htm | ABRIU | Formatos TPKX/TPK, VTPK, MMPK, todos em Web Mercator Auxiliary Sphere; vínculo recomendado por "Linked Content" no Survey123 Connect |
 | F9 | Field Maps, sincronização | https://doc.arcgis.com/en/field-maps/android/use-maps/sync.htm | ABRIU | Camada hospedada: "the last edit synced is preserved"; dados versionados: conflito resolvido por reconcile/post do administrador |
 | F10 / F12 | Vídeo "Video Tutorial Projeto SIPADE" | https://www.youtube.com/watch?v=NtxHv9Dzgzk | **ABRIU (via cópia do usuário)** | Canal "Mauro Borges França" (homônimo de coautor de F2; identidade não confirmada). Analisado em 03/10/2026 a partir de cópia MP4 compartilhada pelo usuário: telas e diagramas de processo. Achados em `docs/sipade-videos.md` |
+| F13 | Portaria GAEMA nº 001/2026 (Coordenação do CAOMA/GAEMA, 15/09/2026) | Documento fornecido pelo usuário (PDF, 13 p.); **não** copiado para o repositório | ABRIU | Cap. V, arts. 16 a 20: institui a Linha de Atuação em Solos Degradados e o Plano de Trabalho do GAEMA SD 2026/2028 (gatilhos de intervenção, Painel de Monitoramento, instrumentos, cronograma). Os demais capítulos tratam de outras frentes e não foram incorporados. Registro sem nomes, números de procedimento ou dados pessoais |
 
 ## 2. Matriz da Fase 1
 
@@ -39,6 +40,12 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | FC-11 | Survey123 aceita mapa base offline TPKX/TPK/VTPK/MMPK em Web Mercator | F8 |
 | FC-12 | Field Maps com camada hospedada: vale a última edição sincronizada | F9 |
 | FC-13 | Ambiente de nuvem é efêmero; persistência só por commit e push | F5 |
+| FC-14 | Fica instituída a Linha de Atuação em Solos Degradados (GAEMA SD), Plano de Trabalho 2026/2028, a partir da publicação da Portaria (art. 16) | F13 |
+| FC-15 | A intervenção é deflagrada a partir de Peças de Informação Técnica do CAOMA/NIMA com base na plataforma SIPADE/Radar Ambiental, com quatro critérios de priorização (art. 17, I a IV) | F13 |
+| FC-16 | Critério do art. 17, III: empreendimentos rurais acima de 1.000 ha com mais de 40% da área rural consolidada em "estágio de degradação severa do solo, conforme classificação da plataforma SIPADE" | F13 |
+| FC-17 | Painel de Monitoramento de Pastagens Degradadas, no Radar Ambiental do aplicativo MPTO Cidadão, desenvolvido a partir da customização da plataforma SIPADE/ABRAMPA, é o instrumento primário de identificação de alvos, geração de evidências e subsídio probatório (art. 18); capacitação coordenada com o CAOMA (art. 18, parágrafo único) | F13 |
+| FC-18 | Instrumentos: IC e TAC com PRAD, diagnóstico de solo auditável e indicadores de avanço aferidos semestralmente pelo CAOMA; recomendações ao órgão ambiental estadual; articulação com instituições financeiras do crédito rural; ACP; demais da Resolução CPJ nº 009/2022 (art. 19) | F13 |
+| FC-19 | Cronograma (art. 20): capacitação na plataforma até o 2º sem./2026; primeiras Peças de Informação Técnica, notificações administrativas nos casos prioritários até o 1º sem./2027; primeiros TACs com PRAD até o 2º sem./2027; relatório prévio à PGJ em out./2026; relatório consolidado ao CPJ em mar./2027 | F13 |
 
 ### 2.2 INFERÊNCIAS (raciocínio próprio, não fato)
 
@@ -47,6 +54,9 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | IN-01 | As variáveis do SIPADE alimentam uma regra que leva aos 4 cenários, mas **a regra, pesos e limiares não são públicos** | FC-03, FC-04 |
 | IN-02 | "Last edit wins" do Field Maps pode apagar silenciosamente edição concorrente; o GAEMA SD precisa de controle de versão próprio para detectar conflito | FC-12 |
 | IN-03 | Sem organização ArcGIS acessível, nenhuma integração ArcGIS pode ser testada nesta fase | FC-08, inventário |
+| IN-05 | "GAEMA SD" tem dois sentidos: na Portaria, é a frente de atuação de Promotores de Justiça; neste repositório, é o nome provisório do módulo de software | F13 |
+| IN-06 | O Painel do art. 18 nasce da customização da plataforma SIPADE/ABRAMPA; este repositório continua sendo implementação independente, e a relação entre ambos depende de decisão institucional | F13, DEC-001 |
+| IN-07 | Os critérios do art. 17 orientam a priorização humana a partir de Peças de Informação Técnica; o software pode organizar indícios e indicadores, mas não deflagra intervenção | F13, DEC-006 |
 | IN-04 | O cenário 4 do SIPADE menciona "dano ambiental"; no GAEMA SD essa expressão não pode ser saída automática, porque dano jurídico é conclusão humana | FC-04, prompt §11 |
 
 ### 2.3 LACUNAS
@@ -59,6 +69,9 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | LA-04 | Protocolo de campo validado (nº de pontos, repetições, profundidade de penetrometria) | Parâmetros configuráveis, marcados PENDENTE |
 | LA-05 | Organização ArcGIS do MPTO, Client ID, serviços existentes do Radar Ambiental | Adaptadores só como interface e documentação |
 | LA-06 | Normas internas de retenção documental e de classificação de sigilo do MPTO | Retenção marcada PENDENTE em `docs/dominio.md` |
+| LA-08 | Critério técnico de "degradação severa" da plataforma SIPADE (art. 17, III) não é público | Gatilho de 40% fica PENDENTE de protocolo científico validado; o sistema não o calcula nem o sinaliza |
+| LA-09 | Operacionalização de "risco comprovado de assoreamento", "impacto supramunicipal" e dos recortes Serras Gerais, Jalapão e MATOPIBA (art. 17, I e II) | Dependem de camadas oficiais autorizadas e de juízo técnico humano |
+| LA-10 | Arquitetura, acesso e dados do Painel do art. 18 | Nenhuma integração declarada |
 | LA-07 | Autorização formal de uso de SICAR, MapBiomas, PRODES, DETER | Nenhuma ingestão real; só desenho do pipeline |
 
 ### 2.4 DECISÕES (detalhes em `docs/decisoes.md`)
@@ -71,6 +84,7 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | DE-04 | Protocolo em modo descritivo; protótipo rotulado "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA" |
 | DE-05 | Controle de concorrência otimista (número de versão) e idempotência por chave de cliente, em vez de "última edição vence" |
 | DE-06 | Nenhum campo do modelo representa autoria, ilicitude, nexo causal ou responsabilidade |
+| DE-07 | Portaria GAEMA nº 001/2026 (arts. 16 a 20) incorporada como fonte INSTITUCIONAL de requisitos de priorização, instrumentos e cronograma, mantidas DEC-001 (implementação independente) e DEC-006 (sem imóvel, proprietário ou conclusão jurídica). Teses jurídicas da Portaria não viram saída do sistema |
 
 ## 3. Inventário do ambiente (03/10/2026)
 
