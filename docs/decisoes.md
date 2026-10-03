@@ -244,3 +244,11 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Não corrigido (registrado):** a trilha é lida inteira a cada página (12; R-34); pontos do mapa com ~32 px a 360 px (R-35).
 - **Risco:** o revisor é um agente de IA (R-30).
 - **Teste:** `tests/test_regressao_fase6.py` (mutações nas correções: 5 de 6 mortas; a sobrevivente é equivalente).
+
+## DEC-027 — Teste por Codespaces (03/10/2026)
+
+- **Contexto:** o servidor escuta só em 127.0.0.1 e recusa `Host` que não seja 127.0.0.1/localhost com a porta (DEC-024). O encaminhamento de porta do Codespaces entrega o pedido no 127.0.0.1 do contêiner (o servidor é alcançado), mas o navegador usa `https://NOME-8765.app.github.dev`; esse `Host` e a `Origin` correspondente seriam recusados.
+- **Decisão:** `.devcontainer/devcontainer.json` (Python 3.12, `pip install -r requirements-dev.txt`, porta 8765 **privada** com abertura automática do navegador, início por `scripts/interface.sh`). Mudança mínima no código: **só quando `CODESPACES=true`** e com `CODESPACE_NAME` e `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN` válidos, aceita-se **um único** host extra, `NOME-PORTA.DOMINIO`, e a `Origin` `https://` desse mesmo host. Fora do Codespaces, nada muda. O servidor continua em 127.0.0.1; regra de negócio, acesso, CSRF, sessão e auditoria ficam como estavam.
+- **Limites:** a porta privada exige login no GitHub; mudar para pública expõe um protótipo sem autenticação própria (só dados sintéticos; R-31). Cookie sem `Secure` (como antes). **Não foi testado num Codespaces real**: o ajuste segue a documentação do Codespaces, e o teste automático só simula as variáveis e os cabeçalhos.
+- **Alternativa descartada:** escutar em 0.0.0.0 (expõe a outras máquinas do contêiner) ou aceitar qualquer host (reabre DNS rebinding).
+- **Teste:** `tests/test_interface.py` (Codespaces).

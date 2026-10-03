@@ -17,6 +17,7 @@ import hmac
 import io
 import json
 import logging
+import os
 import re
 import secrets
 import threading
@@ -109,12 +110,13 @@ _FRASES = {200: "OK", 303: "See Other", 400: "Bad Request", 403: "Forbidden", 40
 
 class Aplicacao:
     def __init__(self, nucleo: Nucleo, *, hosts_permitidos: set[str], usuarios: dict[str, Ator] | None = None,
-                 campo: Campo | None = None):
+                 campo: Campo | None = None, hosts_https: set[str] | None = None):
         if nucleo.modo != "central":
             raise ErroGaema("a interface opera a instalação central (Nucleo em modo 'central')")
         self.nucleo = nucleo
         self.campo = campo
         self.hosts = {h.lower() for h in hosts_permitidos}
+        self.hosts_https = {h.lower() for h in (hosts_https or set())}   # endereço encaminhado (Codespaces), por https
         self.usuarios = usuarios or USUARIOS_DE_TESTE
         self.sessoes: dict[str, Sessao] = {}
         self.env = Environment(loader=FileSystemLoader(str(Path(__file__).parent / "modelos")),
@@ -168,7 +170,7 @@ class Aplicacao:
 
     def _despachar(self, environ) -> Resposta:
         host = (environ.get("HTTP_HOST") or "").lower()
-        if host not in self.hosts:
+        if host not in self.hosts and host not in self.hosts_https:
             return self._erro(400, "Endereço não permitido. Esta interface só atende neste computador.")
         metodo, caminho = environ["REQUEST_METHOD"].upper(), environ.get("PATH_INFO", "/")
         achou_caminho = False
@@ -252,7 +254,8 @@ class Aplicacao:
         # Atenção: com Referrer-Policy "no-referrer" o navegador manda "Origin: null" em todo formulário e esta
         # conferência recusaria a própria interface; por isso a política é "same-origin" (nada vaza para fora).
         origem = environ.get("HTTP_ORIGIN")
-        if origem is not None and origem.lower() != f"http://{host}":
+        esquema = "https" if host in self.hosts_https else "http"
+        if origem is not None and origem.lower() != f"{esquema}://{host}":
             return self._erro(403, "Pedido recusado: veio de outra página que não esta interface.",
                               "Use os botões desta interface, aberta em 127.0.0.1.")
         return None
@@ -898,10 +901,24 @@ class _Serializado:
             return self.app(environ, start_response)
 
 
+def host_codespaces(porta: int, ambiente=None) -> str | None:
+    """Único endereço público que o encaminhamento de porta do Codespaces usa para esta porta (ou None fora do Codespaces).
+
+    Só vale com CODESPACES=true e nome e domínio informados pelo próprio Codespaces; nunca aceita host livre (DEC-027)."""
+    amb = os.environ if ambiente is None else ambiente
+    nome, dominio = amb.get("CODESPACE_NAME", ""), amb.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "")
+    if amb.get("CODESPACES") != "true" or not re.fullmatch(r"[A-Za-z0-9-]+", nome) \
+            or not re.fullmatch(r"[A-Za-z0-9.-]+", dominio):
+        return None
+    return f"{nome}-{porta}.{dominio}".lower()
+
+
 def servir(nucleo: Nucleo, porta: int = 8765, *, usuarios: dict[str, Ator] | None = None, campo: Campo | None = None):
     """Cria o servidor em 127.0.0.1 (nunca em outra interface). O chamador chama `serve_forever()`."""
     hosts = {f"127.0.0.1:{porta}", f"localhost:{porta}"}
-    app = Aplicacao(nucleo, hosts_permitidos=hosts, usuarios=usuarios, campo=campo)
+    externo = host_codespaces(porta) if porta != 0 else None
+    app = Aplicacao(nucleo, hosts_permitidos=hosts, usuarios=usuarios, campo=campo,
+                    hosts_https={externo} if externo else None)
     servidor = make_server("127.0.0.1", porta, _Serializado(app), server_class=_ServidorComThreads,
                            handler_class=_Silencioso)
     if porta == 0:   # porta escolhida pelo sistema (testes): ajusta os hosts permitidos

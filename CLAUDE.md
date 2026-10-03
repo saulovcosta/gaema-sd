@@ -50,4 +50,4 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 - Histórico de registro para quem não tem `VERIFICAR_AUDITORIA`: só mudanças de situação, sem pessoa nem motivo.
 - Relatório: `relatorio/modelo.html.j2` imprime em A4; datas pelo filtro `data_br`, hashes pelo filtro `blocos` (`<data value=hash>`); manter `@page`, sem `style=`.
 - Acessibilidade da interface: axe-core e navegador automatizado cobrem só o automático; não declarar conformidade WCAG; leitor de tela e pessoas usuárias seguem NÃO EXECUTADOS.
-
+- Codespaces (DEC-027): `.devcontainer/` só prepara o ambiente; a interface continua só em 127.0.0.1 e aceita, apenas com `CODESPACES=true`, o host `NOME-8765.DOMINIO` exato (`host_codespaces`). Nunca 0.0.0.0, nunca host livre; porta privada. Não testado em Codespaces real.

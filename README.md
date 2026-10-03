@@ -105,6 +105,18 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 
 **Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 83 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
 
+## Como testar no navegador (Codespaces)
+
+Não precisa instalar nada no seu computador. Só dados inventados; não há senha nem autenticação real.
+
+1. Abra o repositório no GitHub e clique em **Code → Codespaces → Create codespace on** (escolha a branch indicada pela equipe técnica).
+2. Espere a preparação terminar (alguns minutos na primeira vez). A interface inicia sozinha e o navegador abre uma nova aba.
+3. Se a aba não abrir, clique na aba **Portas** (embaixo) e, na linha **8765**, no ícone de globo ("Abrir no navegador").
+4. Na tela inicial, escolha um **usuário de teste** e siga as instruções de cada tela.
+5. Ao terminar, feche a aba. Para parar o ambiente: **Code → Codespaces →** `...` **→ Stop codespace**.
+
+Não mude a porta 8765 para **Pública**: ela deve ficar **Privada** (só você, logado no GitHub, acessa). Se algo não funcionar, anote a mensagem na tela e avise a equipe técnica. Ver `docs/decisoes.md` (DEC-027). Não foi testado num Codespaces real.
+
 ## Para quem programa
 
 ```bash

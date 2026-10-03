@@ -517,3 +517,38 @@ def test_contraste_aa_nos_temas_claro_e_escuro(todas_as_paginas):
         for a, b in (("borda-campo", "superficie"), ("foco", "superficie"), ("foco", "fundo"), ("mapa-ponto", "mapa-area"),
                      ("mapa-borda", "superficie"), ("critico", "mapa-area")):
             assert razao_contraste(cores[a], cores[b]) >= 3.0, (nome, a, b)        # componentes de interface (1.4.11)
+
+
+# ================= Codespaces (DEC-027): só o host encaminhado exato, só com CODESPACES=true =======================
+
+_CS = {"CODESPACES": "true", "CODESPACE_NAME": "meu-espaco-abc", "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN": "app.github.dev"}
+
+
+def test_host_codespaces_so_com_variaveis_do_codespaces():
+    from gaema_sd.interface.app import host_codespaces
+    assert host_codespaces(8765, _CS) == "meu-espaco-abc-8765.app.github.dev"
+    assert host_codespaces(8765, {}) is None
+    assert host_codespaces(8765, {**_CS, "CODESPACES": "false"}) is None
+    assert host_codespaces(8765, {k: v for k, v in _CS.items() if k != "CODESPACE_NAME"}) is None
+    assert host_codespaces(8765, {**_CS, "CODESPACE_NAME": "x/../y"}) is None
+
+
+def test_codespaces_aceita_so_o_host_encaminhado_exato(sistema):
+    app, nucleo, _ = sistema
+    externo = "meu-espaco-abc-8765.app.github.dev"
+    app.hosts_https = {externo}
+    def pedir(host, origem=None):
+        env = {"REQUEST_METHOD": "GET", "PATH_INFO": "/entrar", "HTTP_HOST": host, "wsgi.input": io.BytesIO(b""), "CONTENT_LENGTH": "0"}
+        if origem: env["HTTP_ORIGIN"] = origem
+        return app._despachar(env)
+    assert pedir(externo).status == 200
+    assert pedir("outro-8765.app.github.dev").status == 400
+    assert pedir("evil.example.com").status == 400
+    assert app._conferir_origem({"HTTP_ORIGIN": f"https://{externo}"}, externo) is None
+    assert app._conferir_origem({"HTTP_ORIGIN": f"http://{externo}"}, externo).status == 403
+    assert app._conferir_origem({"HTTP_ORIGIN": "https://evil.example.com"}, externo).status == 403
+
+
+def test_sem_codespaces_servidor_nao_aceita_host_externo(sistema):
+    app, _, _ = sistema
+    assert app.hosts_https == set()

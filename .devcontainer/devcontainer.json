@@ -1,0 +1,14 @@
+{
+  "name": "GAEMA SD (teste no navegador, dados sintéticos)",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12",
+  "postCreateCommand": "pip install -r requirements-dev.txt",
+  "postAttachCommand": "scripts/interface.sh",
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": {
+      "label": "GAEMA SD (interface de teste)",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  }
+}
