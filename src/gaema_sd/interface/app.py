@@ -14,22 +14,26 @@ from __future__ import annotations
 
 import dataclasses
 import hmac
+import io
 import json
 import logging
 import re
 import secrets
+import threading
+import time
 import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime
 from http.cookies import SimpleCookie
 from pathlib import Path
-from wsgiref.simple_server import WSGIRequestHandler, make_server
+from socketserver import ThreadingMixIn
+from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 from ..acesso.politica import Acao, Ator, pode
 from ..auditoria.trilha import sanear_texto
-from ..backup.ancora import ler_ancora
+from ..backup.ancora import interpretar_ancora
 from ..config import parametro
 from ..dominio import entidades as E
 from ..dominio.enums import Estado, FormatoRelatorio, Papel, VariavelCampo
@@ -47,6 +51,9 @@ log = logging.getLogger("gaema_sd.interface")
 
 LIMITE_CORPO = 64 * 1024
 MAX_SESSOES = 50
+MAX_ANONIMAS = 20
+SESSAO_TTL = 8 * 3600          # segundos sem uso até a sessão expirar (escolha de projeto, AUTORAL)
+TEMPO_SOCKET = 15              # segundos: conexão parada não prende o servidor para sempre
 _UUID = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 ROTULO_PAPEL = L.PAPEL
 TEMAS = ("auto", "claro", "escuro")
@@ -83,6 +90,7 @@ class Sessao:
     csrf: str = field(default_factory=lambda: secrets.token_hex(16))
     usuario: str | None = None
     tema: str = "auto"
+    usada_em: float = field(default_factory=time.monotonic)
     avisos: list = field(default_factory=list)   # ("ok", texto) | ("erro", Mensagem); mostrados uma vez
 
 
@@ -180,10 +188,13 @@ class Aplicacao:
                 corpo = self._ler_corpo(environ)
                 if isinstance(corpo, Resposta):
                     return corpo
-                form = {k: v[0] for k, v in urllib.parse.parse_qs(corpo, keep_blank_values=True).items()}
+                pares = urllib.parse.parse_qs(corpo, keep_blank_values=True)
+                if any(len(v) > 1 for v in pares.values()):
+                    return self._erro(400, "Pedido malformado: um campo veio repetido.", "Recarregue a página e envie de novo.")
+                form = {k: v[0] for k, v in pares.items()}
                 if funcao not in self._livres and not (sessao and sessao.usuario):
                     return self._ir("/entrar")
-                if not sessao or not hmac.compare_digest(form.get("csrf", ""), sessao.csrf):
+                if not sessao or not hmac.compare_digest(form.get("csrf", "").encode("utf-8"), sessao.csrf.encode("utf-8")):
                     return self._erro(403, "Pedido recusado: o token de segurança da página expirou ou não confere.",
                                       "Volte, recarregue a página e tente de novo.")
             else:
@@ -202,15 +213,36 @@ class Aplicacao:
     # ------------------------------------------------------------ sessão, origem, corpo
 
     def _sessao(self, environ) -> Sessao | None:
-        c = SimpleCookie(environ.get("HTTP_COOKIE", ""))
-        return self.sessoes.get(c["sid"].value) if "sid" in c else None
+        try:
+            c = SimpleCookie(environ.get("HTTP_COOKIE", ""))
+        except Exception:  # noqa: BLE001 - cookie malformado = sem sessão
+            return None
+        s = self.sessoes.get(c["sid"].value) if "sid" in c else None
+        if s is not None:
+            if time.monotonic() - s.usada_em > SESSAO_TTL:
+                self.sessoes.pop(s.sid, None)
+                return None
+            s.usada_em = time.monotonic()
+        return s
 
-    def _nova_sessao(self, tema: str = "auto") -> Sessao:
+    def _nova_sessao(self, tema: str = "auto", *, anonima: bool = False) -> Sessao:
+        """Sessões anônimas (página de entrada) têm teto próprio e saem primeiro: abrir muitas páginas de entrada não
+        derruba quem já entrou. Sessões expiram após SESSAO_TTL segundos sem uso."""
+        self._expirar_sessoes()
+        anonimas = [k for k, v in self.sessoes.items() if v.usuario is None]
+        if anonima and len(anonimas) >= MAX_ANONIMAS:
+            self.sessoes.pop(anonimas[0])
         while len(self.sessoes) >= MAX_SESSOES:
-            self.sessoes.pop(next(iter(self.sessoes)))
+            fora = next((k for k, v in self.sessoes.items() if v.usuario is None), next(iter(self.sessoes)))
+            self.sessoes.pop(fora)
         s = Sessao(sid=secrets.token_hex(24), tema=tema)
         self.sessoes[s.sid] = s
         return s
+
+    def _expirar_sessoes(self) -> None:
+        agora = time.monotonic()
+        for k in [k for k, v in self.sessoes.items() if agora - v.usada_em > SESSAO_TTL]:
+            self.sessoes.pop(k)
 
     @staticmethod
     def _cookie(sid: str, *, apagar: bool = False) -> str:
@@ -301,7 +333,7 @@ class Aplicacao:
         return self._ir("/painel" if ator else "/entrar")
 
     def entrar_pagina(self, sessao, ator, form):
-        anonima = sessao if sessao is not None else self._nova_sessao()
+        anonima = sessao if sessao is not None else self._nova_sessao(anonima=True)
         usuarios = []
         for k, a in self.usuarios.items():
             sim, _ = L.pode_nao_pode(a)
@@ -415,6 +447,7 @@ class Aplicacao:
             razao = ""
         return self._pagina("demanda", sessao, ator, d=d, resumo=resumo, transicoes=transicoes, historico=historico,
                             relatorios=relatorios, pode_emitir=pode_emitir, razao_emitir=razao,
+                            historico_completo=pode(ator, Acao.VERIFICAR_AUDITORIA),
                             formatos=[f.value for f in FormatoRelatorio], voce_age=any(t["disponivel"] for t in transicoes),
                             pontos=pontos, selecionado=selecionado, mapa=svg, escala=escala, limite_gps=f"{limite:g}")
 
@@ -476,7 +509,8 @@ class Aplicacao:
                               lambda: self.nucleo.resolver_conflito_sincronizacao(
                                   ator, conflito_id, form.get("decisao", ""), form.get("motivo", "")),
                               "Decisão registrada. Agora mova a demanda de volta na página dela (o sistema não faz isso "
-                              "sozinho). O aparelho recebe a decisão na próxima sincronização.")
+                              "sozinho). O aparelho só fica sabendo quando consultar a central (nesta interface, o "
+                              "aparelho simulado consulta ao tocar em “Sincronizar agora”).")
 
     def auditoria(self, sessao, ator, form):
         try:
@@ -486,16 +520,22 @@ class Aplicacao:
         return self._pagina("auditoria", sessao, ator, eventos=eventos, total=len(self.nucleo.trilha.eventos))
 
     def verificar_auditoria(self, sessao, ator, form):
+        if not pode(ator, Acao.VERIFICAR_AUDITORIA):     # nada é lido antes da permissão
+            return self._executar(sessao, "/auditoria", lambda: self.nucleo.verificar_auditoria(ator), "")
         ancora = None
-        if form.get("ancora_arquivo", "").strip():
+        texto = form.get("ancora_texto", "").strip()
+        if texto:
             try:
-                ancora = ler_ancora(form["ancora_arquivo"].strip())
+                ancora = interpretar_ancora(texto)
             except ErroGaema as e:
                 self._aviso_erro(sessao, str(e))
                 return self._ir("/auditoria")
-        return self._executar(sessao, "/auditoria", lambda: self.nucleo.verificar_auditoria(ator, ancora),
-                              "Trilha de auditoria íntegra: {extra} registros conferidos"
-                              + (" (e conferidos com a âncora)." if ancora else "."))
+        if ancora:
+            sucesso = "Trilha conferida com a âncora colada: {extra} registros, sem reescrita nem corte até o ponto ancorado."
+        else:
+            sucesso = ("Cadeia da trilha conferida: {extra} registros. Sem âncora, isso não exclui reescrita completa "
+                       "por quem controla o banco; cole a âncora guardada fora para conferir também isso.")
+        return self._executar(sessao, "/auditoria", lambda: self.nucleo.verificar_auditoria(ator, ancora), sucesso)
 
     def gerar_ancora(self, sessao, ator, form):
         try:
@@ -824,16 +864,45 @@ def dataclasses_replace_autoria(reg, ator):
 
 
 class _Silencioso(WSGIRequestHandler):
+    timeout = TEMPO_SOCKET   # conexão ociosa ou corpo prometido e não enviado: desiste depois deste tempo
+
     def log_message(self, formato, *args):   # o log de acesso padrão mostraria caminhos; usamos o logger da aplicação
         pass
+
+
+class _ServidorComThreads(ThreadingMixIn, WSGIServer):
+    """Cada conexão em sua thread: uma conexão lenta ou parada não trava as outras."""
+    daemon_threads = True
+
+
+class _Serializado:
+    """Lê o corpo (com limite) FORA da trava e só então atende, um pedido por vez: o núcleo e o SQLite nunca são
+    usados por duas threads ao mesmo tempo."""
+
+    def __init__(self, app: Aplicacao):
+        self.app = app
+        self.trava = threading.Lock()
+
+    def __call__(self, environ, start_response):
+        try:
+            n = int(environ.get("CONTENT_LENGTH") or 0)
+        except ValueError:
+            n = -1
+        if 0 < n <= LIMITE_CORPO:
+            environ["wsgi.input"] = io.BytesIO(environ["wsgi.input"].read(n))
+        elif n != 0:
+            environ["wsgi.input"] = io.BytesIO(b"")   # a aplicação recusa pelo CONTENT_LENGTH (400 ou 413)
+        with self.trava:
+            return self.app(environ, start_response)
 
 
 def servir(nucleo: Nucleo, porta: int = 8765, *, usuarios: dict[str, Ator] | None = None, campo: Campo | None = None):
     """Cria o servidor em 127.0.0.1 (nunca em outra interface). O chamador chama `serve_forever()`."""
     hosts = {f"127.0.0.1:{porta}", f"localhost:{porta}"}
-    servidor = make_server("127.0.0.1", porta, Aplicacao(nucleo, hosts_permitidos=hosts, usuarios=usuarios, campo=campo),
+    app = Aplicacao(nucleo, hosts_permitidos=hosts, usuarios=usuarios, campo=campo)
+    servidor = make_server("127.0.0.1", porta, _Serializado(app), server_class=_ServidorComThreads,
                            handler_class=_Silencioso)
     if porta == 0:   # porta escolhida pelo sistema (testes): ajusta os hosts permitidos
         real = servidor.server_address[1]
-        servidor.get_app().hosts = {f"127.0.0.1:{real}", f"localhost:{real}"}
+        app.hosts = {f"127.0.0.1:{real}", f"localhost:{real}"}
     return servidor

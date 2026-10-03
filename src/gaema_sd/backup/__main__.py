@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from ..erros import ErroGaema
 from ..persistencia.sqlite import Repositorio
 from .ancora import escrever_ancora, ler_ancora
 from .backup import criar_backup, restaurar_backup, rollback, verificar_backup
@@ -32,13 +33,25 @@ def main() -> int:
             return 2
         repo = Repositorio(a.banco)
         try:
-            from ..nucleo import Nucleo
-            eventos = Nucleo(repo, ".", modo="livre").trilha.eventos
+            from ..auditoria import TrilhaAuditoria
+            from ..persistencia.sqlite import ArmazenamentoAuditoriaSQLite
+            trilha = TrilhaAuditoria(ArmazenamentoAuditoriaSQLite(repo))
+            try:
+                trilha.verificar()          # não se ancora trilha que já não confere
+            except ErroGaema as e:
+                print(f"a trilha deste banco NÃO confere; nenhuma âncora foi criada ({e})")
+                return 1
+            eventos = trilha.eventos
             print(f"âncora gravada: {escrever_ancora(eventos, a.pasta_externa)} (guarde FORA deste computador)")
         finally:
             repo.fechar()
     elif a.cmd == "verificar":
-        problemas = verificar_backup(a.backup, ler_ancora(a.ancora) if a.ancora else None)
+        try:
+            ancora = ler_ancora(a.ancora) if a.ancora else None
+        except ErroGaema as e:
+            print(f"âncora recusada: {e}")
+            return 2
+        problemas = verificar_backup(a.backup, ancora)
         print("backup confere" if not problemas else "PROBLEMAS:\n- " + "\n- ".join(problemas))
         return 1 if problemas else 0
     elif a.cmd == "restaurar":

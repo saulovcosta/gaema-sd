@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
 
-from .acesso.politica import Acao, Ator, exigir
+from .acesso.politica import Acao, Ator, exigir, pode
 from .auditoria.trilha import TrilhaAuditoria, sanear_texto
 from .backup.ancora import conferir_ancora, gerar_ancora
 from .backup.backup import criar_backup as criar_backup_arquivos
@@ -101,6 +101,10 @@ ESTADOS_DE_COLETA = (Estado.EM_CAMPO, Estado.COLETA_PARCIAL, Estado.AGUARDANDO_S
 # é o aparelho de campo (não tem a campanha, só grava local e enfileira); "livre" é só para testes e desenvolvimento.
 MODOS = ("central", "dispositivo", "livre")
 TIPOS_DE_CAMPO = tuple(TIPOS_SINCRONIZAVEIS.values())
+# Campos que ligam o dado de campo à sua demanda; não mudam depois de gravados.
+VINCULOS: dict[type, tuple[str, ...]] = {E.PontoAmostral: ("campanha_id",), E.Observacao: ("ponto_id",),
+                                         E.MedicaoPenetracao: ("ponto_id",),
+                                         E.Evidencia: ("campanha_id", "ponto_id", "observacao_id")}
 
 ESTADOS_COM_RELATORIO = (Estado.DIAGNOSTICO_EMITIDO, Estado.EM_TRATATIVA, Estado.EM_MONITORAMENTO,
                          Estado.ENCERRADA, Estado.REABERTA)
@@ -110,10 +114,15 @@ class Nucleo:
     def __init__(self, repo: Repositorio, diretorio_saida: str | Path = "saida", *, modo: str = "central"):
         if modo not in MODOS:
             raise ErroGaema(f"modo {modo!r} desconhecido; use um de {MODOS}")
-        self.modo = modo
+        self._modo = modo
         self.repo = repo
         self.saida = Path(diretorio_saida)
         self.trilha = TrilhaAuditoria(ArmazenamentoAuditoriaSQLite(repo))
+
+    @property
+    def modo(self) -> str:
+        """Somente leitura: o modo é fixado na criação (trocar para 'livre' desligaria as conferências da central)."""
+        return self._modo
 
     # ------------------------------------------------------------ apoio
 
@@ -198,7 +207,9 @@ class Nucleo:
         self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], tipo, obj.id)
         try:
             if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
-                self._exigir_estado_de_coleta(self._contexto_de_coleta(ator, obj))
+                gravado = self.repo.obter(type(obj), obj.id)
+                self._exigir_vinculo_inalterado(gravado, obj)
+                self._exigir_estado_de_coleta(self._contexto_de_coleta(ator, gravado))
             with self.repo.transacao():
                 if isinstance(obj, IMUTAVEIS):
                     raise ErroGaema(f"{tipo} é imutável: registre nova versão vinculada à anterior")
@@ -234,6 +245,7 @@ class Nucleo:
         try:
             with self.repo.transacao():
                 atual = self.repo.obter(E.Demanda, demanda_id)
+                self._exigir_equipe_do_tecnico(ator, atual, destino)
                 contexto = montar_contexto(self.repo, atual, ator, self.trilha.eventos)
                 nova = maquina.transitar(atual, destino, ator, contexto=contexto,
                                          trilha=self.trilha, motivo=motivo)
@@ -242,6 +254,28 @@ class Nucleo:
             self._auditar_recusa(ator, "TRANSICAO_RECUSADA", "Demanda", demanda_id, e,
                                  estado_destino=destino.value)
             raise
+
+    def _membros_da_demanda(self, demanda: E.Demanda) -> set[str]:
+        equipes = {demanda.equipe_id} | {c.equipe_id for c in self.repo.listar(E.CampanhaVistoria)
+                                        if c.demanda_id == demanda.id}
+        membros: set[str] = set()
+        for eid in equipes - {""}:
+            try:
+                membros |= {m.usuario_id for m in self.repo.obter(E.Equipe, eid).membros}
+            except RegistroNaoEncontrado:
+                pass
+        return membros
+
+    @staticmethod
+    def _so_tecnico(ator: Ator) -> bool:
+        return Papel.TECNICO_CAMPO in ator.papeis and not (ator.papeis - {Papel.TECNICO_CAMPO})
+
+    def _exigir_equipe_do_tecnico(self, ator: Ator, demanda: E.Demanda, destino: Estado) -> None:
+        """Quem só pode mover a demanda como técnico de campo precisa ser da equipe dela (ou de uma campanha dela)."""
+        t = maquina.TABELA.get((demanda.estado, destino))
+        if t is not None and (ator.papeis & t.papeis) == {Papel.TECNICO_CAMPO} and \
+                ator.id not in self._membros_da_demanda(demanda):
+            raise AcessoNegado("técnico de campo só move demanda da própria equipe")
 
     # ------------------------------------------------------------ protocolo e diagnóstico
 
@@ -447,11 +481,20 @@ class Nucleo:
             if obj.ponto_id and achar(E.PontoAmostral, obj.ponto_id, "ponto").campanha_id != campanha.id:
                 raise ErroGaema("o ponto da evidência pertence a outra campanha")
             if obj.observacao_id:
-                achar(E.Observacao, obj.observacao_id, "observação")
+                obs = achar(E.Observacao, obj.observacao_id, "observação")
+                if achar(E.PontoAmostral, obs.ponto_id, "ponto").campanha_id != campanha.id:
+                    raise ErroGaema("a observação da evidência pertence a outra campanha")
         equipe = achar(E.Equipe, campanha.equipe_id, "equipe")
         if not any(m.usuario_id == ator.id for m in equipe.membros):
             raise ErroGaema("o usuário não faz parte da equipe desta campanha")
         return achar(E.Demanda, campanha.demanda_id, "demanda")
+
+    @staticmethod
+    def _exigir_vinculo_inalterado(gravado, obj) -> None:
+        """Correção de dado de campo não muda a que ponto/campanha ele pertence (senão sairia de uma demanda para outra)."""
+        for campo in VINCULOS.get(type(obj), ()):
+            if getattr(obj, campo) != getattr(gravado, campo):
+                raise ErroGaema(f"o vínculo do registro ({campo}) não pode ser alterado; registre um dado novo")
 
     @staticmethod
     def _exigir_estado_de_coleta(demanda: E.Demanda) -> None:
@@ -501,6 +544,12 @@ class Nucleo:
 
     def _sincronizar_criacao(self, ator, item, cls, obj, conteudo, demanda) -> ResultadoSincronizacao:
         existente = self._existente_por_chave_ou_id(cls, obj)
+        if existente is not None:
+            try:
+                self._exigir_vinculo_inalterado(existente, obj)
+            except ErroGaema as e:
+                self._recusar_sincronizacao(ator, item, e)
+                raise
         if existente is not None and existente.id == obj.id and any(
                 h.versao == 1 and self._conteudo_comparavel(h) == self._conteudo_comparavel(obj)
                 for h in self.repo.historico(cls, existente.id)):
@@ -539,7 +588,8 @@ class Nucleo:
     def _sincronizar_atualizacao(self, ator, item, cls, obj, demanda) -> ResultadoSincronizacao:
         try:
             atual = self.repo.obter(cls, obj.id)
-        except RegistroNaoEncontrado as e:
+            self._exigir_vinculo_inalterado(atual, obj)
+        except ErroGaema as e:
             self._recusar_sincronizacao(ator, item, e)
             raise
         if atual.versao == item.versao_base:
@@ -564,6 +614,12 @@ class Nucleo:
 
     def _registrar_conflito(self, ator, item, cls, obj, atual, *, versao_base: int) -> ResultadoSincronizacao:
         demanda_id = self._demanda_da_coleta(obj)
+        if demanda_id:
+            try:   # depois da coleta, versão divergente não vira conflito "aceitável": é recusada
+                self._exigir_estado_de_coleta(self.repo.obter(E.Demanda, demanda_id))
+            except ErroGaema as e:
+                self._recusar_sincronizacao(ator, item, e)
+                raise
         with self.repo.transacao():
             conflito_id, novo = self.repo.registrar_conflito(
                 tipo=item.tipo, entidade_id=atual.id if atual else obj.id, demanda_id=demanda_id,
@@ -614,6 +670,10 @@ class Nucleo:
                     obj = dataclasses.replace(de_dict(cls, dados), criado_por=atual.criado_por,
                                               criado_em=atual.criado_em,
                                               status_sincronizacao=StatusSincronizacao.SINCRONIZADO)
+                    self._exigir_vinculo_inalterado(atual, obj)
+                    demanda_id = self._demanda_da_coleta(atual)
+                    if demanda_id:
+                        self._exigir_estado_de_coleta(self.repo.obter(E.Demanda, demanda_id))
                     exigir_sem_erros(validar(obj))
                     self.repo.atualizar(obj, atual.versao)
                 self.repo.resolver_conflito(conflito_id, decisao=decisao, resolvido_por=ator.id,
@@ -681,6 +741,8 @@ class Nucleo:
         restrito = cls.SENSIBILIDADE in (Sensibilidade.RESTRITA, Sensibilidade.SIGILOSA)
         self._exigir(ator, Acao.LER_RESTRITO if restrito else Acao.LER, cls.__name__, "*")
         itens = self.repo.listar(cls)
+        if cls is E.Demanda and self._so_tecnico(ator):
+            itens = [d for d in itens if ator.id in self._membros_da_demanda(d)]
         if restrito:
             with self.repo.transacao():
                 self.trilha.registrar(ator, "LISTAGEM_RESTRITA", cls.__name__, "*", detalhes={"quantidade": len(itens)})
@@ -697,6 +759,7 @@ class Nucleo:
             item = {"destino": destino.value, "descricao": t.descricao, "exige_motivo": t.exige_motivo,
                     "papeis": sorted(p.value for p in t.papeis), "disponivel": True, "bloqueio": ""}
             try:
+                self._exigir_equipe_do_tecnico(ator, d, destino)
                 maquina.avaliar(d, destino, ator, "x" * maquina.MOTIVO_MINIMO, contexto)
             except (AcessoNegado, TransicaoInvalida) as e:
                 item["disponivel"], item["bloqueio"] = False, sanear_texto(str(e))[:300]
@@ -713,8 +776,14 @@ class Nucleo:
         return pacote["demandas"][0]
 
     def historico_de(self, ator: Ator, entidade: str, entidade_id: str, limite: int = 30) -> list[E.EventoAuditoria]:
+        """Histórico de um registro. Com permissão de auditoria: todos os eventos. Sem ela: só as mudanças de
+        situação, sem quem fez e sem motivo (a trilha completa é do auditor)."""
         self._exigir(ator, Acao.LER, entidade, entidade_id)
-        return [e for e in self.trilha.eventos if e.entidade == entidade and e.entidade_id == entidade_id][-limite:]
+        eventos = [e for e in self.trilha.eventos if e.entidade == entidade and e.entidade_id == entidade_id]
+        if not pode(ator, Acao.VERIFICAR_AUDITORIA):
+            eventos = [dataclasses.replace(e, ator_id="", papeis=(), motivo="", detalhes={})
+                       for e in eventos if e.acao == "TRANSICAO"]
+        return eventos[-limite:]
 
     def eventos_recentes(self, ator: Ator, limite: int = 30) -> list[E.EventoAuditoria]:
         self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
@@ -772,6 +841,8 @@ class Nucleo:
         """Backup lógico em `saida/backups/<data-hora>` (verificado ao criar). A guarda FORA da máquina é institucional."""
         self._exigir(ator, Acao.GERIR_BACKUP, "Backup", "*")
         nome = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        if (self._pasta_backups() / nome).exists():
+            raise ErroGaema("já existe um backup criado neste mesmo segundo; aguarde um instante e tente de novo")
         manifesto = criar_backup_arquivos(self.repo, self.saida, self._pasta_backups() / nome)
         with self.repo.transacao():
             self.trilha.registrar(ator, "BACKUP_CRIADO", "Backup", nome,

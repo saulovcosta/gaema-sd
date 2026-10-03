@@ -127,6 +127,14 @@ def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> d
         raise ErroGaema("pasta de backup precisa estar vazia; backup anterior não é sobrescrito")
     existia = destino.exists()
     destino.mkdir(parents=True, exist_ok=True)
+    marca = destino / ".em-criacao"
+    try:  # reserva atômica: dois backups simultâneos no mesmo destino não se atropelam (o segundo desiste)
+        marca.open("x").close()
+    except FileExistsError:
+        raise ErroGaema("outro backup está sendo criado nesta pasta; aguarde e tente de novo") from None
+    if any(p != marca for p in destino.iterdir()):
+        marca.unlink()
+        raise ErroGaema("pasta de backup precisa estar vazia; backup anterior não é sobrescrito")
     try:
         alvo = sqlite3.connect(destino / BANCO)
         try:
@@ -143,6 +151,7 @@ def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> d
                         alvo_p = destino / p.relative_to(saida)
                         alvo_p.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(p, alvo_p)
+        marca.unlink()
         resumo = _resumo_banco(destino / BANCO)
         eventos = resumo["eventos"]
         manifesto = {

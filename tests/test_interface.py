@@ -314,15 +314,14 @@ def test_exportar_baixa_json_valido_e_audita(sistema):
 def test_auditoria_verifica_gera_ancora_e_confere_com_ela(sistema, tmp_path):
     app, nucleo, _ = sistema
     c = cliente(sistema, "auditor")
-    c.post("/auditoria/verificar", {"ancora_arquivo": ""})
-    assert "Trilha de auditoria íntegra" in c.get("/auditoria").texto
+    c.post("/auditoria/verificar", {"ancora_texto": ""})
+    t = c.get("/auditoria").texto
+    assert "Cadeia da trilha conferida" in t and "não exclui reescrita completa" in t
     r = c.post("/auditoria/ancora")
     assert r.status == 200 and "attachment" in r.cab["content-disposition"][0]
-    arq = tmp_path / "ancora.json"
-    arq.write_bytes(r.bytes)
-    c.post("/auditoria/verificar", {"ancora_arquivo": str(arq)})
-    assert "conferidos com a âncora" in c.get("/auditoria").texto
-    c.post("/auditoria/verificar", {"ancora_arquivo": str(tmp_path / "nao_existe.json")})
+    c.post("/auditoria/verificar", {"ancora_texto": r.bytes.decode("utf-8")})
+    assert "Trilha conferida com a âncora colada" in c.get("/auditoria").texto
+    c.post("/auditoria/verificar", {"ancora_texto": "isto não é âncora"})
     assert "ilegível" in c.get("/auditoria").texto
 
 

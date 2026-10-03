@@ -51,23 +51,45 @@ def escrever_ancora(eventos: Sequence[EventoAuditoria], pasta_destino: str | Pat
     return arq
 
 
-def ler_ancora(arquivo: str | Path) -> dict:
+TAMANHO_MAXIMO = 4096   # bytes; uma âncora tem poucas centenas
+
+
+def interpretar_ancora(texto: str) -> dict:
+    """Confere a forma e o selo de uma âncora recebida como texto (por exemplo, colada na interface)."""
+    if len(texto.encode("utf-8")) > TAMANHO_MAXIMO:
+        raise ErroGaema("âncora grande demais: não parece uma âncora do GAEMA SD")
     try:
-        a = json.loads(Path(arquivo).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as e:
+        a = json.loads(texto)
+    except ValueError as e:
         raise ErroGaema(f"âncora ilegível: {type(e).__name__}") from e
+    eventos = a.get("eventos") if isinstance(a, dict) else None
     ok = (isinstance(a, dict) and a.get("formato") == FORMATO and a.get("versao") == VERSAO
-          and isinstance(a.get("eventos"), int) and a["eventos"] > 0 and isinstance(a.get("ultimo_hash"), str)
-          and isinstance(a.get("criada_em"), str)
-          and a.get("selo") == _selo(a["eventos"], a["ultimo_hash"], a["criada_em"]))
+          and isinstance(eventos, int) and not isinstance(eventos, bool) and eventos > 0
+          and isinstance(a.get("ultimo_hash"), str) and isinstance(a.get("criada_em"), str)
+          and a.get("selo") == _selo(eventos, a["ultimo_hash"], a["criada_em"]))
     if not ok:
         raise ErroGaema("âncora malformada ou com o selo alterado")
     return a
 
 
+def ler_ancora(arquivo: str | Path) -> dict:
+    caminho = Path(arquivo)
+    try:
+        if not caminho.is_file():
+            raise ErroGaema("âncora ilegível: não é um arquivo comum")
+        with caminho.open("rb") as f:
+            dados = f.read(TAMANHO_MAXIMO + 1)
+        texto = dados.decode("utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise ErroGaema(f"âncora ilegível: {type(e).__name__}") from e
+    return interpretar_ancora(texto)
+
+
 def conferir_ancora(eventos: Sequence[EventoAuditoria], ancora: dict) -> list[str]:
     """Problemas encontrados ao confrontar a trilha com a âncora (lista vazia = confere)."""
-    n = ancora["eventos"]
+    n = ancora.get("eventos")
+    if not isinstance(n, int) or isinstance(n, bool) or n < 1:
+        return ["âncora inválida: número de eventos ausente ou menor que 1"]
     if len(eventos) < n:
         return [f"trilha truncada: tem {len(eventos)} eventos e a âncora registrou {n}"]
     no_ponto = eventos[n - 1]

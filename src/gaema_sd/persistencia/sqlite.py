@@ -139,7 +139,9 @@ def _conteudo(obj) -> tuple[str, str]:
 class Repositorio:
     def __init__(self, caminho: str = ":memory:"):
         self.caminho = caminho
-        self.con = sqlite3.connect(caminho, isolation_level=None, timeout=10)
+        # check_same_thread=False: a interface local atende cada conexão numa thread, mas serializa todo acesso ao
+        # banco com uma trava única (interface/app.py); fora dela o uso continua de uma thread só.
+        self.con = sqlite3.connect(caminho, isolation_level=None, timeout=10, check_same_thread=False)
         self.con.execute("PRAGMA foreign_keys = ON")
         self.con.execute("PRAGMA busy_timeout = 10000")
         if caminho != ":memory:":
@@ -155,14 +157,11 @@ class Repositorio:
         if versao > VERSAO_ESQUEMA:
             self.con.close()
             raise ErroGaema(f"banco com esquema {versao}, mais novo que o deste código ({VERSAO_ESQUEMA})")
-        if versao == 0:
-            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
-            return
-        if versao < 2:  # 1 → 2: de quem veio o conflito (linhas antigas ficam com '' = sem origem conhecida)
+        if versao < 2:  # 0 = banco novo OU banco legado sem número de versão: a coluna é conferida nos dois casos  # 1 → 2: de quem veio o conflito (linhas antigas ficam com '' = sem origem conhecida)
             colunas = {l[1] for l in self.con.execute("PRAGMA table_info(conflitos_sincronizacao)")}
             if "enviado_por" not in colunas:
                 self.con.execute("ALTER TABLE conflitos_sincronizacao ADD COLUMN enviado_por TEXT NOT NULL DEFAULT ''")
-            self.con.execute("PRAGMA user_version = 2")
+            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
 
     def fechar(self) -> None:
         self.con.close()

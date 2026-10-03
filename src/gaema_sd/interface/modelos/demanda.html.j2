@@ -103,14 +103,15 @@
 </section>
 
 <h2>Histórico desta demanda</h2>
+{% if not historico_completo %}<p class="nota">Aqui aparecem só as mudanças de situação. Quem fez cada ação e o motivo ficam na trilha completa, aberta ao auditor e ao administrador.</p>{% endif %}
 {% if historico %}
 <table class="tabela">
-  <caption>Últimos registros da trilha de auditoria</caption>
-  <thead><tr><th scope="col">Quando (UTC)</th><th scope="col">O que aconteceu</th><th scope="col">Quem</th><th scope="col">Mudança</th><th scope="col">Motivo</th></tr></thead>
+  <caption>{{ "Últimos registros da trilha de auditoria" if historico_completo else "Últimas mudanças de situação" }}</caption>
+  <thead><tr><th scope="col">Quando (UTC)</th><th scope="col">O que aconteceu</th>{% if historico_completo %}<th scope="col">Quem</th>{% endif %}<th scope="col">Mudança</th>{% if historico_completo %}<th scope="col">Motivo</th>{% endif %}</tr></thead>
   <tbody>{% for e in historico|reverse %}
     <tr><td data-rotulo="Quando">{{ e.ocorrido_em.strftime("%d/%m/%Y %H:%M") }}</td><td data-rotulo="O que aconteceu">{{ L.acao_auditoria(e.acao) }}</td>
-        <td data-rotulo="Quem">{{ e.ator_id }}</td><td data-rotulo="Mudança">{{ L.nome_estado(e.estado_origem) }} → {{ L.nome_estado(e.estado_destino) }}</td>
-        <td data-rotulo="Motivo">{{ e.motivo or "—" }}</td></tr>
+        {% if historico_completo %}<td data-rotulo="Quem">{{ e.ator_id }}</td>{% endif %}<td data-rotulo="Mudança">{{ L.nome_estado(e.estado_origem) }} → {{ L.nome_estado(e.estado_destino) }}</td>
+        {% if historico_completo %}<td data-rotulo="Motivo">{{ e.motivo or "—" }}</td>{% endif %}</tr>
   {% endfor %}</tbody>
 </table>
 {% else %}<p>Sem registros.</p>{% endif %}

@@ -8,9 +8,9 @@
   <form method="post" action="/auditoria/verificar" class="cartao">
     <h2>Conferir a trilha</h2>
     <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
-    <label for="ancora_arquivo">Arquivo de âncora (opcional)</label>
-    <span class="ajuda-campo" id="ajuda-ancora">Caminho, neste computador, de uma âncora guardada antes. Sem ela, a conferência não pega trilha truncada.</span>
-    <input type="text" id="ancora_arquivo" name="ancora_arquivo" aria-describedby="ajuda-ancora">
+    <label for="ancora_texto">Âncora guardada fora (opcional)</label>
+    <span class="ajuda-campo" id="ajuda-ancora">Abra o arquivo de âncora guardado antes e cole aqui todo o conteúdo dele. Sem âncora, a conferência não pega trilha cortada nem reescrita completa.</span>
+    <textarea id="ancora_texto" name="ancora_texto" rows="4" maxlength="4096" spellcheck="false" aria-describedby="ajuda-ancora"></textarea>
     <div class="acoes"><button type="submit">Conferir agora</button></div>
   </form>
   <form method="post" action="/auditoria/ancora" class="cartao">
