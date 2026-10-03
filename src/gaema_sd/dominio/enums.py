@@ -112,6 +112,7 @@ class StatusSincronizacao(str, Enum):
 class VariavelCampo(str, Enum):
     COBERTURA_FORRAGEIRA = "COBERTURA_FORRAGEIRA"
     VIGOR_FORRAGEIRA = "VIGOR_FORRAGEIRA"
+    ALTURA_PASTO = "ALTURA_PASTO"                  # F11/F12: "altura do pasto"/"hábito de crescimento"
     SOLO_EXPOSTO = "SOLO_EXPOSTO"
     PLANTAS_INVASORAS = "PLANTAS_INVASORAS"
     CUPINS_MONTICULO = "CUPINS_MONTICULO"
@@ -120,6 +121,9 @@ class VariavelCampo(str, Enum):
     RAVINAS = "RAVINAS"
     VOCOROCAS = "VOCOROCAS"
     UMIDADE_SOLO = "UMIDADE_SOLO"
+    PRECIPITACAO_RECENTE = "PRECIPITACAO_RECENTE"  # F12: chuva nas últimas 48 h (contexto da penetrometria)
+    TIPO_SOLO = "TIPO_SOLO"                        # F12: informado a partir de mapa de solos
+    FORMACAO_GEOLOGICA = "FORMACAO_GEOLOGICA"      # F11/F12: informado a partir de mapa geológico
     ANIMAIS_PASTEJO = "ANIMAIS_PASTEJO"
     CONTEXTO_SAZONAL = "CONTEXTO_SAZONAL"
     DRENAGEM = "DRENAGEM"

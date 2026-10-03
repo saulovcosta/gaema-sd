@@ -17,4 +17,4 @@ Escala: Probabilidade e Impacto em Baixo / Médio / Alto.
 | R-11 | Controle de acesso só na interface | Média | Alto | Política de acesso no núcleo (`acesso/politica.py`) | Mitigado na Fase 2 |
 | R-12 | Dependência vulnerável | Baixa | Médio | Poucas dependências e versões fixadas; análise na Fase 4 | Aberto |
 | R-13 | Contexto das transições (fatos como "revisão aprovada") é informado pelo chamador e poderia ser falseado | Média | Alto | `Nucleo.transitar` monta o contexto a partir do banco e da trilha (`estados/contexto.py`); chamador não informa fatos | Mitigado na Fase 2 (após revisão independente) |
-| R-14 | Vídeos do SIPADE (F3, F10) não analisados | Alta | Baixo | Nada do conteúdo usado. YouTube exige login; conector do Drive limita a 10 MB; arquivos não compartilhados por link | Aberto |
+| R-14 | Faixas vistas nos vídeos do SIPADE virarem limiar sem validação | Média | Alto | Registradas só como OBSERVAÇÃO PÚBLICA (`docs/sipade-videos.md`, V-04) | Ativo |

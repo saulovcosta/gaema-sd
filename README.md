@@ -29,6 +29,7 @@ Detalhes do andamento: `docs/ESTADO.md`.
 ## Documentos principais
 
 - `docs/fontes.md` — fontes consultadas, fatos, inferências, lacunas e decisões
+- `docs/sipade-videos.md` — o que os vídeos públicos do SIPADE mostram e o que muda no GAEMA SD
 - `docs/decisoes.md` — escolhas de arquitetura com justificativa
 - `docs/requisitos.md` — requisitos com origem e nível de pronto
 - `docs/riscos.md` — riscos e mitigação

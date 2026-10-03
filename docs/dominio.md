@@ -633,8 +633,8 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
   "versao_semantica": "0.1.0",
   "modo": "DESCRITIVO",
   "rotulo": "",
-  "definicao_json": "{\"modo\":\"DESCRITIVO\",\"regras\":[],\"variaveis\":[\"COBERTURA_FORRAGEIRA\",\"VIGOR_FORRAGEIRA\",\"SOLO_EXPOSTO\",\"PLANTAS_INVASORAS\",\"CUPINS_MONTICULO\",\"EROSAO_LAMINAR\",\"SULCOS\",\"RAVINAS\",\"VOCOROCAS\",\"UMIDADE_SOLO\",\"ANIMAIS_PASTEJO\",\"CONTEXTO_SAZONAL\",\"DRENAGEM\",\"DECLIVIDADE\",\"MANEJO_INFORMADO\",\"HIPOTESE_ALTERNATIVA\",\"OUTRA\"]}",
-  "hash_definicao": "b23f1ece849c192ddc02fc29a48b39a686255fd1c9ea66a03f3dfccddb985a31",
+  "definicao_json": "{\"modo\":\"DESCRITIVO\",\"regras\":[],\"variaveis\":[\"COBERTURA_FORRAGEIRA\",\"VIGOR_FORRAGEIRA\",\"ALTURA_PASTO\",\"SOLO_EXPOSTO\",\"PLANTAS_INVASORAS\",\"CUPINS_MONTICULO\",\"EROSAO_LAMINAR\",\"SULCOS\",\"RAVINAS\",\"VOCOROCAS\",\"UMIDADE_SOLO\",\"PRECIPITACAO_RECENTE\",\"TIPO_SOLO\",\"FORMACAO_GEOLOGICA\",\"ANIMAIS_PASTEJO\",\"CONTEXTO_SAZONAL\",\"DRENAGEM\",\"DECLIVIDADE\",\"MANEJO_INFORMADO\",\"HIPOTESE_ALTERNATIVA\",\"OUTRA\"]}",
+  "hash_definicao": "5b67a9e38beb58f4e549921888d93830d07dbfeebcd31d3b8ab47771ccd2f83e",
   "vigente_desde": "2026-01-01",
   "referencia_validacao": "",
   "proveniencia": "AUTORAL"

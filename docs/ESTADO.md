@@ -7,7 +7,7 @@ Atualizado em: 03/10/2026, Fase 2.
 ### Fase 1 — ESPECIFICADO
 - Inventário, leitura de fontes (F1–F10), matriz fatos/inferências/lacunas/decisões (`docs/fontes.md`).
 - Arquitetura (c) recomendada (`docs/decisoes.md`), requisitos com proveniência, riscos, estrutura do projeto.
-- Vídeos do SIPADE (F3, F10): só título e canal confirmados. YouTube exige login anti-robô; cópias no Google Drive do usuário estão em pasta privada. Conteúdo **não visto**.
+- Vídeos do SIPADE (F11, F12): analisados a partir de cópias do usuário (`docs/sipade-videos.md`).
 
 ### Fase 2 — TESTADO LOCALMENTE
 - 20 entidades (`src/gaema_sd/dominio/entidades.py`), documentadas em `docs/dominio.md` (gerado).
@@ -30,7 +30,7 @@ Cenários obrigatórios do §14 cobertos nesta fase: envio duplicado, conflito d
 ## Falta
 
 - Revisão independente do código da Fase 2: **concluída**; 8 falhas reproduzidas e corrigidas, cada uma com teste de regressão (`tests/test_regressao_revisao.py`): demanda criada em estado avançado; condições de transição informadas pelo chamador (DEC-007); diagnóstico alterável após revisão; autoria forjável; tipo errado que tornava registro ilegível; reabertura que pulava o diagnóstico; troca de chave de envio gerando duplicidade; corrida que desfazia transição.
-- Vídeos do SIPADE (F3, F10): continuam sem análise (ver `docs/fontes.md`).
+- Vídeos do SIPADE (F11, F12): analisados (quadros e transcrição); achados e consequências em `docs/sipade-videos.md`. Quatro variáveis de campo acrescentadas ao modelo.
 - Fases 3 a 5.
 
 ## Próximo passo exato

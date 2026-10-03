@@ -40,6 +40,7 @@
       "enum": [
         "COBERTURA_FORRAGEIRA",
         "VIGOR_FORRAGEIRA",
+        "ALTURA_PASTO",
         "SOLO_EXPOSTO",
         "PLANTAS_INVASORAS",
         "CUPINS_MONTICULO",
@@ -48,6 +49,9 @@
         "RAVINAS",
         "VOCOROCAS",
         "UMIDADE_SOLO",
+        "PRECIPITACAO_RECENTE",
+        "TIPO_SOLO",
+        "FORMACAO_GEOLOGICA",
         "ANIMAIS_PASTEJO",
         "CONTEXTO_SAZONAL",
         "DRENAGEM",
