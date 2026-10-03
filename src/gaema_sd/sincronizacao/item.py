@@ -31,6 +31,20 @@ class InterrupcaoSimulada(BaseException):
 
 
 @dataclass(frozen=True)
+class DecisaoConflito:
+    """Desfecho de um conflito, devolvido da central ao dispositivo que o originou."""
+    conflito_id: str
+    tipo: str
+    entidade_id: str            # identificador do registro na central
+    hash_dados: str             # identifica o item enviado pelo dispositivo
+    decisao: str                # MANTER_CENTRAL | ACEITAR_DISPOSITIVO
+    motivo: str                 # já saneado
+    versao_central: int         # versão atual do registro na central
+    versao_resultante: int      # ACEITAR_DISPOSITIVO: versão criada pela resolução; MANTER_CENTRAL: igual a versao_central
+    dados_central: dict | None  # conteúdo atual do registro na central
+
+
+@dataclass(frozen=True)
 class ItemSincronizacao:
     tipo: str
     entidade_id: str

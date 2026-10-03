@@ -37,7 +37,7 @@ Níveis atualizados ao fim de cada fase.
 | RQ-21 | GPS com precisão registrada; alerta de GPS ruim por limite configurável | INSTITUCIONAL + AUTORAL (limite) | TESTADO LOCALMENTE |
 | RQ-22 | Sem perda silenciosa nem duplicidade ao sincronizar | INSTITUCIONAL + DOCUMENTAÇÃO OFICIAL (FC-12) | TESTADO LOCALMENTE (conflito, idempotência e sincronização simulada entre dois SQLite) |
 | RQ-23 | Mapa base offline em formatos aceitos pelo Survey123 quando usado o adaptador | DOCUMENTAÇÃO OFICIAL (FC-11) | ESPECIFICADO |
-| RQ-24 | Formulário de vistoria exportável em XLSForm | DOCUMENTAÇÃO OFICIAL (FC-10) | ESPECIFICADO |
+| RQ-24 | Formulário de vistoria exportável em XLSForm | DOCUMENTAÇÃO OFICIAL (FC-10) | TESTADO LOCALMENTE (gerado do domínio; estrutura e sintaxe XLSForm/ODK conferidas com pyxform); Survey123 Connect NÃO EXECUTADO |
 | RQ-25 | Fila local de envio por dispositivo, que sobrevive a reinício e envia em ordem | AUTORAL (desenho) | TESTADO LOCALMENTE |
 | RQ-26 | Reenvio idempotente: perda de rede, serviço indisponível e confirmação perdida não perdem nem duplicam registro; espera crescente entre tentativas (parâmetros AUTORAIS, sem fundamento externo) | AUTORAL | TESTADO LOCALMENTE (rede simulada) |
 | RQ-27 | Versões divergentes não se sobrescrevem: viram conflito com as duas versões guardadas, a demanda vai a CONFLITO_SINCRONIZACAO e só o coordenador resolve, com motivo | INSTITUCIONAL (estado do fluxo) + AUTORAL | TESTADO LOCALMENTE |
@@ -89,11 +89,11 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-64 | Critério II (pastagem degradada atestada pelo CAOMA/NIMA com impacto supramunicipal): cruzamento com camadas de municípios e bacias como indício; a atestação é registro de origem externa | INSTITUCIONAL + PENDENTE (camadas autorizadas, LA-09) | ESPECIFICADO |
 | RQ-65 | Critério III (acima de 1.000 ha e mais de 40% em degradação severa): **não implementado**; depende de protocolo científico validado para "degradação severa" (LA-08). A área de referência, quando houver, vem de área de interesse ou cruzamento informado por pessoa, nunca de cadastro de imóvel | INSTITUCIONAL + **PENDENTE** | ESPECIFICADO |
 | RQ-66 | Critério IV (casos encaminhados por Promotorias, com anuência do Promotor Natural, ligados a mineração de grande escala): registrar o encaminhamento como origem e a anuência como providência humana | INSTITUCIONAL | IMPLEMENTADO LOCALMENTE (origem do alerta; anuência como providência) |
-| RQ-67 | Dados do GAEMA SD exportáveis em formato aberto para eventual uso no Painel do art. 18; nenhuma integração declarada sem ambiente real | INSTITUCIONAL + PENDENTE (LA-10) | ESPECIFICADO |
-| RQ-68 | Apoio à capacitação (art. 18, parágrafo único): guia de uso e cenário sintético de treinamento | INSTITUCIONAL + AUTORAL | IMPLEMENTADO LOCALMENTE (cenário de demonstração `scripts/demo.sh`; guia de uso pendente) |
+| RQ-67 | Dados do GAEMA SD exportáveis em formato aberto para eventual uso no Painel do art. 18; nenhuma integração declarada sem ambiente real | INSTITUCIONAL + PENDENTE (LA-10) | TESTADO LOCALMENTE (pacote em formato próprio, conferido por esquema); nenhuma integração declarada |
+| RQ-68 | Apoio à capacitação (art. 18, parágrafo único): guia de uso e cenário sintético de treinamento | INSTITUCIONAL + AUTORAL | IMPLEMENTADO LOCALMENTE (cenário `scripts/demo.sh` e guia `docs/guia-capacitacao.md`, com gabarito conferido por teste; nenhuma turma atendida) |
 | RQ-69 | Diagnóstico de solo auditável e indicadores de avanço de PRAD aferidos semestralmente (art. 19, I): relatório reproduzível com trilha de auditoria e marcos de monitoramento com periodicidade configurável | INSTITUCIONAL | IMPLEMENTADO LOCALMENTE (relatório auditável e marcos; aferição semestral é decisão humana) |
 | RQ-70 | Recomendações, comunicações a instituições financeiras e ações judiciais (art. 19, II a IV) são providências humanas registradas como `Providencia`; o sistema não gera minuta nem conclusão. Compartilhar dados com terceiros exige base legal e exportação controlada | INSTITUCIONAL + PENDENTE (base legal do compartilhamento) | ESPECIFICADO |
-| RQ-71 | Relatórios agregados de atividade para os marcos de out./2026 (relatório prévio à PGJ) e mar./2027 (relatório consolidado ao CPJ), e acompanhamento dos marcos do art. 20 | INSTITUCIONAL | ESPECIFICADO |
+| RQ-71 | Relatórios agregados de atividade para os marcos de out./2026 (relatório prévio à PGJ) e mar./2027 (relatório consolidado ao CPJ), e acompanhamento dos marcos do art. 20 | INSTITUCIONAL | PARCIAL: contagens agregadas no pacote de exportação, TESTADO LOCALMENTE; conteúdo dos relatórios dos marcos ESPECIFICADO |
 
 ## Acessibilidade do relatório (Fase 4)
 
@@ -101,3 +101,15 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 |---|---|---|---|
 | RQ-73 | Relatório HTML com idioma, título, hierarquia de títulos, marcos de página, tabelas com legenda e cabeçalhos com escopo, mapa SVG com nome e descrição, link de salto, foco visível e contraste mínimo 4,5:1 (critério AA do WCAG 2.x como referência) | AUTORAL (referência: WCAG 2.x) | TESTADO LOCALMENTE (verificações automáticas) |
 | RQ-74 | Teste do relatório com leitor de tela e com pessoas usuárias | AUTORAL | ESPECIFICADO — NÃO EXECUTADO |
+
+## Preparação institucional (Fase 5)
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-75 | Registro com conflito de sincronização ainda sem decisão não recebe novos envios do dispositivo (ficam retidos), para não sobrescrever a versão da central; o dispositivo não corrige esse registro até a decisão | AUTORAL | TESTADO LOCALMENTE (defeito da Fase 4 reproduzido e corrigido) |
+| RQ-76 | O dispositivo recebe de volta a decisão do coordenador (manter a central ou aceitar o dispositivo), realinha a numeração de versões e converge com a central; falha de rede ou interrupção na consulta não perde a decisão | AUTORAL | TESTADO LOCALMENTE (rede simulada) |
+| RQ-77 | Adaptadores ArcGIS só como interface: sem módulo de rede, sem URL, sem credencial; implementações "não configurado" recusam; configuração só informa se as variáveis existem | INSTITUCIONAL (DEC-001, LA-05) | TESTADO LOCALMENTE |
+| RQ-78 | Tradução de submissão de campo (formato neutro) para itens de sincronização, determinística e idempotente; entrada só pelo núcleo | AUTORAL | TESTADO LOCALMENTE (formato real do Survey123 NÃO verificado) |
+| RQ-79 | Pacote de exportação sem geometria, coordenadas, textos livres, referência interna nem identificação de pessoas, imóvel ou proprietário; auditado; acesso só a COORDENADOR e MEMBRO_MP | AUTORAL + PENDENTE (LA-06, RQ-70) | TESTADO LOCALMENTE |
+| RQ-80 | Checklist de homologação sem item aprovado e consolidado de pendências científicas, institucionais e de ambiente, com todo LA rastreado | AUTORAL | IMPLEMENTADO LOCALMENTE (conferido por teste de documentos) |
+| RQ-81 | Linguagem dos documentos da fase sem "homologado", "perfeito", "em produção" nem "integrado ao MPTO" sem negação | INSTITUCIONAL (regra do projeto) | TESTADO LOCALMENTE |

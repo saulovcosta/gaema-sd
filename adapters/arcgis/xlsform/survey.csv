@@ -1,0 +1,41 @@
+type,name,label,hint,required,relevant,constraint,constraint_message,default,appearance
+begin_group,identificacao,Identificação da vistoria,,,,,,,
+text,campanha_id,Identificador da campanha,Fornecido pela coordenação; ver missão baixada.,yes,,,,,
+text,dispositivo_id,Identificação do aparelho,,yes,,,,,
+text,observador_id,Identificador de quem coleta,,yes,,,,,
+dateTime,capturado_em,Data e hora da coleta,,yes,,,,now(),
+select_one condicao_acesso,condicao_acesso,Condição de acesso à área,,yes,,,,,
+text,nota_acesso,Nota sobre o acesso,Obrigatória quando não houve acesso.,${condicao_acesso} = 'SEM_ACESSO',${condicao_acesso} = 'SEM_ACESSO',,,,
+end_group,identificacao,,,,,,,,
+begin_group,ponto,Ponto amostral,,,,,,,
+text,codigo_ponto,Código do ponto,,yes,,,,,
+geopoint,localizacao,Localização (GPS),O núcleo registra a precisão e alerta se for ruim; não bloqueia o registro.,yes,,,,,
+end_group,ponto,,,,,,,,
+begin_group,presenca,Presença ou ausência,,,,,,,
+select_one sim_nao,presenca_plantas_invasoras,Plantas invasoras,,yes,,,,,horizontal
+select_one sim_nao,presenca_cupins_monticulo,Cupins (montículo),,yes,,,,,horizontal
+select_one sim_nao,presenca_erosao_laminar,Erosão laminar,,yes,,,,,horizontal
+select_one sim_nao,presenca_sulcos,Sulcos,,yes,,,,,horizontal
+select_one sim_nao,presenca_ravinas,Ravinas,,yes,,,,,horizontal
+select_one sim_nao,presenca_vocorocas,Voçorocas,,yes,,,,,horizontal
+select_one sim_nao,presenca_solo_exposto,Solo exposto,,yes,,,,,horizontal
+end_group,presenca,,,,,,,,
+text,hipotese_alternativa,Hipótese alternativa (texto livre),Explicação alternativa que a equipe considere plausível.,,,,,,
+begin_repeat,outras_observacoes,Outras observações,,,,,,,
+select_one variavel_campo,outra_variavel,Variável,,yes,,,,,
+text,outra_valor_bruto,"Valor, como observado",,yes,,,,,
+text,outra_unidade_bruta,Unidade,,yes,,,,,
+text,outra_nota,Nota,Obrigatória para a variável 'Outra'.,${outra_variavel} = 'OUTRA',${outra_variavel} = 'OUTRA',,,,
+end_repeat,outras_observacoes,,,,,,,,
+begin_repeat,penetrometria,Resistência à penetração,,,,,,,
+integer,pen_repeticao,Repetição,,yes,,. >= 1,A repetição começa em 1.,,
+decimal,pen_profundidade,Profundidade,,yes,,. >= 0,Não pode ser negativa.,,
+select_one unidade_profundidade,pen_profundidade_unidade,Unidade da profundidade,,yes,,,,,
+decimal,pen_resistencia,Resistência,,yes,,. >= 0,Não pode ser negativa.,,
+select_one unidade_resistencia,pen_resistencia_unidade,Unidade da resistência,,yes,,,,,
+text,pen_contexto_umidade,Contexto de umidade (texto livre),,,,,,,
+end_repeat,penetrometria,,,,,,,,
+begin_repeat,fotos,Fotos,,,,,,,
+select_one categoria_evidencia,foto_categoria,Categoria da foto,,yes,,,,,
+image,foto_arquivo,Foto,,yes,,,,,
+end_repeat,fotos,,,,,,,,

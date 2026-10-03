@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Atualizado em: 03/10/2026, fim da Fase 4.
+Atualizado em: 03/10/2026, fim da Fase 5.
 
 ## Feito
 
@@ -30,21 +30,30 @@ Atualizado em: 03/10/2026, fim da Fase 4.
 - **Acessibilidade do relatório HTML:** link de salto, foco visível, sem estilo em atributo; testes automáticos de estrutura e de contraste (fórmula WCAG 2.x). DEC-015.
 - **Dependências:** `pip-audit -r requirements-dev.txt` executado em 03/10/2026: "No known vulnerabilities found". Foi uma execução única, sem rotina automática.
 
+### Fase 5 — TESTADO LOCALMENTE (preparação; nada integrado)
+- **Mescla:** o PR 2 (Fase 4) foi mesclado na `main` por squash antes de começar a Fase 5, com 221 testes verdes.
+- **Decisão do coordenador volta ao aparelho** (fecha R-18): `Nucleo.consultar_decisoes_conflito`, `Sincronizador.reconciliar`, `Dispositivo.aplicar_decisao`, tabelas `decisoes_conflito` e `deslocamento_versao` (sem mudar `VERSAO_ESQUEMA`). **Defeito da Fase 4 reproduzido e corrigido:** depois de um conflito, correção posterior do mesmo registro, já na fila, sobrescrevia a versão da central; agora fica retida até a decisão (DEC-016, RQ-75, RQ-76).
+- **Adaptadores ArcGIS só como interface** (`src/gaema_sd/adaptadores/`): `Protocol`s, `NaoConfigurado*`, `ConfigArcGIS` (só informa se as variáveis existem), tradução pura de submissão de campo. Teste confere que não há módulo de rede, URL nem credencial (DEC-017, RQ-77, RQ-78).
+- **XLSForm do formulário de vistoria**, gerado do domínio (`adapters/arcgis/xlsform/*.csv`, `.xlsx` sob demanda): 7 variáveis de presença do protótipo, outras observações, penetrometria sem profundidade nem repetições padrão (LA-04), fotos, condição de acesso. Estrutura conferida por testes próprios e sintaxe XLSForm/ODK por `pyxform` (RQ-24).
+- **Pacote de exportação em formato próprio** (`Nucleo.exportar_painel`, `schemas/exportacao-painel.schema.json`): sem geometria, coordenadas, textos livres nem pessoas; auditado (DEC-018, RQ-79). `docs/integracao-radar-painel.md` lista os pontos de troca e as perguntas à equipe.
+- **Documentos:** `docs/homologacao.md` (32 itens, nenhum aprovado), `docs/pendencias.md` (LA-01 a LA-10 e pendências de ambiente), `docs/guia-capacitacao.md` (com exercícios e gabarito conferido pela demonstração), todos conferidos por `tests/test_documentos.py` (DEC-019, RQ-80, RQ-81).
+- **Dependências de desenvolvimento novas:** `openpyxl`, `pyxform` e as que ele exige, versões fixadas; `pip-audit` sem achados em 03/10/2026.
+
 ## Testes executados
 
-`python3 -m pytest` → **221 passed** (03/10/2026): 166 anteriores + 55 da Fase 4 (`test_sincronizacao`, `test_concorrencia`, `test_backup`, `test_seguranca`, `test_acessibilidade`). `python3 scripts/gerar_contratos.py` sem diferença nos arquivos gerados. `scripts/demo.sh` → "Resultado: OK" (EM_MONITORAMENTO, diagnóstico reproduzido, evidência e auditoria íntegras, 62 eventos).
+`python3 -m pytest` → **281 passed** (03/10/2026): 221 anteriores + 60 da Fase 5 (`test_reconciliacao`, `test_xlsform`, `test_adaptadores`, `test_exportacao`, `test_documentos`). `python3 scripts/gerar_contratos.py` regenera os arquivos novos (XLSForm em CSV, esquema de exportação) e `tests/test_contratos.py` passa. `scripts/demo.sh` → "Resultado: OK". `pip-audit -r requirements-dev.txt` → "No known vulnerabilities found". Duas mutações no código da reconciliação (desligar a retenção; ignorar o deslocamento de versão) foram pegas pelos testes e revertidas.
 
-Cenários obrigatórios do §14 já executados: envio duplicado, conflito de atualização (inclusive concorrente), anexo inválido, GPS ruim, geometria inválida, variável obrigatória ausente, acesso indevido, protocolo alterado, relatório reemitido, interrupção e retomada da coleta, **perda de rede, serviço indisponível, confirmação perdida, interrupção do processo e retomada da fila, conflito de sincronização, restauração de backup e rollback** (todos com rede e dispositivo simulados).
+Cenários já executados (todos com rede e dispositivo simulados): os da Fase 4 e, agora, conflito → decisão → convergência dos dois bancos nos dois sentidos, envio retido, consulta com falha de rede e com interrupção do processo, importação de submissão de campo sintética (reimportação e edição divergente), exportação com acesso indevido.
 
-**NÃO EXECUTADOS:** sincronização em rede, aparelho ou aplicativo de campo reais (nem Survey123/ArcGIS); teste do relatório com leitor de tela e com pessoas usuárias (RQ-74); carga e desempenho (os índices citados na DEC-007 não foram feitos); rotina agendada de backup, retenção (LA-06) e ancoragem externa do último hash da trilha; reconciliação do dispositivo com a decisão do coordenador (R-18); observabilidade além de log filtrado (sem métricas nem alertas); varredura de dependências em rotina automática.
+**NÃO EXECUTADOS:** Survey123 Connect (abrir, validar e publicar o XLSForm); formato real de exportação do Survey123; qualquer acesso a ArcGIS, Radar Ambiental ou Painel do art. 18; sincronização em rede ou aparelho reais; mapa base offline; autenticação real; teste do relatório com leitor de tela e com pessoas usuárias; carga e desempenho; backup agendado, retenção e ancoragem externa do último hash; revisão independente de código das Fases 4 e 5; capacitação de turma; tela de operação; varredura de dependências em rotina automática.
 
 ## Falta
 
-- Fase 5 (preparação institucional: ArcGIS, XLSForm, homologação) e os itens NÃO EXECUTADOS acima.
-- Guia de uso para capacitação (RQ-68); tela de operação (hoje só linha de comando).
+- Os itens NÃO EXECUTADOS acima e o checklist de `docs/homologacao.md` (nenhum item aprovado).
+- Capacitação de turma (existe guia, `docs/guia-capacitacao.md`); tela de operação (hoje só linha de comando).
 - Pendências científicas: protocolo validado, limiares, "degradação severa" (LA-02 a LA-04, LA-08).
 - Pendências institucionais: quem exerce a vistoria, capacitação prévia, base legal para compartilhar dados (RQ-70), camadas autorizadas (LA-09), relação com o Painel do art. 18 (LA-10).
 
 ## Próximo passo exato
 
-Fase 5 (não iniciada; aguardar instrução): preparação institucional. Antes, decidir com a equipe: quem exerce a vistoria, o destino e a retenção dos backups (LA-06) e se a sincronização será testada em aparelho real.
+Fase 5 concluída como preparação; **nenhuma fase seguinte está definida**. Decisões da equipe que destravam o resto (ver `docs/pendencias.md`): organização ArcGIS e Client ID (LA-05), formato de troca com o Painel (LA-10), protocolo de campo validado (LA-04), retenção e sigilo (LA-06), quem exerce a vistoria e a capacitação coordenada com o CAOMA.

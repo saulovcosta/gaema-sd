@@ -72,6 +72,25 @@ CREATE TABLE IF NOT EXISTS fila_envio (
     UNIQUE (tipo, entidade_id, operacao, hash_dados)
 );
 
+CREATE TABLE IF NOT EXISTS decisoes_conflito (
+    hash_dados TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    entidade_id TEXT NOT NULL,
+    decisao TEXT NOT NULL,
+    motivo TEXT NOT NULL DEFAULT '',
+    versao_central INTEGER NOT NULL,
+    aplicada INTEGER NOT NULL CHECK (aplicada IN (0, 1)),
+    observacao TEXT NOT NULL DEFAULT '',
+    recebida_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS deslocamento_versao (
+    tipo TEXT NOT NULL,
+    entidade_id TEXT NOT NULL,
+    deslocamento INTEGER NOT NULL,
+    PRIMARY KEY (tipo, entidade_id)
+);
+
 CREATE TABLE IF NOT EXISTS conflitos_sincronizacao (
     id TEXT PRIMARY KEY,
     tipo TEXT NOT NULL,
@@ -250,6 +269,16 @@ class Repositorio:
                 (id_, tipo, entidade_id, demanda_id, versao_base, versao_central, hash_central,
                  dados_dispositivo, hash_dispositivo, _agora()))
         return id_, True
+
+    def conflito_por_hash(self, tipo: str, hash_dispositivo: str) -> dict | None:
+        self.con.row_factory = sqlite3.Row
+        try:
+            linha = self.con.execute(
+                "SELECT * FROM conflitos_sincronizacao WHERE tipo=? AND hash_dispositivo=?",
+                (tipo, hash_dispositivo)).fetchone()
+        finally:
+            self.con.row_factory = None
+        return dict(linha) if linha else None
 
     def obter_conflito(self, id_: str) -> dict:
         self.con.row_factory = sqlite3.Row

@@ -34,3 +34,7 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 - Texto que vai para trilha, fila ou log passa por `auditoria.trilha.sanear_texto`; log não leva conteúdo de registro. Em testes, montar CPF/e-mail fictícios em tempo de execução (o varredor `test_sigilo_fixtures` proíbe literais).
 - Banco novo ou tabela nova: manter `VERSAO_ESQUEMA` (`persistencia/sqlite.py`) e o backup coerentes; backup de esquema mais novo é recusado.
 - Acessibilidade do relatório: `tests/test_acessibilidade.py` é automático; leitor de tela segue NÃO EXECUTADO.
+- Adaptadores ArcGIS: código só em `src/gaema_sd/adaptadores/` (interface, tradução pura, XLSForm gerado); documentação e CSV gerado em `adapters/arcgis/`. Sem módulo de rede, URL ou credencial (teste confere). Não declarar integração com ArcGIS, Radar ou Painel; formato de exportação (`Nucleo.exportar_painel`) é PRÓPRIO e sem geometria nem texto livre.
+- XLSForm e esquema de exportação são gerados por `scripts/gerar_contratos.py`; não editar `adapters/arcgis/xlsform/*.csv` nem `schemas/exportacao-painel.schema.json` à mão.
+- Conflito de sincronização: envios posteriores da mesma entidade ficam retidos até a decisão; o dispositivo consulta a decisão (`Sincronizador.reconciliar`) e usa `deslocamento_versao` para a base das correções.
+- Documentos de homologação, pendências, integração e capacitação são conferidos por `tests/test_documentos.py`: nenhum item de `docs/homologacao.md` pode constar como aprovado; todo LA novo em `docs/fontes.md` entra em `docs/pendencias.md`.

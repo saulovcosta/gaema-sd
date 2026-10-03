@@ -7,3 +7,10 @@ MarkupSafe==3.0.3
 reportlab==4.2.5
 pillow==12.3.0
 chardet==7.6.0
+# Fase 5 (XLSForm): só desenvolvimento e testes; nada disso roda em campo. Ver DEC-017.
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+pyxform==4.5.0
+defusedxml==0.7.1
+lark==1.3.1
+xlrd==2.0.1

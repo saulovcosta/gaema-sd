@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from .acesso.politica import Acao, Ator, exigir
-from .auditoria.trilha import TrilhaAuditoria
+from .auditoria.trilha import TrilhaAuditoria, sanear_texto
 from .dominio import entidades as E
 from .dominio.enums import Estado, FormatoRelatorio, Papel, Sensibilidade, StatusSincronizacao
 from .dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
@@ -30,10 +30,11 @@ from .erros import (
     ValidacaoFalhou,
 )
 from .estados import maquina
+from .exportacao import painel as exportacao_painel
 from .estados.contexto import montar_contexto
 from .persistencia.sqlite import ArmazenamentoAuditoriaSQLite, Repositorio
 from .protocolo.definicao import canonizar, carregar_definicao
-from .sincronizacao.item import ItemSincronizacao, ResultadoSincronizacao
+from .sincronizacao.item import DecisaoConflito, ItemSincronizacao, ResultadoSincronizacao
 from .protocolo.motor import avaliar, entradas_de, hash_entradas, resultado_para_json
 from .relatorio import html as relatorio_html
 from .relatorio import montagem
@@ -522,6 +523,52 @@ class Nucleo:
         except ErroGaema as e:
             self._auditar_recusa(ator, "RESOLUCAO_CONFLITO_RECUSADA", "ConflitoSincronizacao", conflito_id, e)
             raise
+
+    def consultar_decisoes_conflito(self, ator: Ator, consultas: list[tuple[str, str]]) -> list[DecisaoConflito]:
+        """Devolve ao dispositivo o desfecho dos conflitos já RESOLVIDOS. `consultas` = (tipo, hash_dados do item
+        enviado). Conflito ainda aberto, ou hash desconhecido, não aparece na resposta."""
+        self._exigir(ator, Acao.SINCRONIZAR, "ConflitoSincronizacao", "*")
+        if len(consultas) > 500:
+            raise ErroGaema("consulta grande demais (máximo 500 itens por vez)")
+        saida: list[DecisaoConflito] = []
+        for tipo, hash_dados in consultas:
+            linha = self.repo.conflito_por_hash(tipo, hash_dados)
+            cls = TIPOS_SINCRONIZAVEIS.get(tipo)
+            if not linha or linha["situacao"] != "RESOLVIDO" or cls is None:
+                continue
+            try:
+                atual = self.repo.obter(cls, linha["entidade_id"])
+            except RegistroNaoEncontrado:
+                continue
+            resultante = atual.versao
+            if linha["decisao"] == "ACEITAR_DISPOSITIVO":
+                alvo = self._conteudo_comparavel(de_dict(cls, json.loads(linha["dados_dispositivo"])))
+                resultante = next((h.versao for h in self.repo.historico(cls, atual.id)
+                                   if h.versao > linha["versao_central"] and self._conteudo_comparavel(h) == alvo),
+                                  atual.versao)
+            saida.append(DecisaoConflito(
+                conflito_id=linha["id"], tipo=tipo, entidade_id=atual.id, hash_dados=hash_dados,
+                decisao=linha["decisao"], motivo=sanear_texto(linha["motivo_resolucao"]),
+                versao_central=atual.versao, versao_resultante=resultante, dados_central=para_dict(atual)))
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "CONSULTA_DECISAO_CONFLITO", "ConflitoSincronizacao", "*",
+                                  detalhes={"consultados": len(consultas), "resolvidos": len(saida)})
+        return saida
+
+    # ------------------------------------------------------------ exportação
+
+    def exportar_painel(self, ator: Ator, *, demanda_ids: list[str] | None = None,
+                        gerado_em: datetime | None = None) -> dict:
+        """Pacote aberto de exportação (formato próprio; ver exportacao/painel.py). Somente leitura + auditoria."""
+        self._exigir(ator, Acao.EXPORTAR, "Exportacao", "painel")
+        pacote = exportacao_painel.montar_pacote(self.repo, gerado_por=ator.id,
+                                                 gerado_em=gerado_em or datetime.now(timezone.utc),
+                                                 demanda_ids=demanda_ids)
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "EXPORTACAO", "Exportacao", "painel", detalhes={
+                "demandas": len(pacote["demandas"]),
+                "hash": hashlib.sha256(exportacao_painel.serializar(pacote)).hexdigest()})
+        return pacote
 
     # ------------------------------------------------------------ leitura
 

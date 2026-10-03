@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pacote de exportação GAEMA SD (formato próprio)",
+  "description": "Formato PRÓPRIO do GAEMA SD, não é o do Painel do art. 18 nem o do Radar Ambiental. Protótipo; sem validade científica ou jurídica. Sem geometria, coordenadas, nomes ou textos livres. Nenhuma integração declarada.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formato",
+    "versao_formato",
+    "aviso",
+    "gerado_em",
+    "gerado_por",
+    "todos_sinteticos",
+    "demandas",
+    "agregados"
+  ],
+  "properties": {
+    "formato": {
+      "const": "gaema-sd-exportacao"
+    },
+    "versao_formato": {
+      "const": "0.1"
+    },
+    "aviso": {
+      "type": "string"
+    },
+    "gerado_em": {
+      "type": "string"
+    },
+    "gerado_por": {
+      "type": "string"
+    },
+    "todos_sinteticos": {
+      "type": "boolean"
+    },
+    "demandas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "demanda_id",
+          "sintetico",
+          "estado",
+          "criterio_priorizacao",
+          "origens_alerta",
+          "campanhas",
+          "pontos",
+          "observacoes",
+          "medicoes_penetracao",
+          "evidencias",
+          "diagnostico",
+          "relatorios",
+          "providencias_por_tipo",
+          "marcos"
+        ],
+        "properties": {
+          "demanda_id": {
+            "type": "string"
+          },
+          "sintetico": {
+            "type": "boolean"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "criterio_priorizacao": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origens_alerta": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "campanhas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pontos": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observacoes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "medicoes_penetracao": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidencias": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "diagnostico": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "categoria_descritiva",
+              "rotulo_validade",
+              "hash_definicao_protocolo",
+              "hash_entradas"
+            ],
+            "properties": {
+              "categoria_descritiva": {
+                "type": "string"
+              },
+              "rotulo_validade": {
+                "type": "string"
+              },
+              "hash_definicao_protocolo": {
+                "type": "string"
+              },
+              "hash_entradas": {
+                "type": "string"
+              }
+            }
+          },
+          "relatorios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "formato",
+                "numero_versao",
+                "hash_conteudo",
+                "gerado_em"
+              ],
+              "properties": {
+                "formato": {
+                  "type": "string"
+                },
+                "numero_versao": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "hash_conteudo": {
+                  "type": "string"
+                },
+                "gerado_em": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "providencias_por_tipo": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "marcos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "situacao",
+                "data_prevista",
+                "data_verificada"
+              ],
+              "properties": {
+                "situacao": {
+                  "type": "string"
+                },
+                "data_prevista": {
+                  "type": "string"
+                },
+                "data_verificada": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "agregados": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "demandas",
+        "por_estado",
+        "por_criterio_priorizacao",
+        "por_origem_alerta",
+        "marcos_por_situacao",
+        "com_relatorio_emitido"
+      ],
+      "properties": {
+        "demandas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "por_estado": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "por_criterio_priorizacao": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "por_origem_alerta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "marcos_por_situacao": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "com_relatorio_emitido": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
