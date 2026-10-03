@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ..nucleo import Nucleo
 
 from .item import (
+    DecisaoConflito,
     ErroRede,
     InterrupcaoSimulada,
     ItemSincronizacao,
@@ -42,6 +43,27 @@ class CanalSimulado:
 
     def programar(self, *falhas: Optional[str]) -> None:
         self._falhas.extend(falhas)
+
+    def consultar_decisoes(self, consultas: list[tuple[str, str]]) -> list[DecisaoConflito]:
+        """Pergunta à central o desfecho de conflitos. Usa a mesma lista de falhas simuladas de `enviar`."""
+        self.chamadas += 1
+        falha = self._falhas.pop(0) if self._falhas else None
+        if falha in ("PERDA_ANTES", "INDISPONIVEL", "INTERROMPER_ANTES"):
+            self._levantar(falha)
+        resposta = self.central.consultar_decisoes_conflito(self.ator, consultas)
+        if falha in ("PERDA_DEPOIS", "INTERROMPER_DEPOIS"):
+            self._levantar(falha)
+        return resposta
+
+    @staticmethod
+    def _levantar(falha: str) -> None:
+        if falha == "PERDA_ANTES":
+            raise ErroRede("requisição perdida (simulação)")
+        if falha == "INDISPONIVEL":
+            raise ServicoIndisponivel("serviço da central indisponível (simulação)")
+        if falha == "PERDA_DEPOIS":
+            raise ErroRede("confirmação perdida (simulação)")
+        raise InterrupcaoSimulada(f"processo do dispositivo interrompido ({falha}, simulação)")
 
     def enviar(self, item: ItemSincronizacao, conteudo: bytes | None = None) -> ResultadoSincronizacao:
         self.chamadas += 1

@@ -11,6 +11,7 @@ from ..dominio import entidades as E
 from ..dominio.serializacao import sha256_texto
 from ..protocolo.definicao import DefinicaoInvalida, carregar_definicao
 from ..dominio.enums import (
+    Ambiente,
     CondicaoAcesso,
     Estado,
     ModoProtocolo,
@@ -248,6 +249,9 @@ def _integracao(o: E.IntegracaoExterna):
     if o.situacao is SituacaoIntegracao.ATIVA and not o.evidencia_teste.strip():
         p.append(erro("ATIVA_SEM_EVIDENCIA", "evidencia_teste",
                       "integração só é ATIVA com evidência de teste em ambiente real"))
+    if o.situacao is SituacaoIntegracao.ATIVA and o.ambiente is Ambiente.DESENVOLVIMENTO:
+        p.append(erro("ATIVA_EM_DESENVOLVIMENTO", "ambiente",
+                      "integração só é ATIVA em ambiente de HOMOLOGACAO ou OPERACAO"))
     if o.variavel_configuracao and not re.fullmatch(r"[A-Z][A-Z0-9_]*", o.variavel_configuracao):
         p.append(erro("VARIAVEL_INVALIDA", "variavel_configuracao",
                       "informar só o NOME da variável de ambiente (ex.: ARCGIS_CLIENT_ID)"))

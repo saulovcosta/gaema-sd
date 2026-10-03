@@ -105,7 +105,7 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
   - Resolução só por COORDENADOR (`resolver_conflito_sincronizacao`, nova ação), com motivo: MANTER_CENTRAL ou ACEITAR_DISPOSITIVO (nova versão; histórico preservado). Evidência é imutável: só MANTER_CENTRAL. A demanda não volta sozinha; o coordenador transita depois.
   - Conflito aberto conta em `conflitos_abertos` e bloqueia a validação mesmo que a demanda não esteja em CONFLITO_SINCRONIZACAO.
   - Tentativas máximas e espera inicial (dobra a cada tentativa) ficam em `config/parametros.json`, rotulados AUTORAL; não têm fundamento externo.
-- **Risco:** o canal é simulado (`CanalSimulado`); nada foi testado em rede real, aplicativo de campo ou Survey123. O dispositivo não recebe de volta a versão resolvida pela central (reconciliação do lado do dispositivo fica para a Fase 5). Itens dependentes de um registro em conflito seguem o envio normal.
+- **Risco:** o canal é simulado (`CanalSimulado`); nada foi testado em rede real, aplicativo de campo ou Survey123. O dispositivo não recebia de volta a versão resolvida pela central (resolvido na Fase 5; ver DEC-016). Itens dependentes de um registro em conflito seguem o envio normal.
 - **Teste:** `tests/test_sincronizacao.py`.
 
 ## DEC-012 — Concorrência: SQLite em WAL e versão de esquema (03/10/2026)
@@ -139,3 +139,67 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Risco:** leitor de tela e pessoas usuárias NÃO foram testados (RQ-74).
 - **Teste:** `tests/test_acessibilidade.py`.
 
+## DEC-016 — Reconciliação no dispositivo e retenção de envios em conflito (03/10/2026)
+
+- **Hipótese:** a decisão do coordenador volta ao aparelho por consulta (o dispositivo pergunta pelos itens que enviou e ficaram em conflito), e a numeração de versões do aparelho pode diferir da central por um deslocamento fixo por registro.
+- **Motivo:** (1) fechar a lacuna R-18 da Fase 4; (2) **defeito da Fase 4 reproduzido**: depois de um conflito, uma segunda correção do mesmo registro, já na fila, tinha base igual à versão atual da central e era aplicada por cima dela, sobrescrevendo a edição da central sem aviso.
+- **Impacto:**
+  - Envios posteriores da mesma entidade ficam **retidos** enquanto houver conflito sem decisão; o aparelho não corrige o registro nesse intervalo.
+  - `Nucleo.consultar_decisoes_conflito` (ação `SINCRONIZAR`, auditada) devolve só conflitos RESOLVIDOS, com o motivo saneado, a versão atual e a versão resultante.
+  - MANTER_CENTRAL: o aparelho grava a versão da central (uma gravação local), descarta os envios retidos (com registro) e guarda o deslocamento. ACEITAR_DISPOSITIVO: o aparelho só realinha versões (deslocamento) e reajusta a base dos retidos, que então são enviados. `Evidencia` (imutável) só registra a decisão.
+  - Tabelas novas no aparelho (`decisoes_conflito`, `deslocamento_versao`), criadas sem mudar `VERSAO_ESQUEMA`.
+  - A central não guarda de quem veio o conflito: a consulta é pelo hash do item, e qualquer técnico que o conheça pode vê-lo (RESTRITA, auditado).
+- **Risco:** rede simulada; sem teste em aparelho. Decisão tomada enquanto o aparelho tem edições novas só em registros diferentes é tratada; edição local nova no mesmo registro é bloqueada até a decisão.
+- **Teste:** `tests/test_reconciliacao.py` (inclui a reprodução do defeito; duas mutações no código foram pegas pelos testes).
+
+## DEC-017 — Adaptadores ArcGIS só como interface; XLSForm gerado do domínio (03/10/2026)
+
+- **Hipótese:** é possível preparar a integração sem declará-la: interfaces (`Protocol`), implementações que recusam, tradução pura e um XLSForm gerado dos mesmos enums e unidades do núcleo.
+- **Motivo:** DEC-001 e LA-05 (nenhuma organização ArcGIS acessível); R-06 (modelo divergir do ArcGIS).
+- **Impacto:**
+  - Código em `src/gaema_sd/adaptadores/`; documentação, XLSForm em CSV e exemplo sintético em `adapters/arcgis/`. O CSV é gerado por `scripts/gerar_contratos.py` e conferido por teste; o `.xlsx` sai sob demanda.
+  - Uma submissão = um ponto; só repetições de um nível. O formulário não define profundidade, repetições nem limiar; GPS ruim é alerta do núcleo, não bloqueio.
+  - Formato de entrada da tradução **neutro** (definido aqui), porque o formato real de exportação do Survey123 não foi verificado.
+  - Dependências de desenvolvimento novas, fixadas: `openpyxl` e `pyxform` (e as que ele exige). `pip-audit` sem achados em 03/10/2026.
+- **Risco:** pyxform confere sintaxe XLSForm/ODK, não o comportamento no Survey123 Connect (R-23, R-24, R-27). O único aviso conhecido do pyxform (tamanho máximo de imagem) fica registrado, porque um valor seria invenção.
+- **Teste:** `tests/test_xlsform.py`, `tests/test_adaptadores.py`.
+
+## DEC-018 — Pacote de exportação em formato próprio, sem dados sensíveis (03/10/2026)
+
+- **Hipótese:** um pacote JSON aberto com identificadores técnicos, estados, contagens, rótulos de validade e hashes serve de base de conversa com a equipe do Radar sem expor geometria ou texto livre.
+- **Motivo:** RQ-67; o formato do Painel é desconhecido (LA-10); classificação de sigilo e base legal pendentes (LA-06, RQ-70).
+- **Impacto:** `Nucleo.exportar_painel` (ação `EXPORTAR`, COORDENADOR e MEMBRO_MP; auditada com o hash do pacote); esquema em `schemas/exportacao-painel.schema.json`, gerado e conferido. Sem geometria, coordenadas, títulos, objetivos, referência interna nem pessoas. O critério de priorização é repetido como registrado por pessoa.
+- **Risco:** pode ser lido como integração ou formato oficial (R-25); o pacote leva o campo `aviso`. Conteúdo dos relatórios dos marcos do art. 20 não está coberto (RQ-71 parcial).
+- **Teste:** `tests/test_exportacao.py`.
+
+## DEC-019 — Checklist de homologação sem aprovação; documentos conferidos por teste (03/10/2026)
+
+- **Hipótese:** documentos institucionais só são confiáveis se algo os impede de ficar defasados ou otimistas.
+- **Impacto:** `docs/homologacao.md`, `docs/pendencias.md`, `docs/integracao-radar-painel.md` e `docs/guia-capacitacao.md`. Teste exige: nenhuma linha do checklist aprovada, situação só `NÃO EXECUTADO`/`PENDENTE`/`EXECUTADO LOCALMENTE`, todo LA de `fontes.md` em `pendencias.md`, arquivos citados existentes, avisos obrigatórios no guia, gabarito do guia igual ao resultado da demonstração, e ausência das expressões vedadas.
+- **Risco:** o teste de linguagem cobre só estes documentos; a regra continua valendo para os demais.
+- **Teste:** `tests/test_documentos.py`.
+
+## DEC-020 — Revisão independente das Fases 4 e 5: achados e correções (03/10/2026)
+
+- **Hipótese:** um revisor separado, instruído a quebrar o que foi feito, acha o que os testes do autor não acharam.
+- **Método:** um agente separado (de IA, não humano) rodou mais de mil cenários de falha e 35 mutações em cópia do repositório, sem editar nada. Cada achado foi reproduzido por um teste novo que **falhou no código anterior** e passa agora; 20 mutações nas correções novas foram todas pegas pelos testes.
+- **Corrigidos (número do achado do relatório):**
+  1. (alta) dado de campo aceito sem ponto/campanha, de usuário fora da equipe e com a demanda já adiante (alterava o que sustenta o diagnóstico) → origem, equipe e estado conferidos em `receber_sincronizacao`; reenvio idempotente segue valendo.
+  2. (alta) erro de acesso transformava todo o campo em REJEITADO definitivo → `AcessoNegado` interrompe a rodada sem rejeitar; `reenfileirar_rejeitados` (não reenfileira o que a decisão do coordenador descartou).
+  3. item sem arquivo de evidência travava a fila → vira REJEITADO e a fila segue.
+  4. ACEITAR_DISPOSITIVO apagava alteração posterior da central do estado corrente → recusado se a versão mudou depois do conflito.
+  5. e 16. backup "conferia" sem arquivos e confiava no manifesto → confere hashes contra o banco, contagens, eventos, conflitos, lista fechada, sem link simbólico, `-wal` órfão no destino, manifesto malformado e CLI com banco inexistente; `criar_backup` verifica o que criou.
+  6. e 11. tradução descartava fotos e nota de acesso em silêncio, e repetição de penetrometria duplicada colidia → erro explícito (`ignorar_nao_traduzidos`, `campos_de_campanha`).
+  7. id de registro formava caminho do relatório → UUID obrigatório e conferência do caminho.
+  8. pacote de exportação levava id de usuário e texto livre do protocolo → só papéis; categoria e rótulo só em padrão fechado; código de categoria do protocolo restrito; id opaco.
+  9. `observador_id` forjável (alimentava a regra de independência do revisor) → autoria imutável e igual ao usuário.
+  10. XLSForm obrigava sim/não e usava `now()` → presença não obrigatória ("não observado" = em branco); sem valor padrão.
+  12. CRIAR reenviado após alteração da central virava conflito falso → compara com a versão 1 do histórico.
+  13. falha ao mover a demanda perdia o conflito → conflito gravado e auditado antes; a transição é tentada depois e a cada reenvio.
+  14. técnico B lia decisão de A → coluna `enviado_por`; **esquema 2** com migração do 1 (17).
+  15. aplicar a mesma decisão duas vezes desfazia trabalho novo → idempotente; descartes passam a ser auditados.
+  18. integração ATIVA em ambiente de desenvolvimento → recusada.
+  19. e 20. guia e gabarito imprecisos (ponto da interrupção; conflito só muda a demanda em AGUARDANDO_SINCRONIZACAO; papéis; mascaramento) → corrigidos e conferidos por teste; mascaramento de CPF cobre mais formatos e a chave sensível não casa pedaço de palavra; testes novos para contagens e último hash do manifesto e para a permissão no caminho de conflito.
+- **Não corrigidos (limites aceitos e registrados):** `Nucleo.registrar` direto na central não aplica as regras de origem/equipe/estado, porque o aparelho usa o mesmo método sem ter a campanha (R-28, H-S07); a fila do aparelho é estado local e grava fora da trilha (os descartes por decisão agora são auditados); trilha truncada e banco trocado com manifesto refeito seguem possíveis para quem controla a pasta (R-19, ancoragem externa PENDENTE); conflitos antigos (esquema 1) ficam visíveis a qualquer técnico (`enviado_por` vazio).
+- **Risco:** o revisor foi um agente de IA; não substitui revisão humana ou de terceiros (H-S02, R-30).
+- **Teste:** `tests/test_regressao_revisao_f4f5.py`, `tests/test_regressao_revisao_f4f5_b.py`.

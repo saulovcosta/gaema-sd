@@ -1,0 +1,29 @@
+campo_formulario,entidade,campo_dominio,observacao
+campanha_id,PontoAmostral,campanha_id,
+dispositivo_id,PontoAmostral,dispositivo_id,
+observador_id,Observacao,observador_id,
+capturado_em,PontoAmostral,capturado_em,
+condicao_acesso,CampanhaVistoria,condicao_acesso,campo da campanha; não é gravado por ponto
+nota_acesso,CampanhaVistoria,nota_acesso,campo da campanha; não é gravado por ponto
+codigo_ponto,PontoAmostral,codigo,
+localizacao,PontoAmostral,latitude,"ODK: 'lat lon altitude precisão'; ver latitude, longitude, altitude_m, precisao_gps_m"
+presenca_plantas_invasoras,Observacao,valor_bruto,variavel=PLANTAS_INVASORAS; unidade_bruta=presenca
+presenca_cupins_monticulo,Observacao,valor_bruto,variavel=CUPINS_MONTICULO; unidade_bruta=presenca
+presenca_erosao_laminar,Observacao,valor_bruto,variavel=EROSAO_LAMINAR; unidade_bruta=presenca
+presenca_sulcos,Observacao,valor_bruto,variavel=SULCOS; unidade_bruta=presenca
+presenca_ravinas,Observacao,valor_bruto,variavel=RAVINAS; unidade_bruta=presenca
+presenca_vocorocas,Observacao,valor_bruto,variavel=VOCOROCAS; unidade_bruta=presenca
+presenca_solo_exposto,Observacao,valor_bruto,variavel=SOLO_EXPOSTO; unidade_bruta=presenca
+hipotese_alternativa,Observacao,valor_bruto,variavel=HIPOTESE_ALTERNATIVA; unidade_bruta=texto
+outra_variavel,Observacao,variavel,
+outra_valor_bruto,Observacao,valor_bruto,
+outra_unidade_bruta,Observacao,unidade_bruta,
+outra_nota,Observacao,nota,
+pen_repeticao,MedicaoPenetracao,repeticao,
+pen_profundidade,MedicaoPenetracao,profundidade_bruta,
+pen_profundidade_unidade,MedicaoPenetracao,profundidade_unidade,
+pen_resistencia,MedicaoPenetracao,resistencia_bruta,
+pen_resistencia_unidade,MedicaoPenetracao,resistencia_unidade,
+pen_contexto_umidade,MedicaoPenetracao,contexto_umidade,
+foto_categoria,Evidencia,categoria,"o arquivo entra por Nucleo.registrar_evidencia, com hash"
+foto_arquivo,Evidencia,armazenamento_ref,anexo; não traduzido por traduzir_submissao

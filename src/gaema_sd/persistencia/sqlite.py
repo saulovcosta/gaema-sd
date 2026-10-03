@@ -20,7 +20,7 @@ from typing import Iterator, Optional, TypeVar
 
 from ..dominio.entidades import EventoAuditoria
 from ..dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
-from ..erros import ConflitoAtualizacao, ConflitoIdempotencia, RegistroNaoEncontrado
+from ..erros import ConflitoAtualizacao, ConflitoIdempotencia, ErroGaema, RegistroNaoEncontrado
 
 T = TypeVar("T")
 
@@ -72,6 +72,25 @@ CREATE TABLE IF NOT EXISTS fila_envio (
     UNIQUE (tipo, entidade_id, operacao, hash_dados)
 );
 
+CREATE TABLE IF NOT EXISTS decisoes_conflito (
+    hash_dados TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    entidade_id TEXT NOT NULL,
+    decisao TEXT NOT NULL,
+    motivo TEXT NOT NULL DEFAULT '',
+    versao_central INTEGER NOT NULL,
+    aplicada INTEGER NOT NULL CHECK (aplicada IN (0, 1)),
+    observacao TEXT NOT NULL DEFAULT '',
+    recebida_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS deslocamento_versao (
+    tipo TEXT NOT NULL,
+    entidade_id TEXT NOT NULL,
+    deslocamento INTEGER NOT NULL,
+    PRIMARY KEY (tipo, entidade_id)
+);
+
 CREATE TABLE IF NOT EXISTS conflitos_sincronizacao (
     id TEXT PRIMARY KEY,
     tipo TEXT NOT NULL,
@@ -82,6 +101,7 @@ CREATE TABLE IF NOT EXISTS conflitos_sincronizacao (
     hash_central TEXT NOT NULL,
     dados_dispositivo TEXT NOT NULL,
     hash_dispositivo TEXT NOT NULL,
+    enviado_por TEXT NOT NULL DEFAULT '',
     situacao TEXT NOT NULL DEFAULT 'ABERTO' CHECK (situacao IN ('ABERTO', 'RESOLVIDO')),
     decisao TEXT NOT NULL DEFAULT '',
     resolvido_por TEXT NOT NULL DEFAULT '',
@@ -104,7 +124,7 @@ BEGIN SELECT RAISE(ABORT, 'histórico é somente acréscimo'); END;
 """
 
 
-VERSAO_ESQUEMA = 1  # PRAGMA user_version; base para recusar backup de esquema mais novo que o código
+VERSAO_ESQUEMA = 2  # PRAGMA user_version; 2 = conflitos_sincronizacao.enviado_por (Fase 5). Backup de esquema mais novo é recusado
 
 
 def _agora() -> str:
@@ -125,9 +145,24 @@ class Repositorio:
         if caminho != ":memory:":
             self.con.execute("PRAGMA journal_mode = WAL")  # leitores não bloqueiam o escritor
         self.con.executescript(ESQUEMA)
-        if self.con.execute("PRAGMA user_version").fetchone()[0] == 0:
-            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
+        self._migrar()
         self._profundidade = 0
+
+    def _migrar(self) -> None:
+        """Banco novo recebe a versão atual; banco antigo é migrado sem perder dados. Banco mais novo que o código
+        é recusado (o código antigo não sabe o que há nele)."""
+        versao = self.con.execute("PRAGMA user_version").fetchone()[0]
+        if versao > VERSAO_ESQUEMA:
+            self.con.close()
+            raise ErroGaema(f"banco com esquema {versao}, mais novo que o deste código ({VERSAO_ESQUEMA})")
+        if versao == 0:
+            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
+            return
+        if versao < 2:  # 1 → 2: de quem veio o conflito (linhas antigas ficam com '' = sem origem conhecida)
+            colunas = {l[1] for l in self.con.execute("PRAGMA table_info(conflitos_sincronizacao)")}
+            if "enviado_por" not in colunas:
+                self.con.execute("ALTER TABLE conflitos_sincronizacao ADD COLUMN enviado_por TEXT NOT NULL DEFAULT ''")
+            self.con.execute("PRAGMA user_version = 2")
 
     def fechar(self) -> None:
         self.con.close()
@@ -234,7 +269,7 @@ class Repositorio:
 
     def registrar_conflito(self, *, tipo: str, entidade_id: str, demanda_id: str, versao_base: int,
                            versao_central: int, hash_central: str, dados_dispositivo: str,
-                           hash_dispositivo: str) -> tuple[str, bool]:
+                           hash_dispositivo: str, enviado_por: str = "") -> tuple[str, bool]:
         """Guarda a versão do dispositivo ao lado da central. Reenvio do mesmo conflito não duplica."""
         with self.transacao():
             existente = self.con.execute(
@@ -245,11 +280,21 @@ class Repositorio:
             id_ = str(uuid.uuid4())
             self.con.execute(
                 "INSERT INTO conflitos_sincronizacao (id, tipo, entidade_id, demanda_id, versao_base,"
-                " versao_central, hash_central, dados_dispositivo, hash_dispositivo, criado_em)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                " versao_central, hash_central, dados_dispositivo, hash_dispositivo, enviado_por, criado_em)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (id_, tipo, entidade_id, demanda_id, versao_base, versao_central, hash_central,
-                 dados_dispositivo, hash_dispositivo, _agora()))
+                 dados_dispositivo, hash_dispositivo, enviado_por, _agora()))
         return id_, True
+
+    def conflito_por_hash(self, tipo: str, hash_dispositivo: str) -> dict | None:
+        self.con.row_factory = sqlite3.Row
+        try:
+            linha = self.con.execute(
+                "SELECT * FROM conflitos_sincronizacao WHERE tipo=? AND hash_dispositivo=?",
+                (tipo, hash_dispositivo)).fetchone()
+        finally:
+            self.con.row_factory = None
+        return dict(linha) if linha else None
 
     def obter_conflito(self, id_: str) -> dict:
         self.con.row_factory = sqlite3.Row

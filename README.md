@@ -22,7 +22,7 @@ Inspira-se funcionalmente no SIPADE (IFTM e MPMG), sem copiar código, textos ou
 | 2 | Núcleo: entidades, fluxo de estados, validações, auditoria | Concluída (testada localmente) |
 | 3 | Protótipo local ponta a ponta e relatório | Concluída (testada localmente) |
 | 4 | Robustez: offline, sincronização, segurança, backup, acessibilidade | Concluída (testada localmente, com rede simulada) |
-| 5 | Preparação institucional: ArcGIS, formulário XLSForm, homologação | Não iniciada |
+| 5 | Preparação institucional: adaptadores, formulário XLSForm, pontos de integração, homologação, capacitação | Concluída como preparação, com revisão independente por agente de IA; testada localmente; **nada foi integrado** |
 
 Detalhes do andamento: `docs/ESTADO.md`.
 
@@ -36,6 +36,11 @@ Detalhes do andamento: `docs/ESTADO.md`.
 - `docs/dominio.md` — as 20 entidades: o que guardam, regras e retenção
 - `docs/estados.md` — fluxo da demanda: 23 situações, quem pode mudar e quando
 - `docs/protocolo.md` — como o diagnóstico é calculado (modo descritivo e protótipo de teste)
+- `docs/guia-capacitacao.md` — guia de uso para os membros, com exercícios e gabarito (art. 20 da Portaria)
+- `docs/integracao-radar-painel.md` — pontos de troca com o Radar Ambiental e o Painel do art. 18, e perguntas à equipe
+- `docs/homologacao.md` — checklist do que falta demonstrar (nenhum item aprovado)
+- `docs/pendencias.md` — pendências científicas, institucionais e de ambiente
+- `adapters/arcgis/` — adaptadores ArcGIS (só interface), XLSForm do formulário de vistoria e exemplos sintéticos
 - `docs/prompt-gaema-sd.md` — especificação original
 
 ## O que já existe (Fase 2)
@@ -68,6 +73,21 @@ Tudo testado só em computador, com dados inventados e rede **simulada**.
 - **Relatório HTML mais acessível:** link de salto, foco visível, contraste conferido por cálculo. **Teste com leitor de tela ainda não foi feito.**
 
 Não existe rede, aplicativo de campo, ArcGIS ou MPTO reais nesta etapa.
+
+## O que já existe (Fase 5)
+
+Preparação institucional. **Nada aqui está integrado a ArcGIS, ao Radar Ambiental, ao Painel do art. 18 ou a sistema do MPTO**; tudo roda só no computador, com dados inventados.
+
+- **Decisão do coordenador volta ao aparelho:** o aparelho consulta o desfecho do conflito, adota a versão da central ou realinha as versões, e converge com a central. Foi corrigido um defeito da Fase 4: depois de um conflito, uma segunda correção já na fila podia sobrescrever a versão da central; agora fica retida até a decisão.
+- **Adaptadores ArcGIS só como interface** (`src/gaema_sd/adaptadores/`): sem rede, sem URL, sem credencial; recusam por padrão.
+- **Formulário de vistoria em XLSForm**, gerado do próprio modelo de dados, sem profundidade, número de repetições ou limiar inventados. Conferido por estrutura e sintaxe; **não** foi aberto no Survey123 Connect.
+- **Pacote de exportação em formato próprio** (sem coordenadas, textos livres nem pessoas) como base de conversa com a equipe do Radar.
+- **Checklist de homologação** (nenhum item aprovado), **lista de pendências** e **guia de capacitação** com exercícios e gabarito.
+- **Revisão independente das Fases 4 e 5** (feita por um agente de IA separado, não por pessoas): 20 falhas reproduzidas e corrigidas, cada uma com teste. As mais sérias: dado de campo aceito de quem não é da equipe ou depois de a demanda avançar, e um erro de acesso que rejeitava todo o campo. Ver `docs/decisoes.md` (DEC-020).
+
+### Nível de pronto real
+
+Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados inventados, rede simulada). Em especial: **o formulário XLSForm foi conferido por testes próprios e pelo pyxform, mas não foi aberto no Survey123 Connect**; adaptadores ArcGIS são só interface; o relatório não foi testado com leitor de tela; não houve revisão humana nem de terceiros; nenhuma turma foi capacitada. A tabela completa está em `docs/ESTADO.md`.
 
 ## Para quem programa
 

@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 from ..persistencia.sqlite import Repositorio
 from .backup import criar_backup, restaurar_backup, rollback, verificar_backup
@@ -16,6 +17,9 @@ def main() -> int:
     b = sub.add_parser("rollback"); b.add_argument("backup"); b.add_argument("banco_atual"); b.add_argument("saida_atual")
     a = p.parse_args()
     if a.cmd == "criar":
+        if not Path(a.banco).is_file():
+            print(f"o banco {a.banco} não existe; nenhum backup foi criado")
+            return 2
         repo = Repositorio(a.banco)
         m = criar_backup(repo, a.saida, a.destino)
         repo.fechar()

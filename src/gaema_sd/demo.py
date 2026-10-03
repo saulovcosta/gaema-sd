@@ -1,7 +1,8 @@
 """Protótipo local de ponta a ponta, só com dados SINTÉTICOS.
 
 Percorre: área candidata → alerta (Peça de Informação Técnica sintética) → triagem → demanda →
-atribuição → vistoria (com interrupção e retomada) → sincronização → validação → diagnóstico
+atribuição → vistoria (com interrupção e retomada) → fim da coleta e validação (só transições de estado; a fila e a
+sincronização do aparelho não entram nesta demonstração) → validação → diagnóstico
 (protótipo rotulado) → revisão → relatório HTML e PDF → tratativa → plano e marcos → monitoramento →
 reemissão do relatório → reprodução do diagnóstico e conferência da auditoria.
 

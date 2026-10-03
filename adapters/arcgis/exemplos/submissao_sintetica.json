@@ -1,0 +1,27 @@
+{
+  "_aviso": "DADOS SINTÉTICOS. Formato NEUTRO do GAEMA SD; não é a exportação real do Survey123 (não verificada).",
+  "sintetico": true,
+  "campanha_id": "00000000-0000-4000-8000-000000000008",
+  "dispositivo_id": "dispositivo-sintetico",
+  "observador_id": "usuario-sintetico-02",
+  "capturado_em": "2026-02-03T13:00:00+00:00",
+  "condicao_acesso": "ACESSO_REALIZADO",
+  "codigo_ponto": "P01",
+  "localizacao": "-10.4950 -48.4950 250.0 4.0",
+  "presenca_plantas_invasoras": "sim",
+  "presenca_cupins_monticulo": "nao",
+  "presenca_erosao_laminar": "nao",
+  "presenca_sulcos": "nao",
+  "presenca_ravinas": "nao",
+  "presenca_vocorocas": "nao",
+  "presenca_solo_exposto": "nao",
+  "hipotese_alternativa": "pisoteio concentrado perto do bebedouro (texto sintético)",
+  "outras_observacoes": [
+    {"outra_variavel": "COBERTURA_FORRAGEIRA", "outra_valor_bruto": "40", "outra_unidade_bruta": "%", "outra_nota": ""}
+  ],
+  "penetrometria": [
+    {"pen_repeticao": 1, "pen_profundidade": 20, "pen_profundidade_unidade": "cm",
+     "pen_resistencia": 1.4, "pen_resistencia_unidade": "mpa", "pen_contexto_umidade": "período seco (sintético)"}
+  ],
+  "fotos": []
+}

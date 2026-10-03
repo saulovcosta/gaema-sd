@@ -19,17 +19,19 @@ from ..dominio.serializacao import json_canonico, para_dict, sha256_texto
 from ..erros import AuditoriaCorrompida
 
 GENESE = "0" * 64
-_CHAVES_SENSIVEIS = re.compile(r"cpf|cnpj|rg|nome|email|e-mail|telefone|endereco|senha|token|chave_api|segredo",
-                               re.IGNORECASE)
+# casa a palavra (ou o prefixo/sufixo separado por _ ou -), não pedaço de palavra: "margem" não é "rg"
+_CHAVES_SENSIVEIS = re.compile(r"(?<![a-z0-9])(cpf|cnpj|rg|nome|email|e-mail|telefone|endereco|senha|token|chave_api|"
+                               r"segredo)(?![a-z0-9])", re.IGNORECASE)
 _TAMANHO_MAX_TEXTO = 200
-_CPF = re.compile(r"(?<![\w])(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})(?![\w])")
+_CPF = re.compile(r"(?<![\w])(\d{3}[.\s]?\d{3}[.\s]?\d{3}[-/.\s]?\d{2})(?![\w])")
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 _SEGREDO = re.compile(r"(?i)\b(senha|token|chave_api|segredo|cpf|cnpj)\b(\s*[=:]\s*)\S+")
 
 
 def sanear_texto(texto: str) -> str:
-    """Mascara padrões óbvios (CPF, e-mail, 'senha=...'). Higiene de log, não garantia: texto livre
-    com nome de pessoa não é detectável por padrão; por isso o log não carrega texto livre de usuário."""
+    """Mascara alguns formatos de CPF (com ou sem pontuação), e-mail e 'senha=...'. Higiene de log, não garantia:
+    não cobre CNPJ nem telefone com máscara, e nome de pessoa em texto livre não é detectável por padrão; por isso o
+    log não carrega texto livre de usuário."""
     texto = _SEGREDO.sub(lambda m: f"{m.group(1)}{m.group(2)}[REMOVIDO]", texto)
     texto = _CPF.sub("[REMOVIDO]", texto)
     return _EMAIL.sub("[REMOVIDO]", texto)

@@ -250,6 +250,8 @@ def test_campo_desconhecido_no_item_e_recusado(amb):
 
 
 def test_anexo_invalido_na_sincronizacao_nao_grava_registro_nem_arquivo(amb):
+    amb.central.registrar(amb.a["tecnico"], amb.c["PontoAmostral"][0])   # origem da evidência já está na central
+    amb.central.registrar(amb.a["tecnico"], amb.c["Observacao"][0])
     ev = amb.c["Evidencia"][0]
     for conteudo, extra in ((b"MZ\x90\x00 nao e imagem", {}),                         # assinatura inválida
                             (FOTO_SINTETICA + b"x", {}),                                # hash não confere

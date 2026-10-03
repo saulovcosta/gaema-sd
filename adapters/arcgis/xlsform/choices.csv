@@ -1,0 +1,43 @@
+list_name,name,label
+sim_nao,sim,Sim
+sim_nao,nao,Não
+condicao_acesso,NAO_INFORMADA,Não informada
+condicao_acesso,ACESSO_REALIZADO,Acesso realizado
+condicao_acesso,ACESSO_PARCIAL,Acesso parcial
+condicao_acesso,SEM_ACESSO,Sem acesso
+variavel_campo,COBERTURA_FORRAGEIRA,Cobertura forrageira
+variavel_campo,VIGOR_FORRAGEIRA,Vigor da forrageira
+variavel_campo,ALTURA_PASTO,Altura do pasto
+variavel_campo,SOLO_EXPOSTO,Solo exposto
+variavel_campo,PLANTAS_INVASORAS,Plantas invasoras
+variavel_campo,CUPINS_MONTICULO,Cupins (montículo)
+variavel_campo,EROSAO_LAMINAR,Erosão laminar
+variavel_campo,SULCOS,Sulcos
+variavel_campo,RAVINAS,Ravinas
+variavel_campo,VOCOROCAS,Voçorocas
+variavel_campo,UMIDADE_SOLO,Umidade do solo
+variavel_campo,PRECIPITACAO_RECENTE,Precipitação recente
+variavel_campo,TIPO_SOLO,Tipo de solo
+variavel_campo,FORMACAO_GEOLOGICA,Formação geológica
+variavel_campo,ANIMAIS_PASTEJO,Animais em pastejo
+variavel_campo,CONTEXTO_SAZONAL,Contexto sazonal
+variavel_campo,DRENAGEM,Drenagem
+variavel_campo,DECLIVIDADE,Declividade
+variavel_campo,MANEJO_INFORMADO,Manejo informado
+variavel_campo,HIPOTESE_ALTERNATIVA,Hipótese alternativa
+variavel_campo,OUTRA,Outra
+unidade_profundidade,cm,cm
+unidade_profundidade,mm,mm
+unidade_profundidade,m,m
+unidade_resistencia,kpa,kPa
+unidade_resistencia,mpa,MPa
+unidade_resistencia,kgf/cm2,kgf/cm²
+categoria_evidencia,FOTO_PANORAMICA,Foto panorâmica
+categoria_evidencia,FOTO_SOLO,Foto do solo
+categoria_evidencia,FOTO_FORRAGEIRA,Foto da forrageira
+categoria_evidencia,FOTO_INVASORA,Foto de invasora
+categoria_evidencia,FOTO_CUPINZEIRO,Foto de cupinzeiro
+categoria_evidencia,FOTO_EROSAO,Foto de erosão
+categoria_evidencia,FOTO_MEDICAO,Foto da medição
+categoria_evidencia,DOCUMENTO,Documento
+categoria_evidencia,OUTRA,Outra
