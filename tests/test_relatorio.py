@@ -32,7 +32,7 @@ SECOES = ["1. Identificação da demanda", "2. Objetivo", "3. Área e mapa", "4.
 @pytest.fixture
 def n(tmp_path):
     repo = Repositorio(":memory:")
-    yield Nucleo(repo, tmp_path)
+    yield Nucleo(repo, tmp_path, modo="livre")   # teste de unidade do arquivo de evidência, sem a cadeia de campo
     repo.fechar()
 
 
@@ -107,7 +107,9 @@ def test_texto_malicioso_e_escapado(n, atores, emitido):
         d, objetivo='<script>alert(1)</script><img src="http://x/y.png"> & <b>negrito</b>'), d.versao)
     _, c = n.emitir_relatorio(atores["coord"], emitido, FormatoRelatorio.HTML)
     texto = c.read_text(encoding="utf-8")
-    assert "<script" not in texto and "&lt;script&gt;" in texto and "<img" not in texto
+    assert "<script" not in texto and "&lt;script&gt;" in texto and "http://x/y.png\">" not in texto
+    imagens = re.findall(r"<img [^>]*>", texto)       # a única imagem é o logo embutido (data:), nunca a injetada
+    assert len(imagens) <= 1 and all('src="data:image/png;base64,' in i for i in imagens)
     _, p = n.emitir_relatorio(atores["coord"], emitido, FormatoRelatorio.PDF)
     assert "<script>alert(1)</script>" in " ".join(_texto_pdf(p).split())
 

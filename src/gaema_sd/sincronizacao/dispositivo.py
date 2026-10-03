@@ -27,6 +27,8 @@ TIPOS_COLETA = (E.PontoAmostral, E.Observacao, E.MedicaoPenetracao, E.Evidencia)
 
 class Dispositivo:
     def __init__(self, nucleo: Nucleo, ator: Ator):
+        if nucleo.modo != "dispositivo":
+            raise ErroGaema("o aparelho de campo usa Nucleo(modo='dispositivo'); a central confere origem, equipe e estado")
         self.nucleo = nucleo
         self.ator = ator
         self.fila = FilaLocal(nucleo.repo)

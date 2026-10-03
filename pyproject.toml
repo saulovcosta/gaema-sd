@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaema-sd"
-version = "0.5.1"
+version = "0.6.0"
 description = "GAEMA SD - núcleo de apoio ao diagnóstico de pastagens degradadas (protótipo, dados sintéticos)"
 requires-python = ">=3.11"
 dependencies = ["shapely==2.1.2", "Jinja2==3.1.6", "reportlab==4.2.5"]
@@ -14,6 +14,9 @@ dev = ["pytest==9.1.1", "jsonschema==4.26.0", "openpyxl==3.1.5", "pyxform==4.5.0
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+gaema_sd = ["relatorio/*.j2", "interface/modelos/*.j2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

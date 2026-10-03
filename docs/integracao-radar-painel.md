@@ -4,6 +4,13 @@ Nível: **ESPECIFICADO**, com um ponto **IMPLEMENTADO LOCALMENTE** (pacote de ex
 
 > **Nenhuma integração está declarada.** Não se conhece a arquitetura, o acesso nem os dados do Painel de Monitoramento de Pastagens Degradadas do Radar Ambiental (lacuna LA-10), nem há organização ArcGIS acessível (LA-05). Este documento lista **onde** uma troca seria possível e **o que precisa ser respondido** antes. O GAEMA SD continua sendo implementação independente (IN-06); se vai complementar o Painel ou alimentá-lo é decisão institucional.
 
+## 0. O que a página pública do Radar mostra (consultada em 03/10/2026; fonte F14, OBSERVAÇÃO PÚBLICA)
+
+- O Radar Ambiental é apresentado como ferramenta de livre acesso a estatísticas em tempo real sobre queimadas, desmatamentos e resíduos sólidos no Tocantins; proprietários rurais também podem consultar as apurações ambientais do MPTO. Acessa-se pelo Portal do MPTO e pelo aplicativo MPTO Cidadão.
+- Lista quatro painéis (Queimadas, Gestão dos Resíduos Sólidos, Desmatamento, Bacia do Rio Formoso), embora o texto fale em três. Os links são **ArcGIS StoryMaps**.
+- **Não aparece** o Painel de Monitoramento de Pastagens Degradadas do art. 18, e a página **não informa** API, exportação, documentação técnica, quem opera, quais camadas usa nem se há organização ArcGIS acessível.
+- Consequências: (a) é provável que o MPTO use ArcGIS Online, mas isso não é acesso (LA-05); (b) como parte do Radar é pública, **dado enviado a um painel pode ficar visível a terceiros** (IN-09): mais um motivo para o pacote de exportação não levar geometria, texto livre nem pessoas; (c) não sabemos se o painel de pastagens ainda não foi publicado ou tem acesso restrito (IN-10).
+
 ## 1. Pontos de troca
 
 | # | Ponto | Direção | O que trocaria | Como está hoje | Depende de |
@@ -25,7 +32,7 @@ O critério III do art. 17 (mais de 40% de área em "degradação severa") **nã
 
 ## 3. Perguntas objetivas para a equipe do Radar Ambiental / Painel
 
-1. O Painel recebe dados de sistemas externos? Por qual meio (arquivo, serviço, camada hospedada)?
+1. O Painel de Pastagens (art. 18) já foi publicado? Onde? Por que não consta da página pública do Radar? Recebe dados de sistemas externos, e por qual meio (arquivo, serviço, camada hospedada)?
 2. Qual é o formato esperado de uma área, de um alerta e de uma Peça de Informação Técnica?
 3. Quem autoriza o compartilhamento de dados de vistoria e relatórios com o Painel, e com base em quê?
 4. O Painel guarda geometria e dados de vistoria? Com que classificação de sigilo e retenção?

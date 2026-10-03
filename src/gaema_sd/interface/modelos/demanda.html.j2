@@ -1,0 +1,118 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Demanda{% endblock %}
+{% block conteudo %}
+{% set s = L.situacao(d.estado) %}
+<div class="linha-titulo"><h1>{{ d.titulo }}</h1>{{ c.etiqueta(d.estado) }}</div>
+<div class="proxima"><p class="rotulo">Próxima ação</p><p class="frase">{{ s.acao }}</p>
+  <p class="discreto">Quem age agora: {{ L.quem_age(d.estado) }}.{% if voce_age %} <strong>Você pode agir.</strong>{% else %} Seu papel não move esta situação.{% endif %}</p></div>
+
+<h2>Situação</h2>
+<dl class="dados">
+  <dt>Situação atual</dt><dd>{{ s.nome }}{% if d.estado_anterior %} <span class="discreto">(antes: {{ L.nome_estado(d.estado_anterior.value) }})</span>{% endif %}</dd>
+  <dt>Prioridade</dt><dd>{{ L.CRITERIO.get(d.criterio_priorizacao.value if d.criterio_priorizacao else "", "não registrada") }}{% if d.motivo_priorizacao %}<br><span class="discreto">Motivo: {{ d.motivo_priorizacao }}</span>{% endif %}</dd>
+  <dt>Identificador</dt><dd class="hash">{{ d.id }}</dd>
+</dl>
+
+<h2>Mudar a situação</h2>
+{% if transicoes %}
+<ul class="lista">{% for t in transicoes %}
+  {% set destino = L.situacao(t.destino) %}
+  <li>
+    <div class="linha-titulo"><h3>Para: {{ destino.nome }}</h3>{{ c.etiqueta(t.destino) }}</div>
+    <p class="discreto">Quem pode: {{ t.papeis_leigos }}.</p>
+    {% if t.disponivel %}
+    <form method="post" action="/demanda/{{ d.id }}/transitar">
+      <input type="hidden" name="csrf" value="{{ sessao.csrf }}"><input type="hidden" name="destino" value="{{ t.destino }}">
+      {% if t.exige_motivo %}<label for="motivo-{{ t.destino }}">Motivo</label>
+      <span class="ajuda-campo" id="ajuda-motivo-{{ t.destino }}">Pelo menos 10 letras. Não escreva dados pessoais.</span>
+      <input type="text" id="motivo-{{ t.destino }}" name="motivo" required minlength="10" aria-describedby="ajuda-motivo-{{ t.destino }}">{% endif %}
+      <div class="acoes"><button type="submit">Mover para: {{ destino.nome }}</button></div>
+    </form>
+    {% else %}
+    <div class="acoes">{{ c.bloqueado("Mover para: " ~ destino.nome, t.bloqueio_leigo, "t-" ~ loop.index) }}</div>
+    {% endif %}
+  </li>
+{% endfor %}</ul>
+{% else %}<p>Esta é uma situação final: não há mudança possível.</p>{% endif %}
+
+<h2>Mapa e pontos</h2>
+{% if pontos %}
+<div class="mapa-bloco">
+  <figure class="cartao">
+    {{ mapa }}
+    <figcaption>
+      <ul class="legenda">
+        <li><svg aria-hidden="true" viewBox="0 0 20 20"><rect class="area" x="2" y="2" width="16" height="16" fill="var(--mapa-area)" stroke="var(--mapa-borda)" stroke-width="2"/></svg> Área de interesse</li>
+        <li><svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="var(--mapa-ponto)"/></svg> Ponto amostral (círculo)</li>
+        <li><svg aria-hidden="true" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" transform="rotate(45 10 10)" fill="var(--critico)"/></svg> Ponto selecionado (losango)</li>
+        {% if escala.rotulo %}<li>Barra de escala: {{ escala.rotulo }} (aproximada)</li>{% endif %}
+      </ul>
+      <p class="discreto">Esquema sem base cartográfica: não serve para medir área nem para localizar limites. Escala aproximada; coordenadas em WGS84. Toque num ponto para destacá-lo na lista.</p>
+    </figcaption>
+  </figure>
+  <div>
+    <table class="tabela">
+      <caption>Pontos amostrais</caption>
+      <thead><tr><th scope="col">Ponto</th><th scope="col" class="num">Latitude</th><th scope="col" class="num">Longitude</th><th scope="col" class="num">Precisão do GPS</th></tr></thead>
+      <tbody>{% for p in pontos %}
+        <tr id="ponto-{{ p.codigo }}"{% if p.codigo == selecionado %} class="selecionado"{% endif %}>
+          <th scope="row"><a class="alvo-toque" href="?ponto={{ p.codigo }}#ponto-{{ p.codigo }}">{{ p.codigo }}</a>{% if p.codigo == selecionado %} <span class="etiqueta tom-critico">{{ c.icone("critico") }}<span>selecionado</span></span>{% endif %}</th>
+          <td class="num" data-rotulo="Latitude">{{ "%.5f"|format(p.latitude) }}</td>
+          <td class="num" data-rotulo="Longitude">{{ "%.5f"|format(p.longitude) }}</td>
+          <td class="num" data-rotulo="Precisão do GPS">{{ p.precisao }}{% if p.gps_ruim %} <span class="etiqueta tom-atencao">{{ c.icone("atencao") }}<span>acima do limite</span></span>{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+    <p class="discreto">Limite de precisão do GPS: {{ limite_gps }} m (valor provisório, sem fundamento científico; gera alerta, não bloqueia).</p>
+  </div>
+</div>
+{% else %}<p>Nenhum ponto coletado ainda.</p>{% endif %}
+
+<h2>Resumo dos dados</h2>
+<dl class="dados">
+  <dt>Vistorias (campanhas)</dt><dd>{{ resumo.campanhas }}</dd>
+  <dt>Pontos amostrais</dt><dd>{{ resumo.pontos }}</dd>
+  <dt>Observações</dt><dd>{{ resumo.observacoes }}</dd>
+  <dt>Medições de penetração</dt><dd>{{ resumo.medicoes_penetracao }}</dd>
+  <dt>Fotos e documentos</dt><dd>{{ resumo.evidencias }}</dd>
+  <dt>Diagnóstico</dt><dd>{% if resumo.diagnostico %}{{ resumo.diagnostico.rotulo_validade }}<br><span class="discreto">Categorias por ponto: {{ resumo.diagnostico.categoria_descritiva or "—" }}</span>{% else %}ainda não calculado{% endif %}</dd>
+</dl>
+
+<h2>Relatórios</h2>
+{% if relatorios %}
+<ul class="lista">{% for r in relatorios %}
+  <li><div class="linha-titulo"><h3>{{ r.formato.value }} · versão {{ r.numero_versao }}</h3></div>
+    <p class="discreto">Emitido em {{ r.gerado_em.strftime("%d/%m/%Y %H:%M") }} (UTC).</p>
+    <p class="discreto">Código de conferência: <span class="hash">{{ r.hash_conteudo }}</span></p>
+    <p><a class="botao secundario" href="/relatorio/{{ r.id }}">Abrir versão {{ r.numero_versao }} ({{ r.formato.value }})</a></p></li>
+{% endfor %}</ul>
+{% else %}<p>Nenhum relatório emitido.</p>{% endif %}
+<section class="cartao" aria-labelledby="emitir-titulo">
+  <h3 id="emitir-titulo">Emitir relatório</h3>
+  {% if pode_emitir %}
+  <form method="post" action="/demanda/{{ d.id }}/relatorio">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="formato">Formato</label>
+    <select id="formato" name="formato">{% for f in formatos %}<option value="{{ f }}">{{ f }}</option>{% endfor %}</select>
+    <label for="motivo-relatorio">Motivo da nova versão</label>
+    <span class="ajuda-campo" id="ajuda-motivo-relatorio">Obrigatório a partir da segunda versão (pelo menos 10 letras).</span>
+    <input type="text" id="motivo-relatorio" name="motivo" aria-describedby="ajuda-motivo-relatorio">
+    <div class="acoes"><button type="submit">Emitir relatório</button></div>
+  </form>
+  {% else %}<div class="acoes">{{ c.bloqueado("Emitir relatório", razao_emitir, "emitir") }}</div>{% endif %}
+</section>
+
+<h2>Histórico desta demanda</h2>
+{% if not historico_completo %}<p class="nota">Aqui aparecem só as mudanças de situação. Quem fez cada ação e o motivo ficam na trilha completa, aberta ao auditor e ao administrador.</p>{% endif %}
+{% if historico %}
+<table class="tabela">
+  <caption>{{ "Últimos registros da trilha de auditoria" if historico_completo else "Últimas mudanças de situação" }}</caption>
+  <thead><tr><th scope="col">Quando (UTC)</th><th scope="col">O que aconteceu</th>{% if historico_completo %}<th scope="col">Quem</th>{% endif %}<th scope="col">Mudança</th>{% if historico_completo %}<th scope="col">Motivo</th>{% endif %}</tr></thead>
+  <tbody>{% for e in historico|reverse %}
+    <tr><td data-rotulo="Quando">{{ e.ocorrido_em.strftime("%d/%m/%Y %H:%M") }}</td><td data-rotulo="O que aconteceu">{{ L.acao_auditoria(e.acao) }}</td>
+        {% if historico_completo %}<td data-rotulo="Quem">{{ e.ator_id }}</td>{% endif %}<td data-rotulo="Mudança">{{ L.nome_estado(e.estado_origem) }} → {{ L.nome_estado(e.estado_destino) }}</td>
+        {% if historico_completo %}<td data-rotulo="Motivo">{{ e.motivo or "—" }}</td>{% endif %}</tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}<p>Sem registros.</p>{% endif %}
+{% endblock %}

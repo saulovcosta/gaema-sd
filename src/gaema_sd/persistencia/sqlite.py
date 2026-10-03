@@ -139,7 +139,9 @@ def _conteudo(obj) -> tuple[str, str]:
 class Repositorio:
     def __init__(self, caminho: str = ":memory:"):
         self.caminho = caminho
-        self.con = sqlite3.connect(caminho, isolation_level=None, timeout=10)
+        # check_same_thread=False: a interface local atende cada conexão numa thread, mas serializa todo acesso ao
+        # banco com uma trava única (interface/app.py); fora dela o uso continua de uma thread só.
+        self.con = sqlite3.connect(caminho, isolation_level=None, timeout=10, check_same_thread=False)
         self.con.execute("PRAGMA foreign_keys = ON")
         self.con.execute("PRAGMA busy_timeout = 10000")
         if caminho != ":memory:":
@@ -155,14 +157,11 @@ class Repositorio:
         if versao > VERSAO_ESQUEMA:
             self.con.close()
             raise ErroGaema(f"banco com esquema {versao}, mais novo que o deste código ({VERSAO_ESQUEMA})")
-        if versao == 0:
-            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
-            return
-        if versao < 2:  # 1 → 2: de quem veio o conflito (linhas antigas ficam com '' = sem origem conhecida)
+        if versao < 2:  # 0 = banco novo OU banco legado sem número de versão: a coluna é conferida nos dois casos  # 1 → 2: de quem veio o conflito (linhas antigas ficam com '' = sem origem conhecida)
             colunas = {l[1] for l in self.con.execute("PRAGMA table_info(conflitos_sincronizacao)")}
             if "enviado_por" not in colunas:
                 self.con.execute("ALTER TABLE conflitos_sincronizacao ADD COLUMN enviado_por TEXT NOT NULL DEFAULT ''")
-            self.con.execute("PRAGMA user_version = 2")
+            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
 
     def fechar(self) -> None:
         self.con.close()
@@ -226,6 +225,17 @@ class Repositorio:
         if linha is None:
             raise RegistroNaoEncontrado(f"{cls.__name__} {id} não encontrado")
         return de_dict(cls, json.loads(linha[0]))
+
+    def achar_por_chave_ou_id(self, cls: type[T], id: str, chave: str = "") -> Optional[T]:
+        """Busca indexada (chave primária e índice único de idempotência), sem varrer a tabela."""
+        linha = None
+        if chave:
+            linha = self.con.execute("SELECT dados FROM registros WHERE tipo=? AND chave_idempotencia=?",
+                                     (cls.__name__, chave)).fetchone()
+        if linha is None:
+            linha = self.con.execute("SELECT dados FROM registros WHERE tipo=? AND id=?",
+                                     (cls.__name__, id)).fetchone()
+        return de_dict(cls, json.loads(linha[0])) if linha else None
 
     def listar(self, cls: type[T]) -> list[T]:
         linhas = self.con.execute("SELECT dados FROM registros WHERE tipo=? ORDER BY rowid",
@@ -305,6 +315,18 @@ class Repositorio:
         if linha is None:
             raise RegistroNaoEncontrado(f"conflito de sincronização {id_} não encontrado")
         return dict(linha)
+
+    def listar_conflitos(self, *, apenas_abertos: bool = True) -> list[dict]:
+        self.con.row_factory = sqlite3.Row
+        try:
+            filtro = "WHERE situacao='ABERTO'" if apenas_abertos else ""
+            linhas = self.con.execute(
+                "SELECT id, tipo, entidade_id, demanda_id, versao_base, versao_central, enviado_por, situacao,"
+                f" decisao, criado_em, resolvido_em FROM conflitos_sincronizacao {filtro} ORDER BY criado_em, id"
+            ).fetchall()
+        finally:
+            self.con.row_factory = None
+        return [dict(l) for l in linhas]
 
     def conflitos_abertos(self, demanda_id: str | None = None) -> int:
         if demanda_id is None:

@@ -1,0 +1,19 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Conflitos de sincronização{% endblock %}
+{% block conteudo %}
+<h1>Conflitos de sincronização</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p>
+  <p class="frase">{% if abertos %}Abra cada conflito em aberto e decida qual versão vale.{% else %}Nada a decidir agora.{% endif %}</p>
+  <p class="discreto">Um conflito acontece quando o aparelho de campo e o sistema central alteraram o mesmo registro. O sistema guarda as duas versões e espera a sua decisão.</p></div>
+{% if conflitos %}
+<ul class="lista">{% for k in conflitos %}
+  <li>
+    <div class="linha-titulo"><h2>{{ k.tipo_leigo }}</h2>
+      {% if k.situacao == "ABERTO" %}<span class="etiqueta tom-critico">{{ c.icone("critico") }}<span>Aguardando decisão</span></span>
+      {% else %}<span class="etiqueta tom-ok">{{ c.icone("ok") }}<span>Decidido: {{ k.decisao_leiga }}</span></span>{% endif %}</div>
+    <p class="discreto">Aberto em {{ k.quando }} · enviado por {{ k.enviado_por or "não registrado" }} · registro <span class="hash">{{ k.entidade_id }}</span></p>
+    <p><a class="botao{% if k.situacao != 'ABERTO' %} secundario{% endif %}" href="/conflitos/{{ k.id }}">{{ "Abrir e decidir" if k.situacao == "ABERTO" else "Ver decisão" }}</a></p>
+  </li>
+{% endfor %}</ul>
+{% else %}<p>Nenhum conflito registrado.</p>{% endif %}
+{% endblock %}

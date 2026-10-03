@@ -168,6 +168,7 @@ def test_9_observador_id_forjado_e_recusado_na_central_e_no_aparelho(amb):
         amb.disp.coletar(forjada)
     with pytest.raises(ErroGaema):
         amb.central.receber_sincronizacao(amb.a["tecnico"], _item(forjada))
+    amb.central.registrar(amb.a["tecnico"], amb.c["PontoAmostral"][0])
     vazio = amb.central.registrar(amb.a["tecnico"], com(amb.c["Observacao"][0], observador_id=""))[0]
     assert vazio.observador_id == amb.a["tecnico"].id          # vazio é preenchido pelo núcleo
 

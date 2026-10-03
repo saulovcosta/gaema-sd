@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Atualizado em: 03/10/2026, fim da Fase 5, depois da revisão independente das Fases 4 e 5.
+Atualizado em: 03/10/2026, fim da Fase 6 (interface local e segurança da central), depois da revisão independente da Fase 6.
 
 ## Feito
 
@@ -47,42 +47,66 @@ Atualizado em: 03/10/2026, fim da Fase 5, depois da revisão independente das Fa
 - **Não corrigidos (registrados):** `Nucleo.registrar` direto na central não confere origem/equipe/estado (R-28, H-S07); a fila do aparelho é estado local fora da trilha (os descartes por decisão agora são auditados); trilha truncada e banco trocado com manifesto refeito seguem possíveis para quem controla a pasta (R-19); conflitos do esquema 1 ficam visíveis a qualquer técnico (R-29).
 - **O revisor não é humano nem terceiro** (R-30, H-S02).
 
+### Fase 6 — TESTADO LOCALMENTE (interface local; dados sintéticos; sem autenticação real)
+- **Mescla:** o PR 3 (Fase 5) foi mesclado na `main` por squash a pedido do usuário.
+- **R-28 fechado localmente** (DEC-021): `Nucleo` em modo "central" confere origem, equipe e estado em toda entrada de dado de campo, inclusive do registro gravado; vínculo ponto/campanha imutável; modo somente leitura.
+- **R-19 mitigado em parte** (DEC-022): âncora externa da trilha (gerar, conferir, conferir backup com âncora). Guardar a âncora fora da máquina é decisão institucional (PENDENTE).
+- **Rotina do aparelho** (DEC-023): `Sincronizador.rodada()` consulta decisões e envia a fila; `scripts/demo_sincronizacao.sh`.
+- **Interface local** (DEC-024, DEC-025): `scripts/interface.sh` abre em http://127.0.0.1:8765/. Início com "O que fazer agora" e "Exige atenção"; demanda com situação em linguagem comum, mudanças possíveis (desabilitadas com motivo quando o papel não pode), mapa esquemático com escala aproximada e lista sincronizada, histórico, relatórios; conflitos com comparação campo a campo; auditoria com âncora; exportação; backup; Campo (aparelho simulado) com barra de rede/fila/última sincronização, coleta em 4 etapas com rascunho salvo, desfazer e conferência; ajuda e limites; temas claro e escuro.
+- **Relatório A4** (RQ-95): bloco de identificação, datas legíveis, hashes em grupos (copiáveis inteiros), tabelas sem corte; 6 páginas A4 no cenário de demonstração (antes: 8 páginas Carta).
+- **Revisão independente da Fase 6 por agente separado** (DEC-026): 15 achados (1 alto: técnico movia dado de campo de outra demanda), todos corrigidos com teste de regressão e reproduzidos de novo contra a árvore corrigida.
+- **Verificação com navegador real automatizado** (Chromium + axe-core 4.13, `scripts/verificar_interface.js`): achou um defeito que os testes não pegavam — o navegador mandava `Origin: null` e a interface recusava o próprio login (corrigido, DEC-026). Depois das correções: 83 telas (360 e 1280 px, claro e escuro, tema escolhido na tela, zoom 200%), **0 violações** do axe-core, nenhuma rolagem horizontal, próxima ação e faixa de protótipo em todas, títulos sem salto, foco visível em todas as paradas de Tab.
+
+### Fase 6 (complemento) — cabeçalho institucional do relatório
+- Relatório HTML e PDF com o logo (`assets/logo-mpto-gaema.png`) e "Ministério Público do Estado do Tocantins · CAOMA · GAEMA" no topo da primeira página; faixa de protótipo; linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal." (DEC-027).
+- Endosso só por `config/endosso.json` (vazio); sem número e data válidos, o relatório nunca afirma endosso (teste com configuração vazia, parcial, inválida, futura e válida).
+- Tabela de pontos com coordenadas em uma linha; mapa maior e centralizado.
+- Interface: nome por extenso, faixa curta, "Papel em teste" e entrada em um toque (a partir dos artefatos enviados pelo usuário).
+- **Revisão do PR 4 antes da mescla** (DEC-028): 6 achados (3 médios, 3 baixos), todos corrigidos com teste; o técnico agora só lê demandas e registros da própria equipe.
+- Primeira página do HTML impresso pelo Chromium e do PDF do reportlab convertida em imagem e conferida. O PDF ficou com espaço livre no fim da página 1, porque o mapa maior começa na página 2 junto com o título da seção 3.
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |
 |---|---|---|
 | Núcleo, estados, auditoria, acesso (Fase 2) | TESTADO LOCALMENTE | Sem autenticação real: o usuário é informado pelo chamador |
 | Motor de protocolo, diagnóstico, relatório HTML/PDF (Fase 3) | TESTADO LOCALMENTE | Só o protótipo "sem validade científica"; protocolo validado PENDENTE |
-| Sincronização: fila, reenvio, conflito, decisão de volta ao aparelho (Fases 4 e 5) | TESTADO LOCALMENTE | Rede e aparelho simulados; ainda não há comando nem rotina para o aparelho consultar decisões |
-| Entrada de dado de campo na central (origem, equipe, estado) | TESTADO LOCALMENTE | Só pelo caminho de sincronização; o registro direto não confere (R-28) |
+| Sincronização: fila, reenvio, conflito, decisão de volta ao aparelho, rodada (Fases 4 a 6) | TESTADO LOCALMENTE | Rede e aparelho simulados |
+| Entrada de dado de campo na central (origem, equipe, estado, vínculo) | TESTADO LOCALMENTE | Em todos os caminhos (modo central); sem ambiente real |
 | Concorrência, segurança básica, logs | TESTADO LOCALMENTE | Threads em uma máquina; mascaramento parcial (alguns formatos de CPF e e-mail; não pega nome nem CNPJ/telefone com máscara) |
-| Backup, restauração e rollback | TESTADO LOCALMENTE | Manifesto sem assinatura; sem rotina agendada, destino ou retenção; ancoragem do último hash PENDENTE |
-| Relatório HTML acessível | TESTADO LOCALMENTE (verificações automáticas) | Leitor de tela e pessoas usuárias: NÃO EXECUTADO |
+| Backup, restauração, rollback e âncora da trilha | TESTADO LOCALMENTE | Manifesto sem assinatura; sem rotina agendada, destino ou retenção; quem guarda a âncora fora da máquina: PENDENTE |
+| Cabeçalho institucional e endosso configurável do relatório | TESTADO LOCALMENTE | Sem ato de endosso (H-I08); autorização de uso da marca PENDENTE |
+| Relatório HTML acessível, impressão em A4 | TESTADO LOCALMENTE (verificações automáticas; PDF A4 renderizado e conferido visualmente) | Leitor de tela e pessoas usuárias: NÃO EXECUTADO |
+| Interface local de operação (escritório e campo simulado) | TESTADO LOCALMENTE (testes automáticos + navegador automatizado + axe-core) | Sem autenticação real (R-31); só 127.0.0.1; aparelho e rede simulados; leitor de tela e pessoas usuárias NÃO EXECUTADOS; não há conformidade WCAG declarada |
 | Adaptadores ArcGIS | IMPLEMENTADO LOCALMENTE (interface; recusam por padrão) | Nada integrado; sem organização ArcGIS (LA-05) |
 | XLSForm da vistoria | TESTADO LOCALMENTE (estrutura + sintaxe pelo pyxform) | **Não foi aberto no Survey123 Connect**; formato real de exportação não verificado |
 | Tradução de submissão de campo | TESTADO LOCALMENTE | Formato de entrada neutro, não o do Survey123 |
 | Pacote de exportação | TESTADO LOCALMENTE | Formato próprio; formato do Painel desconhecido (LA-10); nenhuma integração |
 | Checklist, pendências, integração (documentos) | IMPLEMENTADO LOCALMENTE | Dependem de decisões institucionais; nenhum item aprovado |
 | Guia de capacitação | IMPLEMENTADO LOCALMENTE | Nenhuma turma atendida; gabarito conferido por teste contra a demonstração |
-| Revisão independente das Fases 4 e 5 | EXECUTADA por agente de IA separado | Revisão humana ou de terceiros: NÃO EXECUTADA |
+| Revisões independentes das Fases 4, 5 e 6 | EXECUTADAS por agente de IA separado | Revisão humana ou de terceiros: NÃO EXECUTADA |
 
 Nenhuma entrega passou de TESTADO LOCALMENTE: nada está INTEGRÁVEL, VALIDADO EM HOMOLOGAÇÃO nem PRONTO PARA SUBMISSÃO INSTITUCIONAL.
 
 ## Testes executados
 
-`python3 -m pytest` → **329 passed** (03/10/2026): 281 do fim da implementação da Fase 5 + 48 de regressão da revisão independente (`test_regressao_revisao_f4f5.py` e `test_regressao_revisao_f4f5_b.py`). `python3 scripts/gerar_contratos.py` regenera os arquivos gerados; `tests/test_contratos.py` passa. `scripts/demo.sh` → "Resultado: OK". `pip-audit -r requirements-dev.txt` → "No known vulnerabilities found" (executado depois da inclusão de openpyxl e pyxform). **pyxform 4.5.0 converte o XLSForm sem erro** (40 linhas em `survey`, 42 em `choices`; um aviso, de propósito: tamanho máximo de imagem não definido).
+Fase 6, em 03/10/2026:
+- `scripts/testar.sh` → **475 passed** depois da revisão do PR 4 (DEC-028; 463 após o cabeçalho institucional; 443 antes dele: 329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6).
+- `scripts/demo.sh` → "Resultado: OK". `scripts/demo_sincronizacao.sh` → "Resultado: OK" (conflito, decisão, aparelho converge).
+- `python3 scripts/gerar_contratos.py` → nenhum arquivo gerado mudou. `pip-audit -r requirements-dev.txt` → "No known vulnerabilities found".
+- `scripts/interface.sh` → a interface abriu em http://127.0.0.1:8765/ (resposta 200 em `/entrar`); login, navegação e coleta em etapas feitos por Chromium automatizado.
+- `scripts/verificar_interface.js` (Chromium + axe-core 4.13, fora da suíte): 83 telas, 0 violações; 12 itens de contraste que a ferramenta não decide (rótulos do mapa sobre a área) conferidos por cálculo em teste; sem rolagem horizontal a 360 px; alvos de toque ≥ 44 px, exceto os pontos do mapa (~32 px, R-35); foco visível; zoom 200% sem rolagem lateral.
+- O relatório HTML foi impresso em PDF A4 pelo Chromium e conferido visualmente (6 páginas, sem linha de tabela cortada).
 
-Cenários já executados (todos com rede e dispositivo simulados): os da Fase 4; conflito → decisão → convergência dos dois bancos nos dois sentidos; envio retido; consulta com falha de rede e com interrupção do processo; importação de submissão sintética; exportação com acesso indevido; e, vindos da revisão, dado de campo órfão, de fora da equipe e fora do estado, erro de acesso recuperável, item sem arquivo, "aceitar" depois de a central mudar, backup com saída errada, evidência/relatório trocados ou ausentes com manifesto refeito, link simbólico, `-wal` órfão, manifesto malformado, exportação com texto sujo no diagnóstico, id fora do formato.
-
-**NÃO EXECUTADOS:** **abertura, validação e publicação do XLSForm no Survey123 Connect**; formato real de exportação do Survey123; qualquer acesso a ArcGIS, Radar Ambiental ou Painel do art. 18; sincronização em rede ou aparelho reais; comando ou rotina para o aparelho consultar decisões de conflito; mapa base offline; autenticação real; separação da API de entrada de campo na implantação (R-28); teste do relatório com leitor de tela e com pessoas usuárias; carga e desempenho; backup agendado, retenção e ancoragem externa do último hash; **revisão independente humana ou de terceiros** das Fases 4 e 5; capacitação de turma; tela de operação; varredura de dependências em rotina automática.
+**NÃO EXECUTADOS:** teste da interface e do relatório com **leitor de tela** e com **pessoas usuárias** (campo e escritório); **autenticação real**; uso fora de 127.0.0.1; **abertura, validação e publicação do XLSForm no Survey123 Connect**; formato real de exportação do Survey123; qualquer acesso a ArcGIS, Radar Ambiental ou Painel do art. 18; sincronização em rede ou aparelho reais (GPS real); mapa base offline; carga e desempenho; backup agendado, retenção e guarda institucional da âncora; **revisão independente humana ou de terceiros**; capacitação de turma; varredura de dependências em rotina automática; teste em navegadores além do Chromium e em celular físico.
 
 ## Falta
 
 - Os itens NÃO EXECUTADOS acima e o checklist de `docs/homologacao.md` (nenhum item aprovado).
-- Capacitação de turma (existe guia, `docs/guia-capacitacao.md`); tela de operação (hoje só linha de comando).
+- Capacitação de turma (existe guia, `docs/guia-capacitacao.md`); avaliação da interface local com pessoas usuárias e leitor de tela.
 - Pendências científicas: protocolo validado, limiares, "degradação severa" (LA-02 a LA-04, LA-08).
 - Pendências institucionais: quem exerce a vistoria, capacitação prévia, base legal para compartilhar dados (RQ-70), camadas autorizadas (LA-09), relação com o Painel do art. 18 (LA-10).
 
 ## Próximo passo exato
 
-Fase 5 concluída como preparação; **nenhuma fase seguinte está definida**. Decisões da equipe que destravam o resto (ver `docs/pendencias.md`): organização ArcGIS e Client ID (LA-05), formato de troca com o Painel (LA-10), protocolo de campo validado (LA-04), retenção e sigilo (LA-06), quem exerce a vistoria e a capacitação coordenada com o CAOMA.
+Fase 6 concluída como protótipo local; **nenhuma fase seguinte está definida**. O que destrava o resto (ver `docs/pendencias.md`): teste da interface com pessoas usuárias e leitor de tela; autenticação institucional; quem guarda a âncora da trilha; organização ArcGIS e Client ID (LA-05); formato de troca com o Painel (LA-10); protocolo de campo validado (LA-04); retenção e sigilo (LA-06).

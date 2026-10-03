@@ -124,4 +124,4 @@ Peça à equipe técnica para executar a demonstração (`scripts/demo.sh`) e ab
 
 ## 11. Limites desta etapa
 
-Não há tela: a operação é por linha de comando. Não há rede real, aplicativo de campo, ArcGIS, Radar ou Painel. As pendências estão em `docs/pendencias.md`; o que falta demonstrar, em `docs/homologacao.md`; os pontos de troca previstos, em `docs/integracao-radar-painel.md`.
+Há uma interface local de teste (`scripts/interface.sh`, abre em http://127.0.0.1:8765/ só neste computador), com usuários sintéticos e sem autenticação real; ela não substitui um sistema institucional. Não há rede real, aplicativo de campo, ArcGIS, Radar ou Painel. As pendências estão em `docs/pendencias.md`; o que falta demonstrar, em `docs/homologacao.md`; os pontos de troca previstos, em `docs/integracao-radar-painel.md`.

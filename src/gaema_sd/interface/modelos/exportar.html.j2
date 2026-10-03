@@ -1,0 +1,14 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Exportar{% endblock %}
+{% block conteudo %}
+<h1>Exportar pacote</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">Baixe o pacote só se precisar entregá-lo a alguém autorizado.</p></div>
+<div class="cartao">
+  <p>O pacote é um arquivo JSON em <strong>formato próprio</strong> do GAEMA SD: situação das demandas, contagens, rótulo de validade e códigos de conferência.</p>
+  <p>Não leva coordenadas, textos livres, nomes, imóvel nem proprietário. <strong>Não é o formato do Painel do art. 18</strong> e não há integração com ele.</p>
+  {% if permissoes.EXPORTAR %}
+  <form method="post" action="/exportar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <div class="acoes"><button type="submit">Baixar pacote de exportação</button></div></form>
+  {% else %}<div class="acoes">{{ c.bloqueado("Baixar pacote de exportação", "seu papel não exporta; peça a um coordenador ou membro do Ministério Público.", "exportar") }}</div>{% endif %}
+</div>
+{% endblock %}

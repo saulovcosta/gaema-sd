@@ -15,7 +15,7 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 | LA-07 | Institucional | Autorização formal de uso de SICAR, MapBiomas, PRODES, DETER | Nenhuma ingestão | Camadas de cruzamento (`CatalogoCamadas`) |
 | LA-08 | Científica | Critério técnico de "degradação severa" (art. 17, III); gatilho de 40% | Não calculado nem sinalizado | Apoio ao critério III |
 | LA-09 | Institucional | Como operacionalizar "risco comprovado de assoreamento", "impacto supramunicipal" e os recortes Serras Gerais, Jalapão e MATOPIBA (art. 17, I e II) | Priorização é registro humano | Apoio aos critérios I e II com camadas autorizadas |
-| LA-10 | Institucional | Arquitetura, acesso e dados do Painel do art. 18 | Pacote de exportação em formato próprio; nenhuma integração declarada | Formato de troca real e decisão entre complementar ou alimentar o Painel |
+| LA-10 | Institucional | Arquitetura, acesso e dados do Painel do art. 18 (a página pública do Radar, consultada em 03/10/2026, não o lista e não traz API, exportação nem documentação técnica; FC-24) | Pacote de exportação em formato próprio; nenhuma integração declarada | Formato de troca real e decisão entre complementar ou alimentar o Painel |
 
 ## 2. Outras pendências institucionais
 
@@ -30,15 +30,16 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 
 | Item | Situação |
 |---|---|
-| Autenticação real de usuários | Hoje o ator é informado pelo chamador; não há login |
-| Tela de operação | Não existe; operação por linha de comando |
+| Autenticação real de usuários | Não existe: na interface local escolhe-se um usuário SINTÉTICO de teste; no código, o ator é informado pelo chamador |
+| Endosso do CAOMA e autorização de uso da marca | PENDENTE: o relatório imprime "Sem endosso institucional formal" até haver ato (`config/endosso.json`) |
+| Tela de operação | Existe uma interface local de teste (`scripts/interface.sh`, só em 127.0.0.1, dados sintéticos); avaliação com pessoas usuárias NÃO EXECUTADA |
 | Survey123 Connect: abrir, validar e publicar o XLSForm | NÃO EXECUTADO (só estrutura e sintaxe XLSForm/ODK com pyxform) |
 | Formato real de exportação do Survey123 | NÃO verificado |
 | Sincronização em rede e aparelho reais | NÃO EXECUTADA (rede simulada) |
 | Mapa base offline (TPKX/VTPK/MMPK) | NÃO EXECUTADO |
-| Backup agendado, destino e retenção; ancoragem externa do último hash da trilha | PENDENTES |
+| Backup agendado, destino e retenção; guarda da âncora da trilha fora da máquina | PENDENTES (a âncora já é gerada e conferida; quem a guarda, e onde, é decisão institucional) |
 | Carga e desempenho (índices citados na DEC-007) | NÃO EXECUTADOS |
-| Teste com leitor de tela e pessoas usuárias | NÃO EXECUTADO |
+| Teste com leitor de tela e pessoas usuárias (relatório e interface) | NÃO EXECUTADO (só verificações automáticas, incluindo axe-core na interface) |
 | Revisão independente **humana ou de terceiros** das Fases 4 e 5 | NÃO EXECUTADA (nas Fases 2 e 3 houve revisão independente; nas Fases 4 e 5 houve só a revisão por agente separado, DEC-020) |
 | Separar a API de entrada de campo da API administrativa na implantação (R-28) | PENDENTE |
 | Comando ou rotina para o aparelho consultar as decisões de conflito (`Sincronizador.reconciliar` só existe como função) | PENDENTE |

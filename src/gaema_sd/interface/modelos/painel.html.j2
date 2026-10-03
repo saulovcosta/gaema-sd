@@ -1,0 +1,45 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Início{% endblock %}
+{% block conteudo %}
+<h1>Início</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{{ proxima }}</p></div>
+
+<h2>Exige atenção</h2>
+{% if atencao %}
+<ul class="lista">{% for a in atencao %}
+  <li class="aviso {{ a.tom }}">{{ c.icone(a.icone) }}<div><p><strong>{{ a.titulo }}</strong></p><p>{{ a.texto }}</p>{% if a.href %}<p><a href="{{ a.href }}">{{ a.link }}</a></p>{% endif %}</div></li>
+{% endfor %}</ul>
+{% else %}<p class="aviso ok">{{ c.icone("ok") }}<span>Nada exige atenção agora.</span></p>{% endif %}
+
+{% if sem_acesso %}
+<div class="aviso info">{{ c.icone("cadeado") }}<div><p><strong>Seu papel não vê demandas.</strong></p><p>Como {{ L.papeis(ator.papeis) }}, você não lê dados restritos. Use as seções liberadas no menu.</p></div></div>
+{% else %}
+<h2>Resumo por situação</h2>
+{% if por_situacao %}
+<div class="grade">{% for nome, tom, qtd in por_situacao %}
+  <div class="cartao contador"><span class="numero">{{ qtd }}</span><span class="etiqueta tom-{{ tom }}">{{ c.icone(tom) }}<span>{{ nome }}</span></span></div>
+{% endfor %}</div>
+{% endif %}
+
+<h2>Demandas</h2>
+{% if demandas %}
+<ul class="lista">{% for d in demandas %}
+  <li>
+    <div class="linha-titulo"><h3><a href="/demanda/{{ d.demanda_id }}">{{ d.titulo or "Demanda sem título" }}</a></h3>{{ c.etiqueta(d.estado) }}</div>
+    <p><strong>Próxima ação:</strong> {{ L.situacao(d.estado).acao }} <span class="discreto">Quem age: {{ L.quem_age(d.estado) }}.</span></p>
+    <dl class="dados">
+      <dt>Prioridade</dt><dd>{{ L.CRITERIO.get(d.criterio_priorizacao, "não registrada") }}</dd>
+      <dt>Pontos coletados</dt><dd>{{ d.pontos }}</dd>
+      <dt>Relatórios</dt><dd>{{ d.relatorios|length }}</dd>
+    </dl>
+  </li>
+{% endfor %}</ul>
+{% else %}<p>Nenhuma demanda cadastrada neste banco.</p>{% endif %}
+{% endif %}
+
+<h2>O que o seu papel pode fazer</h2>
+<div class="grade">
+  <div class="cartao"><h3>{{ c.icone("ok") }} Pode</h3><ul>{% for t in pode %}<li>{{ t }}</li>{% endfor %}</ul></div>
+  <div class="cartao"><h3>{{ c.icone("cadeado") }} Não pode</h3><ul>{% for t in nao_pode %}<li>{{ t }}</li>{% endfor %}</ul></div>
+</div>
+{% endblock %}

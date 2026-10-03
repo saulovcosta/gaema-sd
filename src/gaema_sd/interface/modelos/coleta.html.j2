@@ -1,0 +1,112 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Coleta — etapa {{ etapa }} de 4{% endblock %}
+{% block conteudo %}
+<h1>Coletar ponto</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{{ {1: "Informe a vistoria, o código e as coordenadas do ponto e toque em “Salvar e seguir”.",
+  2: "Marque o que foi visto em cada item e toque em “Salvar e seguir”.",
+  3: "Anote cada repetição da penetrometria (ou nenhuma) e siga para a conferência.",
+  4: "Confira tudo e toque em “Salvar no aparelho”."}[etapa] }}</p></div>
+<nav aria-label="Etapas da coleta"><ol class="etapas">
+  {% for n, nome in [(1, "Ponto"), (2, "O que foi visto"), (3, "Penetrometria"), (4, "Conferir e salvar")] %}
+  <li{% if n == etapa %} aria-current="step"{% elif n < etapa %} class="feita"{% endif %}>{{ nome }}{% if n < etapa %}<span class="so-leitor"> (feita)</span>{% endif %}</li>
+  {% endfor %}
+</ol></nav>
+<p class="discreto" aria-live="polite">Etapa {{ etapa }} de 4. O rascunho é salvo neste aparelho a cada etapa; se a tela fechar, você continua de onde parou.</p>
+
+{% if etapa == 1 %}
+<form method="post" action="/campo/coleta/ponto" class="cartao">
+  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <h2>1. Ponto</h2>
+  {% if missoes %}
+  <label for="missao">Vistoria (missão baixada)</label>
+  <select id="missao" name="missao">{% for m in missoes %}<option value="{{ m.id }}"{% if m.id == r.missao %} selected{% endif %}>{{ m.rotulo }}</option>{% endfor %}</select>
+  {% else %}<p class="aviso atencao">{{ c.icone("atencao") }}<span>Não há vistoria em campo para a sua equipe. Peça ao coordenador para planejar e iniciar uma.</span></p>{% endif %}
+  <label for="codigo">Código do ponto</label>
+  <span class="ajuda-campo" id="aj-codigo">Ex.: P04. Use o código combinado na missão.</span>
+  <input type="text" id="codigo" name="codigo" value="{{ r.codigo }}" required aria-describedby="aj-codigo" autocomplete="off">
+  <label for="latitude">Latitude</label>
+  <span class="ajuda-campo" id="aj-lat">Em graus decimais (negativo ao sul). Em aparelho real, o GPS preencheria; aqui, digite.</span>
+  <input type="text" id="latitude" name="latitude" value="{{ r.latitude }}" inputmode="decimal" required aria-describedby="aj-lat">
+  <label for="longitude">Longitude</label>
+  <span class="ajuda-campo" id="aj-lon">Em graus decimais (negativo a oeste).</span>
+  <input type="text" id="longitude" name="longitude" value="{{ r.longitude }}" inputmode="decimal" required aria-describedby="aj-lon">
+  <label for="precisao">Precisão do GPS</label>
+  <span class="ajuda-campo" id="aj-prec">Acima de {{ limite_gps }} m o sistema avisa (valor provisório), mas não bloqueia.</span>
+  <div class="com-unidade"><input type="text" id="precisao" name="precisao" value="{{ r.precisao }}" inputmode="decimal" required aria-describedby="aj-prec"><span class="chip">metros</span></div>
+  <label for="capturado_em">Data e hora da coleta</label>
+  <span class="ajuda-campo" id="aj-quando">Horário deste aparelho. Confira antes de seguir.</span>
+  <input type="datetime-local" id="capturado_em" name="capturado_em" value="{{ r.capturado_em }}" required aria-describedby="aj-quando">
+  <div class="acoes"><button type="submit">Salvar e seguir</button><a class="botao secundario" href="/campo">Voltar ao Campo</a></div>
+</form>
+
+{% elif etapa == 2 %}
+<form method="post" action="/campo/coleta/visto" class="cartao">
+  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <h2>2. O que foi visto no ponto {{ r.codigo }}</h2>
+  <p class="discreto">Marque “Não observado” quando não deu para ver. Isso é diferente de “Não”.</p>
+  {% for v, rotulo in variaveis %}
+  <fieldset><legend>{{ rotulo }}</legend><div class="opcoes">
+    {% for valor, texto in [("sim", "Sim, presente"), ("nao", "Não, ausente"), ("nao_observado", "Não observado")] %}
+    <label for="{{ v }}-{{ valor }}"><input type="radio" id="{{ v }}-{{ valor }}" name="{{ v }}" value="{{ valor }}"{% if r.presenca.get(v, "nao_observado") == valor %} checked{% endif %}> {{ texto }}</label>
+    {% endfor %}
+  </div></fieldset>
+  {% endfor %}
+  <label for="hipotese">Hipótese alternativa (opcional)</label>
+  <span class="ajuda-campo" id="aj-hip">Outra explicação que a equipe considere plausível. Não escreva dados pessoais.</span>
+  <input type="text" id="hipotese" name="hipotese" value="{{ r.hipotese }}" aria-describedby="aj-hip">
+  <div class="acoes"><button type="submit">Salvar e seguir</button><a class="botao secundario" href="/campo/coleta?etapa=1">Voltar à etapa 1</a></div>
+</form>
+
+{% elif etapa == 3 %}
+<section class="cartao" aria-labelledby="t-pen">
+  <h2 id="t-pen">3. Penetrometria no ponto {{ r.codigo }}</h2>
+  <p class="discreto">Registre cada repetição como foi lida. O protocolo de quantas repetições e a que profundidade ainda está pendente: o sistema não impõe número nem profundidade.</p>
+  {% if r.medicoes %}
+  <table class="tabela">
+    <caption>Repetições anotadas</caption>
+    <thead><tr><th scope="col" class="num">Nº</th><th scope="col" class="num">Profundidade</th><th scope="col" class="num">Resistência</th><th scope="col">Umidade (contexto)</th></tr></thead>
+    <tbody>{% for m in r.medicoes %}<tr><td class="num" data-rotulo="Nº">{{ loop.index }}</td><td class="num" data-rotulo="Profundidade">{{ m.profundidade }} {{ m.unidade_p }}</td>
+      <td class="num" data-rotulo="Resistência">{{ m.resistencia }} {{ rotulo_unidade(m.unidade_r) }}</td><td data-rotulo="Umidade">{{ m.umidade or "—" }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <form method="post" action="/campo/coleta/desfazer"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <div class="acoes"><button type="submit" class="perigo">Desfazer a última repetição</button></div></form>
+  {% else %}<p>Nenhuma repetição anotada. Se não houve medição neste ponto, siga para a conferência.</p>{% endif %}
+  <form method="post" action="/campo/coleta/medicao">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <h3>Anotar repetição {{ r.medicoes|length + 1 }}</h3>
+    <label for="profundidade">Profundidade</label>
+    <div class="com-unidade"><input type="text" id="profundidade" name="profundidade" inputmode="decimal" required>
+      <label for="unidade_p" class="so-leitor">Unidade da profundidade</label>
+      <select id="unidade_p" name="unidade_p">{% for u in unidades_p %}<option value="{{ u }}"{% if u == r.ultima_unidade_p %} selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+    <label for="resistencia">Resistência</label>
+    <div class="com-unidade"><input type="text" id="resistencia" name="resistencia" inputmode="decimal" required>
+      <label for="unidade_r" class="so-leitor">Unidade da resistência</label>
+      <select id="unidade_r" name="unidade_r">{% for u, rot in unidades_r %}<option value="{{ u }}"{% if u == r.ultima_unidade_r %} selected{% endif %}>{{ rot }}</option>{% endfor %}</select></div>
+    <label for="umidade">Umidade do solo no momento (contexto, opcional)</label>
+    <input type="text" id="umidade" name="umidade" value="{{ r.ultima_umidade }}">
+    <div class="acoes"><button type="submit" class="secundario">Anotar repetição</button></div>
+  </form>
+  <form method="post" action="/campo/coleta/conferir"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <div class="acoes"><button type="submit">Seguir para a conferência</button><a class="botao secundario" href="/campo/coleta?etapa=2">Voltar à etapa 2</a></div></form>
+</section>
+
+{% else %}
+<section class="cartao" aria-labelledby="t-conf">
+  <h2 id="t-conf">4. Conferir antes de salvar</h2>
+  <p>Confira tudo. Depois de salvo, corrigir gera nova versão (nada é apagado).</p>
+  <dl class="dados">
+    <dt>Vistoria</dt><dd>{{ missao_rotulo }}</dd>
+    <dt>Ponto</dt><dd>{{ r.codigo }}</dd>
+    <dt>Coordenadas</dt><dd>{{ r.latitude }}, {{ r.longitude }} (precisão {{ r.precisao }} m{% if gps_ruim %}; <strong>acima do limite: vai gerar alerta</strong>{% endif %})</dd>
+    <dt>Data e hora</dt><dd>{{ r.capturado_em.replace("T", " ") }}</dd>
+    {% for v, rotulo in variaveis %}<dt>{{ rotulo }}</dt><dd>{{ {"sim": "Sim, presente", "nao": "Não, ausente"}.get(r.presenca.get(v), "Não observado") }}</dd>{% endfor %}
+    <dt>Hipótese alternativa</dt><dd>{{ r.hipotese or "—" }}</dd>
+    <dt>Penetrometria</dt><dd>{% if r.medicoes %}{% for m in r.medicoes %}{{ loop.index }}) {{ m.profundidade }} {{ m.unidade_p }}: {{ m.resistencia }} {{ rotulo_unidade(m.unidade_r) }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}nenhuma repetição{% endif %}</dd>
+  </dl>
+  <form method="post" action="/campo/coleta/salvar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <div class="acoes"><button type="submit">Salvar no aparelho</button><a class="botao secundario" href="/campo/coleta?etapa=3">Voltar e corrigir</a></div></form>
+  <form method="post" action="/campo/coleta/descartar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <div class="acoes"><button type="submit" class="perigo">Descartar este rascunho</button></div></form>
+</section>
+{% endif %}
+{% endblock %}

@@ -16,13 +16,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
 
-from .acesso.politica import Acao, Ator, exigir
+from .acesso.politica import Acao, Ator, exigir, pode
 from .auditoria.trilha import TrilhaAuditoria, sanear_texto
+from .backup.ancora import conferir_ancora, gerar_ancora
+from .backup.backup import criar_backup as criar_backup_arquivos
+from .backup.backup import verificar_backup as verificar_backup_arquivos
 from .dominio import entidades as E
 from .dominio.enums import Estado, FormatoRelatorio, Papel, Sensibilidade, StatusSincronizacao
 from .dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
 from .erros import (
     AcessoNegado,
+    AuditoriaCorrompida,
     ConflitoAtualizacao,
     ConflitoIdempotencia,
     ErroGaema,
@@ -93,15 +97,32 @@ _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 ESTADOS_DE_COLETA = (Estado.EM_CAMPO, Estado.COLETA_PARCIAL, Estado.AGUARDANDO_SINCRONIZACAO,
                      Estado.CONFLITO_SINCRONIZACAO)
 
+# Papel da instalação. "central" confere origem, equipe e estado em TODA entrada de dado de campo (R-28); "dispositivo"
+# é o aparelho de campo (não tem a campanha, só grava local e enfileira); "livre" é só para testes e desenvolvimento.
+MODOS = ("central", "dispositivo", "livre")
+TIPOS_DE_CAMPO = tuple(TIPOS_SINCRONIZAVEIS.values())
+# Campos que ligam o dado de campo à sua demanda; não mudam depois de gravados.
+VINCULOS: dict[type, tuple[str, ...]] = {E.PontoAmostral: ("campanha_id",), E.Observacao: ("ponto_id",),
+                                         E.MedicaoPenetracao: ("ponto_id",),
+                                         E.Evidencia: ("campanha_id", "ponto_id", "observacao_id")}
+
 ESTADOS_COM_RELATORIO = (Estado.DIAGNOSTICO_EMITIDO, Estado.EM_TRATATIVA, Estado.EM_MONITORAMENTO,
                          Estado.ENCERRADA, Estado.REABERTA)
 
 
 class Nucleo:
-    def __init__(self, repo: Repositorio, diretorio_saida: str | Path = "saida"):
+    def __init__(self, repo: Repositorio, diretorio_saida: str | Path = "saida", *, modo: str = "central"):
+        if modo not in MODOS:
+            raise ErroGaema(f"modo {modo!r} desconhecido; use um de {MODOS}")
+        self._modo = modo
         self.repo = repo
         self.saida = Path(diretorio_saida)
         self.trilha = TrilhaAuditoria(ArmazenamentoAuditoriaSQLite(repo))
+
+    @property
+    def modo(self) -> str:
+        """Somente leitura: o modo é fixado na criação (trocar para 'livre' desligaria as conferências da central)."""
+        return self._modo
 
     # ------------------------------------------------------------ apoio
 
@@ -157,6 +178,10 @@ class Nucleo:
         preencher = {campo: ator.id} if campo and getattr(obj, campo) == "" else {}
         obj = dataclasses.replace(obj, criado_por=ator.id, **preencher)  # autoria vem do login
         try:
+            if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
+                demanda = self._contexto_de_coleta(ator, obj)
+                if self.repo.achar_por_chave_ou_id(type(obj), obj.id, getattr(obj, "chave_idempotencia", "")) is None:
+                    self._exigir_estado_de_coleta(demanda)   # reenvio idempotente continua valendo depois
             alertas = exigir_sem_erros(self._regras_de_criacao(ator, obj) + validar(obj))
             with self.repo.transacao():
                 gravado, criado = self.repo.inserir(obj)
@@ -170,6 +195,10 @@ class Nucleo:
             if any(p.codigo in ("ESTADO_INICIAL", "AUTORIA_DIVERGENTE") for p in e.problemas):
                 self._auditar_recusa(ator, "CRIACAO_RECUSADA", tipo, obj.id, e)
             raise
+        except ErroGaema as e:
+            if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
+                self._auditar_recusa(ator, "CRIACAO_RECUSADA", tipo, obj.id, e)
+            raise
         return gravado, alertas
 
     def atualizar(self, ator: Ator, obj: T, versao_lida: int) -> tuple[T, list[Problema]]:
@@ -177,6 +206,10 @@ class Nucleo:
         tipo = type(obj).__name__
         self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], tipo, obj.id)
         try:
+            if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
+                gravado = self.repo.obter(type(obj), obj.id)
+                self._exigir_vinculo_inalterado(gravado, obj)
+                self._exigir_estado_de_coleta(self._contexto_de_coleta(ator, gravado))
             with self.repo.transacao():
                 if isinstance(obj, IMUTAVEIS):
                     raise ErroGaema(f"{tipo} é imutável: registre nova versão vinculada à anterior")
@@ -188,11 +221,7 @@ class Nucleo:
                 if isinstance(obj, E.Demanda) and (obj.estado, obj.estado_anterior) != (
                         original.estado, original.estado_anterior):
                     raise ErroGaema("estado da Demanda só muda por transição (Nucleo.transitar)")
-                campo_autoria = AUTORIA.get(type(obj))
-                if campo_autoria and getattr(obj, campo_autoria) != getattr(original, campo_autoria):
-                    raise ErroGaema("autoria do registro não pode ser alterada")
-                if getattr(obj, "chave_idempotencia", "") != getattr(original, "chave_idempotencia", ""):
-                    raise ErroGaema("chave de envio não pode ser alterada")
+                self._exigir_identidade_inalterada(original, obj)
                 obj = dataclasses.replace(obj, criado_por=original.criado_por, criado_em=original.criado_em)
                 alertas = exigir_sem_erros(validar(obj))
                 novo = self.repo.atualizar(obj, versao_lida)
@@ -212,6 +241,7 @@ class Nucleo:
         try:
             with self.repo.transacao():
                 atual = self.repo.obter(E.Demanda, demanda_id)
+                self._exigir_equipe_do_tecnico(ator, atual, destino)
                 contexto = montar_contexto(self.repo, atual, ator, self.trilha.eventos)
                 nova = maquina.transitar(atual, destino, ator, contexto=contexto,
                                          trilha=self.trilha, motivo=motivo)
@@ -220,6 +250,49 @@ class Nucleo:
             self._auditar_recusa(ator, "TRANSICAO_RECUSADA", "Demanda", demanda_id, e,
                                  estado_destino=destino.value)
             raise
+
+    def _membros_da_demanda(self, demanda: E.Demanda) -> set[str]:
+        equipes = {demanda.equipe_id} | {c.equipe_id for c in self.repo.listar(E.CampanhaVistoria)
+                                        if c.demanda_id == demanda.id}
+        membros: set[str] = set()
+        for eid in equipes - {""}:
+            try:
+                membros |= {m.usuario_id for m in self.repo.obter(E.Equipe, eid).membros}
+            except RegistroNaoEncontrado:
+                pass
+        return membros
+
+    @staticmethod
+    def _so_tecnico(ator: Ator) -> bool:
+        return Papel.TECNICO_CAMPO in ator.papeis and not (ator.papeis - {Papel.TECNICO_CAMPO})
+
+    # Tipos cuja leitura pelo técnico é limitada às demandas da própria equipe.
+    _TIPOS_POR_DEMANDA = (E.Demanda, E.CampanhaVistoria, E.PontoAmostral, E.Observacao, E.MedicaoPenetracao,
+                          E.Evidencia, E.Relatorio)
+
+    def _demanda_de(self, obj) -> str:
+        if isinstance(obj, E.Demanda):
+            return obj.id
+        if isinstance(obj, (E.CampanhaVistoria, E.Relatorio)):
+            return obj.demanda_id
+        return self._demanda_da_coleta(obj)
+
+    def _demandas_da_equipe(self, ator: Ator) -> set[str]:
+        return {d.id for d in self.repo.listar(E.Demanda) if ator.id in self._membros_da_demanda(d)}
+
+    def _exigir_demanda_visivel(self, ator: Ator, demanda_id: str, entidade: str, entidade_id: str) -> None:
+        """Quem só é técnico de campo lê apenas demandas (e seus registros) da própria equipe."""
+        if self._so_tecnico(ator) and demanda_id not in self._demandas_da_equipe(ator):
+            e = AcessoNegado("técnico de campo só vê demanda da própria equipe")
+            self._auditar_recusa(ator, "ACESSO_NEGADO", entidade, entidade_id, e)
+            raise e
+
+    def _exigir_equipe_do_tecnico(self, ator: Ator, demanda: E.Demanda, destino: Estado) -> None:
+        """Quem só pode mover a demanda como técnico de campo precisa ser da equipe dela (ou de uma campanha dela)."""
+        t = maquina.TABELA.get((demanda.estado, destino))
+        if t is not None and (ator.papeis & t.papeis) == {Papel.TECNICO_CAMPO} and \
+                ator.id not in self._membros_da_demanda(demanda):
+            raise AcessoNegado("técnico de campo só move demanda da própria equipe")
 
     # ------------------------------------------------------------ protocolo e diagnóstico
 
@@ -425,11 +498,29 @@ class Nucleo:
             if obj.ponto_id and achar(E.PontoAmostral, obj.ponto_id, "ponto").campanha_id != campanha.id:
                 raise ErroGaema("o ponto da evidência pertence a outra campanha")
             if obj.observacao_id:
-                achar(E.Observacao, obj.observacao_id, "observação")
+                obs = achar(E.Observacao, obj.observacao_id, "observação")
+                if achar(E.PontoAmostral, obs.ponto_id, "ponto").campanha_id != campanha.id:
+                    raise ErroGaema("a observação da evidência pertence a outra campanha")
         equipe = achar(E.Equipe, campanha.equipe_id, "equipe")
         if not any(m.usuario_id == ator.id for m in equipe.membros):
             raise ErroGaema("o usuário não faz parte da equipe desta campanha")
         return achar(E.Demanda, campanha.demanda_id, "demanda")
+
+    @staticmethod
+    def _exigir_identidade_inalterada(gravado, obj) -> None:
+        """Autoria e chave de envio não mudam em nenhuma correção (atualizar ou "aceitar o aparelho")."""
+        campo_autoria = AUTORIA.get(type(obj))
+        if campo_autoria and getattr(obj, campo_autoria) != getattr(gravado, campo_autoria):
+            raise ErroGaema("autoria do registro não pode ser alterada")
+        if getattr(obj, "chave_idempotencia", "") != getattr(gravado, "chave_idempotencia", ""):
+            raise ErroGaema("chave de envio não pode ser alterada")
+
+    @staticmethod
+    def _exigir_vinculo_inalterado(gravado, obj) -> None:
+        """Correção de dado de campo não muda a que ponto/campanha ele pertence (senão sairia de uma demanda para outra)."""
+        for campo in VINCULOS.get(type(obj), ()):
+            if getattr(obj, campo) != getattr(gravado, campo):
+                raise ErroGaema(f"o vínculo do registro ({campo}) não pode ser alterado; registre um dado novo")
 
     @staticmethod
     def _exigir_estado_de_coleta(demanda: E.Demanda) -> None:
@@ -446,6 +537,8 @@ class Nucleo:
         """Aplica um item vindo do dispositivo. Reenvio idêntico não duplica; versões divergentes
         não são sobrescritas: viram conflito (as duas versões ficam guardadas) e a Demanda vai a
         CONFLITO_SINCRONIZACAO quando estava aguardando sincronização."""
+        if self.modo != "central":
+            raise ErroGaema("só a instalação central recebe sincronização")
         self._exigir(ator, Acao.SINCRONIZAR, item.tipo, item.entidade_id)
         cls = TIPOS_SINCRONIZAVEIS.get(item.tipo)
         try:
@@ -477,6 +570,12 @@ class Nucleo:
 
     def _sincronizar_criacao(self, ator, item, cls, obj, conteudo, demanda) -> ResultadoSincronizacao:
         existente = self._existente_por_chave_ou_id(cls, obj)
+        if existente is not None:
+            try:
+                self._exigir_vinculo_inalterado(existente, obj)
+            except ErroGaema as e:
+                self._recusar_sincronizacao(ator, item, e)
+                raise
         if existente is not None and existente.id == obj.id and any(
                 h.versao == 1 and self._conteudo_comparavel(h) == self._conteudo_comparavel(obj)
                 for h in self.repo.historico(cls, existente.id)):
@@ -506,10 +605,7 @@ class Nucleo:
                 else ResultadoSincronizacao.APLICADO)
 
     def _existente_por_chave_ou_id(self, cls, obj):
-        for r in self.repo.listar(cls):
-            if r.id == obj.id or (obj.chave_idempotencia and r.chave_idempotencia == obj.chave_idempotencia):
-                return r
-        return None
+        return self.repo.achar_por_chave_ou_id(cls, obj.id, obj.chave_idempotencia)
 
     @staticmethod
     def _conteudo_comparavel(registro) -> str:
@@ -518,7 +614,8 @@ class Nucleo:
     def _sincronizar_atualizacao(self, ator, item, cls, obj, demanda) -> ResultadoSincronizacao:
         try:
             atual = self.repo.obter(cls, obj.id)
-        except RegistroNaoEncontrado as e:
+            self._exigir_vinculo_inalterado(atual, obj)
+        except ErroGaema as e:
             self._recusar_sincronizacao(ator, item, e)
             raise
         if atual.versao == item.versao_base:
@@ -543,6 +640,12 @@ class Nucleo:
 
     def _registrar_conflito(self, ator, item, cls, obj, atual, *, versao_base: int) -> ResultadoSincronizacao:
         demanda_id = self._demanda_da_coleta(obj)
+        if demanda_id:
+            try:   # depois da coleta, versão divergente não vira conflito "aceitável": é recusada
+                self._exigir_estado_de_coleta(self.repo.obter(E.Demanda, demanda_id))
+            except ErroGaema as e:
+                self._recusar_sincronizacao(ator, item, e)
+                raise
         with self.repo.transacao():
             conflito_id, novo = self.repo.registrar_conflito(
                 tipo=item.tipo, entidade_id=atual.id if atual else obj.id, demanda_id=demanda_id,
@@ -593,6 +696,11 @@ class Nucleo:
                     obj = dataclasses.replace(de_dict(cls, dados), criado_por=atual.criado_por,
                                               criado_em=atual.criado_em,
                                               status_sincronizacao=StatusSincronizacao.SINCRONIZADO)
+                    self._exigir_vinculo_inalterado(atual, obj)
+                    self._exigir_identidade_inalterada(atual, obj)
+                    demanda_id = self._demanda_da_coleta(atual)
+                    if demanda_id:
+                        self._exigir_estado_de_coleta(self.repo.obter(E.Demanda, demanda_id))
                     exigir_sem_erros(validar(obj))
                     self.repo.atualizar(obj, atual.versao)
                 self.repo.resolver_conflito(conflito_id, decisao=decisao, resolvido_por=ator.id,
@@ -653,17 +761,161 @@ class Nucleo:
                 "hash": hashlib.sha256(exportacao_painel.serializar(pacote)).hexdigest()})
         return pacote
 
+    # ------------------------------------------------------------ operação (usada pela interface local)
+
+    def listar(self, ator: Ator, cls: type[T]) -> list[T]:
+        """Lista registros de um tipo. Leitura restrita é auditada uma vez por listagem (não uma por registro)."""
+        restrito = cls.SENSIBILIDADE in (Sensibilidade.RESTRITA, Sensibilidade.SIGILOSA)
+        self._exigir(ator, Acao.LER_RESTRITO if restrito else Acao.LER, cls.__name__, "*")
+        itens = self.repo.listar(cls)
+        if issubclass(cls, self._TIPOS_POR_DEMANDA) and self._so_tecnico(ator):
+            visiveis = self._demandas_da_equipe(ator)
+            itens = [x for x in itens if self._demanda_de(x) in visiveis]
+        if restrito:
+            with self.repo.transacao():
+                self.trilha.registrar(ator, "LISTAGEM_RESTRITA", cls.__name__, "*", detalhes={"quantidade": len(itens)})
+        return itens
+
+    def transicoes_possiveis(self, ator: Ator, demanda_id: str) -> list[dict]:
+        """Para cada destino da situação atual: se este usuário pode agora e, se não, por quê. Não altera nada."""
+        self._exigir(ator, Acao.LER_RESTRITO, "Demanda", demanda_id)
+        d = self.repo.obter(E.Demanda, demanda_id)
+        self._exigir_demanda_visivel(ator, demanda_id, "Demanda", demanda_id)
+        contexto = montar_contexto(self.repo, d, ator, self.trilha.eventos)
+        saida = []
+        for destino in maquina.destinos_possiveis(d.estado):
+            t = maquina.TABELA[(d.estado, destino)]
+            item = {"destino": destino.value, "descricao": t.descricao, "exige_motivo": t.exige_motivo,
+                    "papeis": sorted(p.value for p in t.papeis), "disponivel": True, "bloqueio": ""}
+            try:
+                self._exigir_equipe_do_tecnico(ator, d, destino)
+                maquina.avaliar(d, destino, ator, "x" * maquina.MOTIVO_MINIMO, contexto)
+            except (AcessoNegado, TransicaoInvalida) as e:
+                item["disponivel"], item["bloqueio"] = False, sanear_texto(str(e))[:300]
+            saida.append(item)
+        return saida
+
+    def resumo_demanda(self, ator: Ator, demanda_id: str) -> dict:
+        """Contagens, rótulo de validade e relatórios de uma demanda (sem geometria nem pessoas)."""
+        self._exigir(ator, Acao.LER_RESTRITO, "Demanda", demanda_id)
+        self._exigir_demanda_visivel(ator, demanda_id, "Demanda", demanda_id)
+        pacote = exportacao_painel.montar_pacote(self.repo, gerado_por_papeis=[], gerado_em=datetime.now(timezone.utc),
+                                                 demanda_ids=[demanda_id])
+        if not pacote["demandas"]:
+            raise RegistroNaoEncontrado(f"Demanda {demanda_id} não encontrada")
+        return pacote["demandas"][0]
+
+    def historico_de(self, ator: Ator, entidade: str, entidade_id: str, limite: int = 30) -> list[E.EventoAuditoria]:
+        """Histórico de um registro. Com permissão de auditoria: todos os eventos. Sem ela: só as mudanças de
+        situação, sem quem fez e sem motivo (a trilha completa é do auditor)."""
+        self._exigir(ator, Acao.LER, entidade, entidade_id)
+        if entidade == "Demanda":
+            self._exigir_demanda_visivel(ator, entidade_id, entidade, entidade_id)
+        eventos = [e for e in self.trilha.eventos if e.entidade == entidade and e.entidade_id == entidade_id]
+        if not pode(ator, Acao.VERIFICAR_AUDITORIA):
+            eventos = [dataclasses.replace(e, ator_id="", papeis=(), motivo="", detalhes={})
+                       for e in eventos if e.acao == "TRANSICAO"]
+        return eventos[-limite:]
+
+    def eventos_recentes(self, ator: Ator, limite: int = 30) -> list[E.EventoAuditoria]:
+        self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
+        return list(self.trilha.eventos)[-limite:]
+
+    def listar_conflitos(self, ator: Ator, *, apenas_abertos: bool = True) -> list[dict]:
+        self._exigir(ator, Acao.RESOLVER_CONFLITO_SINCRONIZACAO, "ConflitoSincronizacao", "*")
+        return self.repo.listar_conflitos(apenas_abertos=apenas_abertos)
+
+    def comparar_conflito(self, ator: Ator, conflito_id: str) -> dict:
+        """Campos que diferem entre a versão da central e a do aparelho, para o coordenador decidir."""
+        self._exigir(ator, Acao.RESOLVER_CONFLITO_SINCRONIZACAO, "ConflitoSincronizacao", conflito_id)
+        c = self.repo.obter_conflito(conflito_id)
+        cls = TIPOS_SINCRONIZAVEIS[c["tipo"]]
+        aparelho = json.loads(c["dados_dispositivo"])
+        try:
+            atual = self.repo.obter(cls, c["entidade_id"])
+        except RegistroNaoEncontrado:
+            atual = None
+        central = para_dict(atual) if atual else {}
+        ignorar = _META | {"id", "sintetico"}
+        campos = [{"campo": k, "central": str(central.get(k, "—"))[:300], "aparelho": str(aparelho.get(k, "—"))[:300]}
+                  for k in sorted(set(central) | set(aparelho)) if k not in ignorar and central.get(k) != aparelho.get(k)]
+        aceitar = (atual is not None and cls is not E.Evidencia and aparelho.get("id") == c["entidade_id"]
+                   and atual.versao == c["versao_central"])
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "LEITURA_RESTRITA", "ConflitoSincronizacao", conflito_id)
+        return {**{k: c[k] for k in ("id", "tipo", "entidade_id", "demanda_id", "versao_base", "versao_central",
+                                     "enviado_por", "situacao", "decisao", "criado_em")},
+                "versao_atual_central": atual.versao if atual else None, "campos": campos, "aceitar_possivel": aceitar}
+
+    def abrir_relatorio(self, ator: Ator, relatorio_id: str) -> tuple[bytes, E.Relatorio]:
+        """Devolve o arquivo do relatório SE ele ainda tem o hash registrado (nunca serve arquivo adulterado)."""
+        rel = self.ler(ator, E.Relatorio, relatorio_id)
+        pasta = (self.saida / "relatorios").resolve()
+        caminho = pasta / f"relatorio-{re.sub('[^0-9a-fA-F]', '', rel.demanda_id)[:8]}-v{rel.numero_versao}.{rel.formato.value.lower()}"
+        if caminho.resolve().parent != pasta or not caminho.is_file():
+            raise ErroGaema("arquivo do relatório não encontrado")
+        conteudo = caminho.read_bytes()
+        if hashlib.sha256(conteudo).hexdigest() != rel.hash_conteudo:
+            with self.repo.transacao():
+                self.trilha.registrar(ator, "RELATORIO_NAO_CONFERE", "Relatorio", rel.id)
+            raise ErroGaema("o arquivo do relatório não confere com o hash registrado; não será aberto")
+        return conteudo, rel
+
+    def _pasta_backups(self) -> Path:
+        return self.saida / "backups"
+
+    def listar_backups(self, ator: Ator) -> list[str]:
+        self._exigir(ator, Acao.GERIR_BACKUP, "Backup", "*")
+        pasta = self._pasta_backups()
+        return sorted(p.name for p in pasta.iterdir() if p.is_dir()) if pasta.is_dir() else []
+
+    def criar_backup(self, ator: Ator) -> dict:
+        """Backup lógico em `saida/backups/<data-hora>` (verificado ao criar). A guarda FORA da máquina é institucional."""
+        self._exigir(ator, Acao.GERIR_BACKUP, "Backup", "*")
+        nome = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        if (self._pasta_backups() / nome).exists():
+            raise ErroGaema("já existe um backup criado neste mesmo segundo; aguarde um instante e tente de novo")
+        manifesto = criar_backup_arquivos(self.repo, self.saida, self._pasta_backups() / nome)
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "BACKUP_CRIADO", "Backup", nome,
+                                  detalhes={"arquivos": len(manifesto["arquivos"]),
+                                            "eventos_auditoria": manifesto["auditoria"]["eventos"]})
+        return {"nome": nome, "arquivos": len(manifesto["arquivos"]), "eventos": manifesto["auditoria"]["eventos"]}
+
+    def verificar_backup(self, ator: Ator, nome: str, ancora: dict | None = None) -> list[str]:
+        self._exigir(ator, Acao.GERIR_BACKUP, "Backup", nome)
+        if not re.fullmatch(r"\d{8}T\d{6}Z", nome or ""):
+            raise ErroGaema("nome de backup inválido")
+        problemas = verificar_backup_arquivos(self._pasta_backups() / nome, ancora)
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "BACKUP_VERIFICADO", "Backup", nome, detalhes={"problemas": len(problemas)})
+        return problemas
+
     # ------------------------------------------------------------ leitura
 
     def ler(self, ator: Ator, cls: type[T], id: str) -> T:
         restrito = cls.SENSIBILIDADE in (Sensibilidade.RESTRITA, Sensibilidade.SIGILOSA)
         self._exigir(ator, Acao.LER_RESTRITO if restrito else Acao.LER, cls.__name__, id)
         obj = self.repo.obter(cls, id)
+        if isinstance(obj, self._TIPOS_POR_DEMANDA):
+            self._exigir_demanda_visivel(ator, self._demanda_de(obj), cls.__name__, id)
         if restrito:
             with self.repo.transacao():
                 self.trilha.registrar(ator, "LEITURA_RESTRITA", cls.__name__, id)
         return obj
 
-    def verificar_auditoria(self, ator: Ator) -> int:
+    def verificar_auditoria(self, ator: Ator, ancora: dict | None = None) -> int:
+        """Confere a cadeia da trilha. Com `ancora` (guardada fora do banco), confere também truncamento e reescrita."""
         self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
-        return self.trilha.verificar()
+        n = self.trilha.verificar()
+        if ancora is not None:
+            problemas = conferir_ancora(self.trilha.eventos, ancora)
+            if problemas:
+                raise AuditoriaCorrompida("; ".join(problemas))
+        return n
+
+    def gerar_ancora(self, ator: Ator) -> dict:
+        """Âncora da trilha atual, para guardar FORA do banco (ver backup/ancora.py). Não contém dados de registros."""
+        self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
+        self.trilha.verificar()
+        return gerar_ancora(self.trilha.eventos)

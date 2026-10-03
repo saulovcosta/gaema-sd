@@ -1,0 +1,33 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Auditoria{% endblock %}
+{% block conteudo %}
+<h1>Trilha de auditoria</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">Confira a trilha e guarde uma âncora fora deste computador.</p>
+  <p class="discreto">{{ total }} registros. Cada registro guarda o código do anterior: alterar ou apagar um deles quebra a cadeia.</p></div>
+<div class="grade">
+  <form method="post" action="/auditoria/verificar" class="cartao">
+    <h2>Conferir a trilha</h2>
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="ancora_texto">Âncora guardada fora (opcional)</label>
+    <span class="ajuda-campo" id="ajuda-ancora">Abra o arquivo de âncora guardado antes e cole aqui todo o conteúdo dele. Sem âncora, a conferência não pega trilha cortada nem reescrita completa.</span>
+    <textarea id="ancora_texto" name="ancora_texto" rows="4" maxlength="4096" spellcheck="false" aria-describedby="ajuda-ancora"></textarea>
+    <div class="acoes"><button type="submit">Conferir agora</button></div>
+  </form>
+  <form method="post" action="/auditoria/ancora" class="cartao">
+    <h2>Gerar âncora</h2>
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <p>Baixa um arquivo pequeno (sem dados de registros) para guardar fora deste computador: pen drive ou outro sistema.</p>
+    <p class="discreto">Só protege se for guardado por quem não controla este banco (decisão institucional).</p>
+    <div class="acoes"><button type="submit" class="secundario">Baixar âncora</button></div>
+  </form>
+</div>
+<table class="tabela">
+  <caption>Últimos registros</caption>
+  <thead><tr><th scope="col" class="num">Nº</th><th scope="col">Quando (UTC)</th><th scope="col">O que aconteceu</th><th scope="col">Quem</th><th scope="col">Sobre</th><th scope="col">Motivo</th></tr></thead>
+  <tbody>{% for e in eventos %}
+    <tr><td class="num" data-rotulo="Nº">{{ e.sequencia }}</td><td data-rotulo="Quando">{{ e.ocorrido_em.strftime("%d/%m/%Y %H:%M") }}</td>
+        <td data-rotulo="O que aconteceu">{{ L.acao_auditoria(e.acao) }}</td><td data-rotulo="Quem">{{ e.ator_id }}</td>
+        <td data-rotulo="Sobre">{{ e.entidade }}</td><td data-rotulo="Motivo">{{ e.motivo or "—" }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% endblock %}

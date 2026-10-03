@@ -10,10 +10,12 @@ import json
 from datetime import datetime
 from typing import Optional
 
+from ..config import endosso as endosso_config
 from ..dominio import entidades as E
 from ..dominio.enums import ModoProtocolo, ResultadoRevisao
 from ..dominio.serializacao import para_dict
 from ..erros import ErroGaema, RegistroNaoEncontrado
+from .institucional import INSTITUICAO, linha_institucional
 
 AVISOS_FIXOS = [
     "Este relatório organiza dados técnicos. Não conclui autoria, ilicitude, dano jurídico, responsabilidade "
@@ -69,6 +71,7 @@ def montar(repo, demanda_id: str, *, numero_versao: int, gerado_em: datetime, ge
     if revisao is None:
         raise ErroGaema("diagnóstico sem revisão técnica aprovada válida (ou com revisão posterior não aprovada)")
     vp = repo.obter(E.VersaoProtocolo, diag.versao_protocolo_id)
+    endosso = endosso_config(ate=gerado_em.date())   # na dúvida, None (sem endosso)
     definicao = json.loads(vp.definicao_json)
     resultado = json.loads(diag.resultado_json)
     campanha = repo.obter(E.CampanhaVistoria, diag.campanha_id)
@@ -111,6 +114,9 @@ def montar(repo, demanda_id: str, *, numero_versao: int, gerado_em: datetime, ge
     return {
         "titulo": f"Relatório de diagnóstico — {demanda.titulo}",
         "rotulo_prototipo": vp.rotulo if prototipo else "",
+        "instituicao": INSTITUICAO,
+        "endosso": endosso,
+        "linha_institucional": linha_institucional(endosso),
         "sintetico": bool(demanda.sintetico),
         "versao": {"numero": numero_versao, "gerado_em": gerado_em.isoformat(), "gerado_por": gerado_por,
                    "motivo_reemissao": motivo_reemissao,

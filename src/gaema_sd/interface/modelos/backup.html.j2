@@ -1,0 +1,16 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Backup{% endblock %}
+{% block conteudo %}
+<h1>Backup</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{% if backups %}Confira o backup mais recente e guarde uma cópia fora deste computador.{% else %}Crie o primeiro backup.{% endif %}</p>
+  <p class="discreto">O backup é conferido ao ser criado (arquivos contra o banco e a trilha). A guarda e a retenção ainda são decisão institucional.</p></div>
+<form method="post" action="/backup/criar" class="cartao"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <div class="acoes"><button type="submit">Criar backup agora</button></div></form>
+{% if backups %}
+<ul class="lista">{% for b in backups %}
+  <li><div class="linha-titulo"><h2>Backup {{ b }}</h2></div>
+    <form method="post" action="/backup/verificar" class="em-linha"><input type="hidden" name="csrf" value="{{ sessao.csrf }}"><input type="hidden" name="nome" value="{{ b }}">
+      <button type="submit" class="secundario">Conferir o backup {{ b }}</button></form></li>
+{% endfor %}</ul>
+{% else %}<p>Nenhum backup ainda.</p>{% endif %}
+{% endblock %}

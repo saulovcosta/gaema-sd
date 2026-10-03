@@ -203,3 +203,72 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Não corrigidos (limites aceitos e registrados):** `Nucleo.registrar` direto na central não aplica as regras de origem/equipe/estado, porque o aparelho usa o mesmo método sem ter a campanha (R-28, H-S07); a fila do aparelho é estado local e grava fora da trilha (os descartes por decisão agora são auditados); trilha truncada e banco trocado com manifesto refeito seguem possíveis para quem controla a pasta (R-19, ancoragem externa PENDENTE); conflitos antigos (esquema 1) ficam visíveis a qualquer técnico (`enviado_por` vazio).
 - **Risco:** o revisor foi um agente de IA; não substitui revisão humana ou de terceiros (H-S02, R-30).
 - **Teste:** `tests/test_regressao_revisao_f4f5.py`, `tests/test_regressao_revisao_f4f5_b.py`.
+
+## DEC-021 — Modo da instalação: a central confere toda entrada de campo (03/10/2026)
+
+- **Contexto:** R-28: `Nucleo.registrar` direto não conferia origem, equipe e estado, porque o aparelho usa o mesmo método sem ter a campanha.
+- **Decisão:** `Nucleo(..., modo="central" | "dispositivo" | "livre")`. Em "central" (padrão) toda escrita de dado de campo confere origem, equipe e estado de coleta; "dispositivo" grava local e enfileira; "livre" só em testes. O modo é somente leitura depois de criado. Na revisão da Fase 6 (DEC-026) a regra passou a valer também para o registro **gravado** e o vínculo (ponto/campanha) ficou imutável.
+- **Risco:** quem cria o `Nucleo` escolhe o modo; a interface recusa qualquer modo que não seja "central".
+- **Teste:** `tests/test_modo_central.py`, `tests/test_regressao_fase6.py`.
+
+## DEC-022 — Âncora externa da trilha (03/10/2026)
+
+- **Contexto:** R-19: quem controla a pasta pode truncar a trilha ou refazê-la inteira com o manifesto do backup.
+- **Decisão:** âncora = número de eventos + último hash + data, com selo de forma; gerada pelo sistema (`Nucleo.gerar_ancora`, CLI `backup ancorar`, botão na tela de auditoria) só se a cadeia confere; conferida em `verificar_auditoria` e `verificar_backup`. Na interface a âncora é **colada** (até 4 KiB), nunca lida por caminho do servidor.
+- **Limite:** a âncora só protege se for guardada por quem não controla o banco; o selo é recalculável por quem tem o arquivo. Quem guarda e onde é decisão institucional (PENDENTE).
+- **Teste:** `tests/test_ancora.py`, `tests/test_regressao_fase6.py`.
+
+## DEC-023 — Rodada do aparelho (03/10/2026)
+
+- **Decisão:** `Sincronizador.rodada()` = consulta as decisões de conflito e depois envia a fila; resume em `ResumoRodada`. Comando de simulação: `python -m gaema_sd.sincronizacao simular PASTA` (`scripts/demo_sincronizacao.sh`). Na interface, o botão "Sincronizar agora" chama a rodada.
+- **Limite:** canal e aparelho simulados (R-17).
+- **Teste:** `tests/test_rodada.py`.
+
+## DEC-024 — Interface local de operação (03/10/2026)
+
+- **Decisão:** WSGI da biblioteca padrão, só em 127.0.0.1; Jinja2 com escape; sem JavaScript; CSP `default-src 'none'`; conferência de Host (contra DNS rebinding) e de Origin; token CSRF; cookie HttpOnly e SameSite=Strict; `Referrer-Policy: same-origin`; uma thread por conexão com **uma trava única** em volta do núcleo (o corpo é lido antes da trava, com limite de 64 KiB e tempo máximo de conexão); sessões anônimas com teto próprio e expiração por tempo (8 h, AUTORAL). Toda regra, acesso e auditoria seguem no `Nucleo`.
+- **Login:** escolhe-se um usuário SINTÉTICO de teste. **Não há autenticação real** (R-31).
+- **Alternativa descartada:** framework web completo (mais dependências, sem ganho para um protótipo local).
+- **Teste:** `tests/test_interface.py`, `tests/test_interface_uso.py`, `tests/test_regressao_fase6.py`.
+
+## DEC-025 — Redesenho para quem não programa (03/10/2026)
+
+- **Decisão:** linguagem comum (`interface/linguagem.py`: 23 situações com nome, tom e próxima ação; papéis; mensagens "o que houve / como resolver"); identidade visual própria (verde sóbrio, temas claro e escuro, contraste AA calculado; nada copiado do SIPADE nem do Radar Ambiental); situação por ícone + texto; escala tipográfica fixa; botões sem permissão desabilitados com motivo; Campo com barra de rede/fila/última sincronização e coleta em 4 etapas com rascunho local; mapa SVG com escala aproximada e lista sincronizada; relatório em A4.
+- **Verificação:** navegador real automatizado (`scripts/verificar_interface.js`: 83 telas em 360 e 1280 px, claro e escuro, zoom 200%, axe-core 4.13). Só verificações automáticas; leitor de tela e pessoas usuárias NÃO EXECUTADOS.
+
+## DEC-026 — Revisão independente da Fase 6 e verificação com navegador (03/10/2026)
+
+- **Método:** agente de IA separado revisou o commit 542dd82 (interface, modo central, âncora, rodada, backup), com scripts próprios e 74 mutações (47 mortas). 15 achados (1 alto, 6 médios, 8 baixos), todos reproduzidos de novo contra a árvore corrigida.
+- **Corrigidos:** (1, alto) atualização movia dado de campo de outra demanda e não conferia o registro gravado → vínculo imutável e conferência do gravado; (2) conflito aceito depois da coleta e "sequestro" de ponto por CRIAR com id alheio → recusados; (3) campo da âncora lia caminho do servidor antes da permissão → âncora colada, permissão primeiro, limite de tamanho; (4) `Content-Length` negativo e conexão parada travavam o servidor → recusa, threads com trava única, tempo máximo; (5) GETs anônimos derrubavam sessões → teto para anônimas e prazo; (6) técnico movia e listava demanda de outra equipe → recusado e filtrado; (7) histórico expunha trilha a quem não audita → só mudanças de situação, sem pessoas nem motivo; (8) evidência com observação de outra campanha → recusada; (9) modo do núcleo mutável → somente leitura; (10) CLI da âncora com traceback e ancorando trilha adulterada → mensagens e recusa; (11) token não ASCII dava 500 → 403; (13) backups no mesmo segundo e simultâneos → mensagem clara e reserva atômica; (14) banco legado sem versão → migração da coluna; (15) textos que prometiam demais → "cadeia conferida; sem âncora não exclui reescrita" e "o aparelho só sabe quando consultar". Também: campo repetido no formulário recusado; `/sair` encerra a sessão no servidor; mutantes sobreviventes de permissão e auditoria cobertos por teste.
+- **Achado da verificação com navegador (não da revisão):** com `Referrer-Policy: no-referrer` o Chromium manda `Origin: null` em todo formulário, e a interface recusava o próprio login. Os testes sem navegador não pegavam. Corrigido para `same-origin`, com teste.
+- **Não corrigido (registrado):** a trilha é lida inteira a cada página (12; R-34); pontos do mapa com ~32 px a 360 px (R-35).
+- **Risco:** o revisor é um agente de IA (R-30).
+- **Teste:** `tests/test_regressao_fase6.py` (mutações nas correções: 5 de 6 mortas; a sobrevivente é equivalente).
+
+## DEC-027 — Cabeçalho institucional e endosso configurável (03/10/2026)
+
+- **Contexto:** pedido do usuário: o relatório deve trazer a identificação do MPTO, do CAOMA e do GAEMA, sem sugerir chancela que não existe.
+- **Decisão:**
+  - O logo fornecido pelo usuário fica em `assets/logo-mpto-gaema.png`, com o hash conferido por teste. No HTML ele vai embutido (`data:`), porque o relatório não tem recurso externo; no PDF, como imagem.
+  - O logo aparece **só no cabeçalho do relatório**; a interface mantém a identidade própria (DEC-025).
+  - A frase institucional vem de uma única função, `relatorio/institucional.py::linha_institucional`.
+  - O endosso vem só de `config/endosso.json`, vazio por padrão, e só vale com número e data do ato válidos e não futuros em relação à emissão. **Na dúvida (campo vazio, parcial ou malformado, arquivo ausente), o relatório sai como não endossado.**
+  - O estado do endosso ("sem endosso" ou "ato X de DD/MM/AAAA") fica **impresso no próprio arquivo**, cujo hash é registrado na emissão. `config/endosso.json` não é auditado nem entra no backup: mudar o arquivo só afeta relatórios emitidos depois (R-36).
+  - O número do ato precisa ter ao menos um dígito; a data, ano a partir de 2000 (AUTORAL).
+- **Também:** tabela de pontos com coordenadas em uma linha; mapa do relatório maior e centralizado (640×420 no HTML, largura útil no PDF); títulos do PDF presos ao conteúdo seguinte; tabelas curtas do HTML não se partem.
+- **Risco:** R-36.
+- **Teste:** `tests/test_relatorio_institucional.py`.
+
+## DEC-028 — Revisão do PR 4 antes da mescla (03/10/2026)
+
+- **Método:** agente de IA separado revisou todo o PR 4 em cópia, com scripts próprios e mutações.
+- **Corrigidos, com teste de regressão:**
+  1. "Aceitar o aparelho" podia trocar a autoria e a chave de envio → mesma conferência de `atualizar` (`_exigir_identidade_inalterada`).
+  2. O técnico de outra equipe lia, pelo id, a demanda, o resumo, o histórico, os pontos e as campanhas → recusa e filtro de equipe em `ler`, `resumo_demanda`, `historico_de` e `listar` dos tipos ligados à demanda.
+  3. Nenhum teste garantia a trava única do servidor (sem ela, dezenas de erros 500 com 8 usuários) → teste com servidor real e usuários em paralelo.
+  4. Número do ato sem dígito e ano 0001 aceitos → exigidos dígito e ano a partir de 2000.
+  5. A DEC-027 dizia mais do que o código fazia sobre o registro do endosso → texto corrigido.
+  6. Mutações sobreviventes (data do endosso na emissão, frase com endosso incompleto, reserva do backup) → agora pegas.
+- **Risco:** revisor é agente de IA (R-30).
+- **Teste:** `tests/test_regressao_fase6.py` (`test_pr4_*`), `tests/test_relatorio_institucional.py`.
+

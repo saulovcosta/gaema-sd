@@ -10,8 +10,8 @@ from .item import (
     ResultadoSincronizacao,
     ServicoIndisponivel,
 )
-from .sincronizador import ResumoReconciliacao, ResumoSincronizacao, Sincronizador
+from .sincronizador import ResumoReconciliacao, ResumoRodada, ResumoSincronizacao, Sincronizador
 
 __all__ = ["CanalSimulado", "Dispositivo", "FilaLocal", "ErroRede", "ErroTransporte", "InterrupcaoSimulada",
-           "ItemSincronizacao", "ResultadoSincronizacao", "DecisaoConflito", "ResumoReconciliacao", "ServicoIndisponivel", "ResumoSincronizacao",
+           "ItemSincronizacao", "ResultadoSincronizacao", "DecisaoConflito", "ResumoReconciliacao", "ResumoRodada", "ServicoIndisponivel", "ResumoSincronizacao",
            "Sincronizador"]

@@ -1,0 +1,22 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Ajuda e limites{% endblock %}
+{% block conteudo %}
+<h1>Ajuda e limites</h1>
+<div class="proxima"><p class="rotulo">Em uma frase</p><p class="frase">Esta tela organiza o trabalho; as conclusões são sempre humanas.</p></div>
+<h2>O que esta tela faz</h2>
+<ul>
+  <li>Mostra as demandas, a situação de cada uma e a próxima ação, e permite mudar a situação com motivo, conforme o seu papel.</li>
+  <li>Mostra o mapa esquemático e a lista de pontos, emite e abre relatórios (a abertura confere o código registrado).</li>
+  <li>No Campo (aparelho simulado neste computador), coleta pontos em etapas, guarda na fila e sincroniza com a central.</li>
+  <li>Mostra conflitos e permite ao coordenador decidir; exporta o pacote em formato próprio; confere a trilha; cria e confere backups.</li>
+</ul>
+<h2>O que NÃO faz</h2>
+<ul>
+  <li>Não tem autenticação real e não deve ser usada com dados reais.</li>
+  <li>Não conclui autoria, ilicitude, dano jurídico, responsabilidade nem nexo causal.</li>
+  <li>Não está integrada ao ArcGIS, ao Radar Ambiental, ao Painel do art. 18 nem a sistema do MPTO. A rede do Campo é simulada; não há GPS real nem fotos nesta tela.</li>
+  <li>Não foi testada com leitor de tela nem com pessoas usuárias: só verificações automáticas de acessibilidade.</li>
+</ul>
+<h2>Onde saber mais</h2>
+<p>Guia de capacitação: <code>docs/guia-capacitacao.md</code>. Pendências: <code>docs/pendencias.md</code>. O que falta demonstrar: <code>docs/homologacao.md</code>.</p>
+{% endblock %}

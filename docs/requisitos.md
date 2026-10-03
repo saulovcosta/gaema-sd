@@ -117,3 +117,28 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-83 | Backup só "confere" se os arquivos de evidência e relatório batem com os hashes registrados no próprio banco, contagens e trilha conferem, não há link simbólico nem arquivo fora do formato; backup incompleto não é criado | AUTORAL | TESTADO LOCALMENTE |
 | RQ-84 | Pacote de exportação sem identificador de pessoa (só papéis), com texto de categoria e rótulo só dentro de padrão fechado e identificador opaco se o id fugir do formato | AUTORAL | TESTADO LOCALMENTE |
 | RQ-85 | Falha operacional de acesso na sincronização não rejeita item em definitivo; rejeitados podem ser reenfileirados; item sem arquivo não trava a fila | AUTORAL | TESTADO LOCALMENTE |
+
+## Interface local e segurança da central (Fase 6)
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-86 | A central confere origem, equipe e estado de coleta em TODA entrada de dado de campo (registrar, atualizar, sincronizar); o vínculo de um dado de campo ao seu ponto/campanha não muda depois de gravado; a conferência vale para o registro gravado, não só para o recebido; o modo da instalação não pode ser trocado depois de criado | AUTORAL | TESTADO LOCALMENTE (fecha R-28) |
+| RQ-87 | Versão divergente que chega depois da coleta é recusada (não vira conflito "aceitável"); aceitar a versão do aparelho reconfere vínculo e estado | AUTORAL | TESTADO LOCALMENTE |
+| RQ-88 | Âncora da trilha (número de eventos e último hash, sem dados de registros) gerada pelo sistema e conferida contra a trilha e o backup; a guarda fora da máquina é institucional | AUTORAL + PENDENTE (quem guarda) | TESTADO LOCALMENTE (a guarda externa NÃO EXECUTADA) |
+| RQ-89 | Rotina do aparelho que, numa só ação, consulta as decisões de conflito e envia a fila, com resultado legível ("N enviados, N conflitos") | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (aparelho e rede simulados) |
+| RQ-90 | Interface local só em 127.0.0.1, sem JavaScript, com CSP restritiva, conferência de Host e de Origin, token em todo formulário, sessão trocada no login e com prazo; toda regra, acesso e auditoria continuam no núcleo | AUTORAL | TESTADO LOCALMENTE (sem autenticação real) |
+| RQ-91 | Cada tela começa pela próxima ação em linguagem comum; situações sem código técnico; o papel do usuário e o que ele pode ou não fazer aparecem; botão sem permissão fica desabilitado com o motivo ao lado; erro diz "o que houve" e "como resolver" | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE |
+| RQ-92 | Situação mostrada por forma e texto, não só cor; paleta própria clara e escura com contraste AA calculado; faixa "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA" em toda tela; nenhuma conclusão de autoria, ilicitude, dano jurídico, responsabilidade ou nexo causal | INSTITUCIONAL (pedido do usuário) + AUTORAL (paleta) | TESTADO LOCALMENTE |
+| RQ-93 | Campo (aparelho simulado): indicador permanente de rede, fila e última sincronização; coleta em 4 etapas com rascunho salvo a cada etapa, unidade sempre visível, desfazer e conferência antes de salvar; 360 px sem rolagem lateral e alvos de toque de 44 px | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (navegador automatizado; pontos do mapa ~32 px a 360 px, com lista equivalente de 44 px) |
+| RQ-94 | Mapa da demanda com legenda, escala aproximada, aviso de "esquemático", ponto selecionado destacado por forma e lista sincronizada; descrição textual para leitor de tela | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (escala aproximada: 111.320 m por grau, AUTORAL) |
+| RQ-95 | Relatório para A4: bloco de identificação (demanda, versão, emissão, protocolo e hashes legíveis em grupos), seções em ordem fixa, linha de tabela sem corte, datas sem microssegundos | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (PDF renderizado pelo Chromium e conferido visualmente) |
+| RQ-96 | Teste da interface com leitor de tela e com pessoas usuárias, em campo e no escritório | INSTITUCIONAL | ESPECIFICADO — NÃO EXECUTADO |
+
+## Cabeçalho institucional do relatório (Fase 6, complemento)
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-97 | Relatório (HTML e PDF) com logo do MPTO/Gaema (`assets/logo-mpto-gaema.png`) e o texto "Ministério Público do Estado do Tocantins · CAOMA · GAEMA" no topo da primeira página; sem o arquivo do logo, só o texto | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (primeira página renderizada em imagem e conferida) |
+| RQ-98 | Sob o cabeçalho, a faixa de protótipo e a linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal."; só com número E data do ato válidos em `config/endosso.json` a linha vira "Endossado pelo CAOMA, ato nº X, de DD/MM/AAAA"; sem isso, "endosso" só aparece na negativa | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (configuração vazia, parcial, inválida, futura e válida) |
+| RQ-99 | Tabela de pontos com coordenadas e cabeçalho "Longitude" em uma linha (alerta de GPS em coluna própria) e mapa do relatório maior e centralizado | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE |
+| RQ-100 | Interface: nome por extenso ("Linha de Atuação em Solos Degradados"), faixa curta em caixa alta, crachá "Papel em teste" e entrada em um toque por papel | INSTITUCIONAL (artefatos do usuário) | TESTADO LOCALMENTE |

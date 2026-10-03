@@ -28,6 +28,7 @@ from ..dominio.entidades import EventoAuditoria
 from ..dominio.serializacao import de_dict
 from ..erros import AuditoriaCorrompida, ErroGaema
 from ..persistencia.sqlite import VERSAO_ESQUEMA, Repositorio
+from .ancora import conferir_ancora
 
 FORMATO = 1
 BANCO = "gaema.db"
@@ -118,6 +119,16 @@ def _forma_do_manifesto(m) -> list[str]:
     return []
 
 
+def reservar_destino(destino: Path) -> Path:
+    """Reserva atômica da pasta: dois backups simultâneos no mesmo destino não se atropelam (o segundo desiste)."""
+    marca = destino / ".em-criacao"
+    try:
+        marca.open("x").close()
+    except FileExistsError:
+        raise ErroGaema("outro backup está sendo criado nesta pasta; aguarde e tente de novo") from None
+    return marca
+
+
 def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> dict:
     """Cria o backup em `destino` (pasta nova ou vazia) e o verifica antes de devolver. Se não conferir (por exemplo,
     `saida` errada, sem os arquivos que o banco cita), o backup incompleto é removido e o erro é levantado."""
@@ -126,6 +137,10 @@ def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> d
         raise ErroGaema("pasta de backup precisa estar vazia; backup anterior não é sobrescrito")
     existia = destino.exists()
     destino.mkdir(parents=True, exist_ok=True)
+    marca = reservar_destino(destino)
+    if any(p != marca for p in destino.iterdir()):
+        marca.unlink()
+        raise ErroGaema("pasta de backup precisa estar vazia; backup anterior não é sobrescrito")
     try:
         alvo = sqlite3.connect(destino / BANCO)
         try:
@@ -142,6 +157,7 @@ def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> d
                         alvo_p = destino / p.relative_to(saida)
                         alvo_p.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(p, alvo_p)
+        marca.unlink()
         resumo = _resumo_banco(destino / BANCO)
         eventos = resumo["eventos"]
         manifesto = {
@@ -169,8 +185,9 @@ def criar_backup(repo: Repositorio, saida: str | Path, destino: str | Path) -> d
     return manifesto
 
 
-def verificar_backup(pasta: str | Path) -> list[str]:
-    """Devolve a lista de problemas encontrados (vazia = backup confere). Nunca levanta por manifesto malformado."""
+def verificar_backup(pasta: str | Path, ancora: dict | None = None) -> list[str]:
+    """Devolve a lista de problemas encontrados (vazia = backup confere). Nunca levanta por manifesto malformado.
+    Com `ancora` (guardada fora), confronta também a trilha do backup com ela."""
     pasta = Path(pasta)
     try:
         texto = (pasta / "manifesto.json").read_text(encoding="utf-8")
@@ -211,6 +228,8 @@ def verificar_backup(pasta: str | Path) -> list[str]:
                 problemas.append("contagens do banco diferem do manifesto")
             eventos = resumo["eventos"]
             verificar_cadeia(eventos)
+            if ancora is not None:
+                problemas += conferir_ancora(eventos, ancora)
             if len(eventos) != manifesto["auditoria"]["eventos"]:
                 problemas.append("número de eventos da trilha difere do manifesto")
             if eventos and eventos[-1].hash_evento != manifesto["auditoria"]["ultimo_hash"]:
