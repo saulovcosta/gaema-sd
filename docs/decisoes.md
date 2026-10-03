@@ -203,3 +203,44 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Não corrigidos (limites aceitos e registrados):** `Nucleo.registrar` direto na central não aplica as regras de origem/equipe/estado, porque o aparelho usa o mesmo método sem ter a campanha (R-28, H-S07); a fila do aparelho é estado local e grava fora da trilha (os descartes por decisão agora são auditados); trilha truncada e banco trocado com manifesto refeito seguem possíveis para quem controla a pasta (R-19, ancoragem externa PENDENTE); conflitos antigos (esquema 1) ficam visíveis a qualquer técnico (`enviado_por` vazio).
 - **Risco:** o revisor foi um agente de IA; não substitui revisão humana ou de terceiros (H-S02, R-30).
 - **Teste:** `tests/test_regressao_revisao_f4f5.py`, `tests/test_regressao_revisao_f4f5_b.py`.
+
+## DEC-021 — Modo da instalação: a central confere toda entrada de campo (03/10/2026)
+
+- **Contexto:** R-28: `Nucleo.registrar` direto não conferia origem, equipe e estado, porque o aparelho usa o mesmo método sem ter a campanha.
+- **Decisão:** `Nucleo(..., modo="central" | "dispositivo" | "livre")`. Em "central" (padrão) toda escrita de dado de campo confere origem, equipe e estado de coleta; "dispositivo" grava local e enfileira; "livre" só em testes. O modo é somente leitura depois de criado. Na revisão da Fase 6 (DEC-026) a regra passou a valer também para o registro **gravado** e o vínculo (ponto/campanha) ficou imutável.
+- **Risco:** quem cria o `Nucleo` escolhe o modo; a interface recusa qualquer modo que não seja "central".
+- **Teste:** `tests/test_modo_central.py`, `tests/test_regressao_fase6.py`.
+
+## DEC-022 — Âncora externa da trilha (03/10/2026)
+
+- **Contexto:** R-19: quem controla a pasta pode truncar a trilha ou refazê-la inteira com o manifesto do backup.
+- **Decisão:** âncora = número de eventos + último hash + data, com selo de forma; gerada pelo sistema (`Nucleo.gerar_ancora`, CLI `backup ancorar`, botão na tela de auditoria) só se a cadeia confere; conferida em `verificar_auditoria` e `verificar_backup`. Na interface a âncora é **colada** (até 4 KiB), nunca lida por caminho do servidor.
+- **Limite:** a âncora só protege se for guardada por quem não controla o banco; o selo é recalculável por quem tem o arquivo. Quem guarda e onde é decisão institucional (PENDENTE).
+- **Teste:** `tests/test_ancora.py`, `tests/test_regressao_fase6.py`.
+
+## DEC-023 — Rodada do aparelho (03/10/2026)
+
+- **Decisão:** `Sincronizador.rodada()` = consulta as decisões de conflito e depois envia a fila; resume em `ResumoRodada`. Comando de simulação: `python -m gaema_sd.sincronizacao simular PASTA` (`scripts/demo_sincronizacao.sh`). Na interface, o botão "Sincronizar agora" chama a rodada.
+- **Limite:** canal e aparelho simulados (R-17).
+- **Teste:** `tests/test_rodada.py`.
+
+## DEC-024 — Interface local de operação (03/10/2026)
+
+- **Decisão:** WSGI da biblioteca padrão, só em 127.0.0.1; Jinja2 com escape; sem JavaScript; CSP `default-src 'none'`; conferência de Host (contra DNS rebinding) e de Origin; token CSRF; cookie HttpOnly e SameSite=Strict; `Referrer-Policy: same-origin`; uma thread por conexão com **uma trava única** em volta do núcleo (o corpo é lido antes da trava, com limite de 64 KiB e tempo máximo de conexão); sessões anônimas com teto próprio e expiração por tempo (8 h, AUTORAL). Toda regra, acesso e auditoria seguem no `Nucleo`.
+- **Login:** escolhe-se um usuário SINTÉTICO de teste. **Não há autenticação real** (R-31).
+- **Alternativa descartada:** framework web completo (mais dependências, sem ganho para um protótipo local).
+- **Teste:** `tests/test_interface.py`, `tests/test_interface_uso.py`, `tests/test_regressao_fase6.py`.
+
+## DEC-025 — Redesenho para quem não programa (03/10/2026)
+
+- **Decisão:** linguagem comum (`interface/linguagem.py`: 23 situações com nome, tom e próxima ação; papéis; mensagens "o que houve / como resolver"); identidade visual própria (verde sóbrio, temas claro e escuro, contraste AA calculado; nada copiado do SIPADE nem do Radar Ambiental); situação por ícone + texto; escala tipográfica fixa; botões sem permissão desabilitados com motivo; Campo com barra de rede/fila/última sincronização e coleta em 4 etapas com rascunho local; mapa SVG com escala aproximada e lista sincronizada; relatório em A4.
+- **Verificação:** navegador real automatizado (`scripts/verificar_interface.js`: 83 telas em 360 e 1280 px, claro e escuro, zoom 200%, axe-core 4.13). Só verificações automáticas; leitor de tela e pessoas usuárias NÃO EXECUTADOS.
+
+## DEC-026 — Revisão independente da Fase 6 e verificação com navegador (03/10/2026)
+
+- **Método:** agente de IA separado revisou o commit 542dd82 (interface, modo central, âncora, rodada, backup), com scripts próprios e 74 mutações (47 mortas). 15 achados (1 alto, 6 médios, 8 baixos), todos reproduzidos de novo contra a árvore corrigida.
+- **Corrigidos:** (1, alto) atualização movia dado de campo de outra demanda e não conferia o registro gravado → vínculo imutável e conferência do gravado; (2) conflito aceito depois da coleta e "sequestro" de ponto por CRIAR com id alheio → recusados; (3) campo da âncora lia caminho do servidor antes da permissão → âncora colada, permissão primeiro, limite de tamanho; (4) `Content-Length` negativo e conexão parada travavam o servidor → recusa, threads com trava única, tempo máximo; (5) GETs anônimos derrubavam sessões → teto para anônimas e prazo; (6) técnico movia e listava demanda de outra equipe → recusado e filtrado; (7) histórico expunha trilha a quem não audita → só mudanças de situação, sem pessoas nem motivo; (8) evidência com observação de outra campanha → recusada; (9) modo do núcleo mutável → somente leitura; (10) CLI da âncora com traceback e ancorando trilha adulterada → mensagens e recusa; (11) token não ASCII dava 500 → 403; (13) backups no mesmo segundo e simultâneos → mensagem clara e reserva atômica; (14) banco legado sem versão → migração da coluna; (15) textos que prometiam demais → "cadeia conferida; sem âncora não exclui reescrita" e "o aparelho só sabe quando consultar". Também: campo repetido no formulário recusado; `/sair` encerra a sessão no servidor; mutantes sobreviventes de permissão e auditoria cobertos por teste.
+- **Achado da verificação com navegador (não da revisão):** com `Referrer-Policy: no-referrer` o Chromium manda `Origin: null` em todo formulário, e a interface recusava o próprio login. Os testes sem navegador não pegavam. Corrigido para `same-origin`, com teste.
+- **Não corrigido (registrado):** a trilha é lida inteira a cada página (12; R-34); pontos do mapa com ~32 px a 360 px (R-35).
+- **Risco:** o revisor é um agente de IA (R-30).
+- **Teste:** `tests/test_regressao_fase6.py` (mutações nas correções: 5 de 6 mortas; a sobrevivente é equivalente).

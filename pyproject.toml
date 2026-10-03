@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaema-sd"
-version = "0.5.1"
+version = "0.6.0"
 description = "GAEMA SD - núcleo de apoio ao diagnóstico de pastagens degradadas (protótipo, dados sintéticos)"
 requires-python = ">=3.11"
 dependencies = ["shapely==2.1.2", "Jinja2==3.1.6", "reportlab==4.2.5"]

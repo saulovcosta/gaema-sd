@@ -23,6 +23,7 @@ Inspira-se funcionalmente no SIPADE (IFTM e MPMG), sem copiar código, textos ou
 | 3 | Protótipo local ponta a ponta e relatório | Concluída (testada localmente) |
 | 4 | Robustez: offline, sincronização, segurança, backup, acessibilidade | Concluída (testada localmente, com rede simulada) |
 | 5 | Preparação institucional: adaptadores, formulário XLSForm, pontos de integração, homologação, capacitação | Concluída como preparação, com revisão independente por agente de IA; testada localmente; **nada foi integrado** |
+| 6 | Interface local de operação, segurança da central, âncora da trilha, relatório A4 | Concluída como protótipo local (testada localmente e com navegador automatizado); **sem autenticação real** |
 
 Detalhes do andamento: `docs/ESTADO.md`.
 
@@ -60,7 +61,7 @@ Detalhes do andamento: `docs/ESTADO.md`.
 - Fotos e documentos guardados como original, identificados pelo hash, com conferência de integridade.
 - Demonstração completa com dados inventados: `scripts/demo.sh`.
 
-Ainda não há tela (a operação é por linha de comando); está prevista para as próximas fases.
+A tela de operação veio na Fase 6 (abaixo).
 
 ## O que já existe (Fase 4)
 
@@ -89,11 +90,28 @@ Preparação institucional. **Nada aqui está integrado a ArcGIS, ao Radar Ambie
 
 Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados inventados, rede simulada). Em especial: **o formulário XLSForm foi conferido por testes próprios e pelo pyxform, mas não foi aberto no Survey123 Connect**; adaptadores ArcGIS são só interface; o relatório não foi testado com leitor de tela; não houve revisão humana nem de terceiros; nenhuma turma foi capacitada. A tabela completa está em `docs/ESTADO.md`.
 
+## O que já existe (Fase 6)
+
+**Interface local para testar o fluxo sem programar.** Abra com `scripts/interface.sh` e acesse http://127.0.0.1:8765/ no navegador do mesmo computador. Escolhe-se um **usuário de teste** (não há senha nem autenticação real); só dados inventados.
+
+- **Cada tela começa por "O que fazer agora".** As situações aparecem em linguagem comum (por exemplo, "Conflito: aguardando decisão do coordenador"), com ícone e texto, não só cor.
+- **O papel aparece no topo**, com o que pode e o que não pode fazer. Botão sem permissão aparece desabilitado, com o motivo ao lado. Erro diz "o que houve" e "como resolver".
+- **Escritório:** início com "Exige atenção", demanda com mapa esquemático (escala aproximada, lista de pontos ligada ao mapa), mudanças de situação, relatórios, conflitos lado a lado, auditoria com âncora, exportação e backup.
+- **Campo (aparelho simulado):** rede, fila e última sincronização sempre visíveis; coleta em 4 etapas com rascunho salvo a cada etapa; unidade sempre visível; desfazer; conferência antes de salvar; "Sincronizar agora" mostra o resultado ("1 enviado(s), 0 conflito(s)").
+- **Temas claro e escuro**, com contraste conferido; funciona em tela de celular de 360 px sem rolagem lateral.
+- **Relatório para A4** com bloco de identificação, datas legíveis e hashes em grupos.
+- **Segurança da central:** todo dado de campo confere origem, equipe e situação da demanda, e não pode ser "mudado de demanda" depois (fecha R-28). **Âncora da trilha** para guardar fora da máquina (R-19, em parte).
+- **Revisão independente** por agente de IA separado: 15 falhas reproduzidas e corrigidas, cada uma com teste. A verificação com navegador real achou mais uma: o próprio login era recusado pelo navegador; corrigida.
+
+**Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 83 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
+
 ## Para quem programa
 
 ```bash
 scripts/testar.sh     # todos os testes
 scripts/demo.sh       # fluxo completo com dados sintéticos; relatórios em saida/
+scripts/interface.sh  # interface local em http://127.0.0.1:8765/ (dados sintéticos)
+scripts/demo_sincronizacao.sh   # conflito, decisão do coordenador e aparelho convergindo
 python -m gaema_sd.backup verificar PASTA_DO_BACKUP   # confere um backup
 ```
 
