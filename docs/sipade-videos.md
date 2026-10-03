@@ -38,6 +38,17 @@ No app: campo "Resistência a penetração (KPaF)", "Formação geológica: Grup
 ### 1.8 Contexto (F11)
 Mapa da Bacia do Rio Uberaba (ano 2019), com classes "pasto degradado" e "pasto sadio". Parceria com o "Projeto TERAMA" ("Tecnologia para altas produtividades"), que apoia produtores na recuperação. A instituição do TERAMA na narração está ininteligível. A narração cita números nacionais de área de pastagem e degradação; esses números **não** foram conferidos e não são usados.
 
+### 1.9 Narração do tutorial (F12, transcrição automática)
+- Trata-se de **apresentação de protótipo** de telas ("vamos demonstrar como ficou os protótipos"); as datas de exemplo são de 2019. Não há garantia de que o sistema em uso tenha exatamente essas telas.
+- Dois perfis: **superusuário** ("os procuradores ou os responsáveis pela aplicação"), na web; e **usuário restrito** ("os policiais, os técnicos que vão a campo"), no app.
+- No pedido de acesso, o policial informa, entre outros dados, **se realizou o curso** (sim/não). O procurador vê nome, CPF e e-mail do solicitante e aceita ou rejeita.
+- O procurador cadastra a demanda escolhendo uma propriedade já cadastrada ou pré-cadastrando uma nova. O policial vê a lista, escolhe as fazendas por proximidade e logística, **atribui a demanda a si mesmo** e **agenda** a visita.
+- Em "minhas demandas", as atendidas aparecem em verde e as pendentes em cinza. Na fazenda, sem internet, o app guarda os dados no aparelho e sincroniza depois.
+- Um diagnóstico tem **várias áreas** ("quantas áreas forem necessárias") e cada área recebe fotos ("quantas fotos forem necessárias" — a tela fala em até três).
+- Tipo de solo e formação geológica viriam de **importação** do mapa de solos e do mapa geológico.
+- Ao final, o relatório "vai soltar um resultado" — a palavra seguinte está ininteligível na transcrição ("indicativo"/"consultivo"); não é possível afirmar a forma do resultado.
+- Painel do procurador por demanda: policial atribuído, data agendada, data da visita e link para o relatório; filtros.
+
 ## 2. Consequências para o GAEMA SD
 
 | # | Observação | Decisão no GAEMA SD | Situação |
@@ -48,9 +59,13 @@ Mapa da Bacia do Rio Uberaba (ano 2019), com classes "pasto degradado" e "pasto 
 | V-04 | Faixas fixas (<0,10 m; 0,1–0,2 m; >0,2 m; <50%; >10 mm) | **Não adotadas** como limiar. Podem entrar no protótipo como categorias configuráveis rotuladas "OBSERVAÇÃO PÚBLICA, não validado" | PENDENTE (Fase 3) |
 | V-05 | 3 categorias no vídeo × 4 no site | Categorias do protocolo configuráveis por versão | Já previsto em `docs/protocolo.md` |
 | V-06 | Média de repetições da penetrometria e contexto seco/chuvoso | O GAEMA SD guarda cada repetição bruta (`MedicaoPenetracao`) e calcula agregados no motor, registrando o método | Fase 3 |
-| V-07 | Até três fotos por área | Não adotado como limite; o número mínimo ou máximo de fotos depende do protocolo | PENDENTE |
+| V-07 | Tela fala em até três fotos por área; a narração, em quantas forem necessárias | Sem limite fixo; mínimo e categorias de foto dependem do protocolo | PENDENTE |
 | V-08 | Demanda ligada a propriedade e proprietário, com CPF e endereço | **Divergência intencional**: o GAEMA SD não modela imóvel nem pessoa (DEC-006). Vínculo com cadastro só como indício espacial | Mantido |
 | V-09 | Agendamento online, campo offline, sincronização posterior, PDF enviado depois | Confirma o desenho offline-first; agendamento entra como campo da campanha na Fase 3 | Fase 3/4 |
 | V-10 | Policiais ambientais fazem a vistoria; Procuradores operam a web; superusuário aprova acessos | Papéis do GAEMA SD são genéricos; quem exerce TECNICO_CAMPO no Tocantins é decisão institucional | PENDENTE (INSTITUCIONAL) |
 | V-11 | Relatório com tabela de parâmetros e fotos por amostra | Modelo de relatório da Fase 3 inclui tabela de parâmetros com valor bruto, unidade e evidências vinculadas | Fase 3 |
 | V-12 | Tipo de solo e formação geológica vindos de mapas oficiais | `FonteDado` registra o mapa usado; preenchimento automático só com camada autorizada | Fase 3/5 |
+| V-13 | Cadastro do policial informa se fez o curso | Capacitação prévia como requisito de quem exerce TECNICO_CAMPO: registrar no cadastro de usuários (Fase 3/5), sem guardar dados pessoais além do necessário | PENDENTE (INSTITUCIONAL) |
+| V-14 | Policial escolhe e atribui a si a demanda, e agenda a visita | No GAEMA SD a atribuição é do COORDENADOR (transição ATRIBUIDA); autoatribuição pode ser opção configurável, sempre auditada. Data agendada entra na `CampanhaVistoria` | Fase 3 |
+| V-15 | Várias áreas por diagnóstico, cada uma com fotos e variáveis | Equivale a vários `PontoAmostral` por `CampanhaVistoria`, já modelado | Já atendido |
+| V-16 | Painel por demanda com responsável, datas e relatório | Painel da Fase 3 lê o estado da demanda e a trilha de auditoria | Fase 3 |
