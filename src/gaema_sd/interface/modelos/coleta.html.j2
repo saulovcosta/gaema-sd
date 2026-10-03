@@ -2,6 +2,10 @@
 {% block titulo %}Coleta — etapa {{ etapa }} de 4{% endblock %}
 {% block conteudo %}
 <h1>Coletar ponto</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{{ {1: "Informe a vistoria, o código e as coordenadas do ponto e toque em “Salvar e seguir”.",
+  2: "Marque o que foi visto em cada item e toque em “Salvar e seguir”.",
+  3: "Anote cada repetição da penetrometria (ou nenhuma) e siga para a conferência.",
+  4: "Confira tudo e toque em “Salvar no aparelho”."}[etapa] }}</p></div>
 <nav aria-label="Etapas da coleta"><ol class="etapas">
   {% for n, nome in [(1, "Ponto"), (2, "O que foi visto"), (3, "Penetrometria"), (4, "Conferir e salvar")] %}
   <li{% if n == etapa %} aria-current="step"{% elif n < etapa %} class="feita"{% endif %}>{{ nome }}{% if n < etapa %}<span class="so-leitor"> (feita)</span>{% endif %}</li>

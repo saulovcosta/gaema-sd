@@ -442,3 +442,17 @@ def test_mutante_resumo_e_transicoes_exigem_leitura_restrita(sistema):
     for f in (nucleo.resumo_demanda, nucleo.transicoes_possiveis):
         with pytest.raises(AcessoNegado):
             f(sem_papel, did)
+
+
+# Achado na verificação com navegador real (não pela revisão) -------------------------------------------------------------
+def test_politica_de_referencia_nao_faz_o_navegador_mandar_origin_null(sistema):
+    """Com "no-referrer", o Chromium envia "Origin: null" em todo formulário e a interface recusava o próprio login
+    (visto com Chromium real em 03/10/2026). "same-origin" manda a origem só para a própria interface."""
+    c = Cliente(sistema[0])
+    r = c.get("/entrar")
+    assert r.cab["referrer-policy"] == ["same-origin"]
+    ok = c.post("/entrar", {"usuario": "coord"}, cabecalhos={"HTTP_ORIGIN": "http://127.0.0.1:8765"})
+    assert ok.status == 303 and ok.cab["location"] == ["/painel"]
+    outro = Cliente(sistema[0])
+    outro.get("/entrar")
+    assert outro.post("/entrar", {"usuario": "coord"}, cabecalhos={"HTTP_ORIGIN": "null"}).status == 403

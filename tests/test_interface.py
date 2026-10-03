@@ -120,7 +120,7 @@ def test_cabecalhos_de_seguranca_e_cookie_restrito(sistema):
     csp = r.cab["content-security-policy"][0]
     assert "default-src 'none'" in csp and "frame-ancestors 'none'" in csp and "form-action 'self'" in csp
     assert r.cab["x-content-type-options"] == ["nosniff"] and r.cab["x-frame-options"] == ["DENY"]
-    assert r.cab["cache-control"] == ["no-store"] and r.cab["referrer-policy"] == ["no-referrer"]
+    assert r.cab["cache-control"] == ["no-store"] and r.cab["referrer-policy"] == ["same-origin"]
     cookie = r.cab["set-cookie"][0]
     assert "HttpOnly" in cookie and "SameSite=Strict" in cookie and "Path=/" in cookie
 
@@ -513,5 +513,7 @@ def test_contraste_aa_nos_temas_claro_e_escuro(todas_as_paginas):
     for nome, cores in (("claro", claro), ("escuro", escuro)):
         for a, b in pares_texto:
             assert razao_contraste(cores[a], cores[b]) >= 4.5, (nome, a, b, razao_contraste(cores[a], cores[b]))
-        for a, b in (("borda-campo", "superficie"), ("foco", "superficie"), ("foco", "fundo")):
+        assert razao_contraste(cores["texto"], cores["mapa-area"]) >= 4.5, (nome, "rótulos do mapa sobre a área")
+        for a, b in (("borda-campo", "superficie"), ("foco", "superficie"), ("foco", "fundo"), ("mapa-ponto", "mapa-area"),
+                     ("mapa-borda", "superficie"), ("critico", "mapa-area")):
             assert razao_contraste(cores[a], cores[b]) >= 3.0, (nome, a, b)        # componentes de interface (1.4.11)

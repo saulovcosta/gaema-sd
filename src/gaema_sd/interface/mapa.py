@@ -72,6 +72,7 @@ def mapa_svg(area_wkt: str, pontos: list[dict], selecionado: str | None, titulo:
             forma = (f'<rect class="ponto-sel" x="{x - 9}" y="{y - 9}" width="18" height="18" transform="rotate(45 {x} {y})"/>'
                      if sel else f'<circle class="ponto" cx="{x}" cy="{y}" r="8"/>')
             partes.append(f'<a href="?ponto={cod}#ponto-{cod}" aria-label="Ponto {cod}{" (selecionado)" if sel else ""}">'
+                          f'<circle class="alvo" cx="{x}" cy="{y}" r="34" fill="transparent"/>'   # área de toque (≥ 44 px a 360 px)
                           f'{forma}<text x="{x + 12}" y="{y - 10}">{cod}</text></a>')
         metros_por_px = METROS_POR_GRAU / k
         alvo = _valor_redondo(metros_por_px * (LARGURA - 2 * MARGEM) / 4)

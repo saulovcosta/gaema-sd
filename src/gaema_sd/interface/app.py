@@ -162,7 +162,7 @@ class Aplicacao:
         return [
             ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; "
                                         "base-uri 'none'; frame-ancestors 'none'"),
-            ("X-Content-Type-Options", "nosniff"), ("X-Frame-Options", "DENY"), ("Referrer-Policy", "no-referrer"),
+            ("X-Content-Type-Options", "nosniff"), ("X-Frame-Options", "DENY"), ("Referrer-Policy", "same-origin"),
             ("Cache-Control", "no-store"), ("Cross-Origin-Opener-Policy", "same-origin"),
         ]
 
@@ -249,6 +249,8 @@ class Aplicacao:
         return f"sid={'' if apagar else sid}; HttpOnly; SameSite=Strict; Path=/" + ("; Max-Age=0" if apagar else "")
 
     def _conferir_origem(self, environ, host: str) -> Resposta | None:
+        # Atenção: com Referrer-Policy "no-referrer" o navegador manda "Origin: null" em todo formulário e esta
+        # conferência recusaria a própria interface; por isso a política é "same-origin" (nada vaza para fora).
         origem = environ.get("HTTP_ORIGIN")
         if origem is not None and origem.lower() != f"http://{host}":
             return self._erro(403, "Pedido recusado: veio de outra página que não esta interface.",

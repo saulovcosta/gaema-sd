@@ -53,6 +53,8 @@
   .chip { display:inline-flex; align-items:center; gap:var(--e1); background:var(--superficie-2); border:1px solid var(--borda);
           border-radius:999px; padding:var(--e1) var(--e3); font-size:var(--t-1); }
   form.em-linha { display:inline-flex; flex-wrap:wrap; align-items:center; gap:var(--e2); margin:0; }
+  .usuario label { display:inline; margin:0; font-weight:600; }
+  .usuario select { width:auto; min-width:8.5rem; }
   nav.abas ul { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:var(--e1) var(--e2); }
   nav.abas a, nav.abas span { display:inline-flex; align-items:center; gap:var(--e1); min-height:44px; padding:0 var(--e3);
           border-radius:var(--raio) var(--raio) 0 0; text-decoration:none; color:var(--texto); border-bottom:3px solid transparent; }
@@ -107,6 +109,7 @@
   .com-unidade input { flex:1 1 8rem; min-width:0; } .com-unidade select { flex:0 0 7.5rem; width:7.5rem; }
   fieldset { border:1px solid var(--borda); border-radius:var(--raio); padding:var(--e3) var(--e4); margin:0 0 var(--e4); }
   legend { font-weight:700; padding:0 var(--e1); }
+  .alvo-toque { display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:44px; }
   .opcoes { display:flex; flex-wrap:wrap; gap:var(--e2) var(--e4); }
   .opcoes label { display:inline-flex; align-items:center; gap:var(--e2); font-weight:400; min-height:44px; margin:0; }
   .opcoes input { width:1.25rem; height:1.25rem; }
@@ -145,7 +148,12 @@
     .tabela td, .tabela th { border:0; padding:var(--e1) 0; }
     .tabela td[data-rotulo]::before { content:attr(data-rotulo) ": "; font-weight:600; }
     .tabela td.num { text-align:left; }
-    .usuario { margin-left:0; }
+    .usuario { margin-left:0; width:100%; }
+    .usuario .chip { flex:1 1 100%; }
+    .usuario select { width:8.5rem; }
+    .tabela caption { display:block; width:100%; text-align:left; }
+    .usuario button { padding-left:var(--e3); padding-right:var(--e3); }
+    .faixa-prototipo { font-size:var(--t-1); }
     h1 { font-size:var(--t2); }
   }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
@@ -164,11 +172,11 @@
         {% if ator %}<span class="chip">{{ c.icone("pessoa") }}<span>{{ L.papeis(ator.papeis) }} · {{ ator.id }}</span></span>{% endif %}
         <form method="post" action="/tema" class="em-linha">
           <input type="hidden" name="csrf" value="{{ sessao.csrf if sessao else '' }}">
-          <label for="tema" class="so-leitor">Tema de cores</label>
+          <label for="tema">Tema</label>
           <select id="tema" name="tema">
-            <option value="auto"{% if tema == "auto" %} selected{% endif %}>Tema: do sistema</option>
-            <option value="claro"{% if tema == "claro" %} selected{% endif %}>Tema: claro</option>
-            <option value="escuro"{% if tema == "escuro" %} selected{% endif %}>Tema: escuro</option>
+            <option value="auto"{% if tema == "auto" %} selected{% endif %}>Do sistema</option>
+            <option value="claro"{% if tema == "claro" %} selected{% endif %}>Claro</option>
+            <option value="escuro"{% if tema == "escuro" %} selected{% endif %}>Escuro</option>
           </select>
           <button type="submit" class="secundario">Aplicar</button>
         </form>

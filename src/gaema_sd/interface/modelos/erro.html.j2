@@ -2,6 +2,7 @@
 {% block titulo %}Não foi possível{% endblock %}
 {% block conteudo %}
 <h1>Não foi possível concluir</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase"><span class="so-leitor">Como resolver: </span>{{ m.como_resolver }}</p></div>
 <div class="aviso erro" role="alert">{{ c.icone("critico") }}<div><p><strong>O que houve:</strong> {{ m.o_que_houve }}</p><p><strong>Como resolver:</strong> {{ m.como_resolver }}</p>{% if m.detalhe %}<p class="detalhe-tecnico">Detalhe: {{ m.detalhe }}</p>{% endif %}</div></div>
 <p><a class="botao secundario" href="/painel">Voltar ao início</a></p>
 {% endblock %}
