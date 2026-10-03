@@ -33,11 +33,14 @@ Níveis atualizados ao fim de cada fase.
 
 | ID | Requisito | Proveniência | Nível |
 |---|---|---|---|
-| RQ-20 | Vistoria offline-first com retomada | INSTITUCIONAL + DOCUMENTAÇÃO OFICIAL (FC-09) | ESPECIFICADO |
+| RQ-20 | Vistoria offline-first com retomada | INSTITUCIONAL + DOCUMENTAÇÃO OFICIAL (FC-09) | TESTADO LOCALMENTE (fila local e retomada simuladas; sem aplicativo de campo real nem Survey123) |
 | RQ-21 | GPS com precisão registrada; alerta de GPS ruim por limite configurável | INSTITUCIONAL + AUTORAL (limite) | TESTADO LOCALMENTE |
-| RQ-22 | Sem perda silenciosa nem duplicidade ao sincronizar | INSTITUCIONAL + DOCUMENTAÇÃO OFICIAL (FC-12) | TESTADO LOCALMENTE no núcleo (conflito e idempotência); sincronização de campo na Fase 4 |
+| RQ-22 | Sem perda silenciosa nem duplicidade ao sincronizar | INSTITUCIONAL + DOCUMENTAÇÃO OFICIAL (FC-12) | TESTADO LOCALMENTE (conflito, idempotência e sincronização simulada entre dois SQLite) |
 | RQ-23 | Mapa base offline em formatos aceitos pelo Survey123 quando usado o adaptador | DOCUMENTAÇÃO OFICIAL (FC-11) | ESPECIFICADO |
 | RQ-24 | Formulário de vistoria exportável em XLSForm | DOCUMENTAÇÃO OFICIAL (FC-10) | ESPECIFICADO |
+| RQ-25 | Fila local de envio por dispositivo, que sobrevive a reinício e envia em ordem | AUTORAL (desenho) | TESTADO LOCALMENTE |
+| RQ-26 | Reenvio idempotente: perda de rede, serviço indisponível e confirmação perdida não perdem nem duplicam registro; espera crescente entre tentativas (parâmetros AUTORAIS, sem fundamento externo) | AUTORAL | TESTADO LOCALMENTE (rede simulada) |
+| RQ-27 | Versões divergentes não se sobrescrevem: viram conflito com as duas versões guardadas, a demanda vai a CONFLITO_SINCRONIZACAO e só o coordenador resolve, com motivo | INSTITUCIONAL (estado do fluxo) + AUTORAL | TESTADO LOCALMENTE |
 
 ## Protocolo, relatório e evidências
 
@@ -58,8 +61,13 @@ Níveis atualizados ao fim de cada fase.
 | RQ-41 | Trilha de auditoria íntegra e verificável | INSTITUCIONAL + AUTORAL (encadeamento por hash) | TESTADO LOCALMENTE |
 | RQ-42 | Segredos fora do código | INSTITUCIONAL | TESTADO LOCALMENTE (varredura e .gitignore) |
 | RQ-43 | Validação de anexos (tipo real, tamanho, hash) | INSTITUCIONAL | TESTADO LOCALMENTE |
-| RQ-44 | Backup lógico com restauração testada | INSTITUCIONAL | ESPECIFICADO |
+| RQ-44 | Backup lógico com restauração testada | INSTITUCIONAL | TESTADO LOCALMENTE (arquivos locais; sem rotina agendada nem armazenamento institucional) |
 | RQ-45 | Retenção documental por entidade | PENDENTE (LA-06) | ESPECIFICADO |
+| RQ-46 | Logs e trilha sem dado sensível: chaves sensíveis removidas, CPF/e-mail/`senha=` mascarados, log sem conteúdo de registro (higiene por padrão, não detecta nome em texto livre) | AUTORAL | TESTADO LOCALMENTE |
+| RQ-47 | Análise de vulnerabilidades das dependências fixadas | AUTORAL | EXECUTADA UMA VEZ em 03/10/2026 (`pip-audit`, sem achados); repetir a cada atualização; não está em rotina automática |
+| RQ-48 | Várias conexões ao mesmo arquivo sem perda, sem duplicidade e sem sobrescrita silenciosa | AUTORAL | TESTADO LOCALMENTE (SQLite em modo WAL; threads, não carga real) |
+| RQ-49 | Rollback para um backup verificado, preservando o estado desfeito | AUTORAL | TESTADO LOCALMENTE |
+| RQ-72 | Backup recusado quando adulterado, incompleto ou de esquema mais novo que o código | AUTORAL | TESTADO LOCALMENTE |
 
 ## Integração ArcGIS
 
@@ -86,3 +94,10 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-69 | Diagnóstico de solo auditável e indicadores de avanço de PRAD aferidos semestralmente (art. 19, I): relatório reproduzível com trilha de auditoria e marcos de monitoramento com periodicidade configurável | INSTITUCIONAL | IMPLEMENTADO LOCALMENTE (relatório auditável e marcos; aferição semestral é decisão humana) |
 | RQ-70 | Recomendações, comunicações a instituições financeiras e ações judiciais (art. 19, II a IV) são providências humanas registradas como `Providencia`; o sistema não gera minuta nem conclusão. Compartilhar dados com terceiros exige base legal e exportação controlada | INSTITUCIONAL + PENDENTE (base legal do compartilhamento) | ESPECIFICADO |
 | RQ-71 | Relatórios agregados de atividade para os marcos de out./2026 (relatório prévio à PGJ) e mar./2027 (relatório consolidado ao CPJ), e acompanhamento dos marcos do art. 20 | INSTITUCIONAL | ESPECIFICADO |
+
+## Acessibilidade do relatório (Fase 4)
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-73 | Relatório HTML com idioma, título, hierarquia de títulos, marcos de página, tabelas com legenda e cabeçalhos com escopo, mapa SVG com nome e descrição, link de salto, foco visível e contraste mínimo 4,5:1 (critério AA do WCAG 2.x como referência) | AUTORAL (referência: WCAG 2.x) | TESTADO LOCALMENTE (verificações automáticas) |
+| RQ-74 | Teste do relatório com leitor de tela e com pessoas usuárias | AUTORAL | ESPECIFICADO — NÃO EXECUTADO |

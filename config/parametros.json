@@ -34,5 +34,15 @@
     "valor": null,
     "proveniencia": "PENDENTE",
     "observacao": "Depende de protocolo de campo (lacuna LA-04)."
+  },
+  "sincronizacao_tentativas_maximas": {
+    "valor": 3,
+    "proveniencia": "AUTORAL",
+    "observacao": "Tentativas de envio por item antes de interromper a rodada. Valor operacional provisório, sem fundamento externo; a confirmar com a equipe técnica."
+  },
+  "sincronizacao_espera_inicial_s": {
+    "valor": 2.0,
+    "proveniencia": "AUTORAL",
+    "observacao": "Espera antes da segunda tentativa; dobra a cada nova tentativa. Valor operacional provisório, sem fundamento externo."
   }
 }

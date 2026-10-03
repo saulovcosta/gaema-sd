@@ -18,10 +18,16 @@
            margin: 1rem 0; text-align: center; }
   .aviso { background: var(--suave); padding: .6rem; border-left: 4px solid var(--borda); }
   .hash { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .8rem; word-break: break-all; }
-  @media print { h2 { break-after: avoid; } table { break-inside: auto; } }
+  .pular { position: absolute; left: -999px; top: 0; background: var(--fundo); color: var(--texto);
+           padding: .5rem; border: 2px solid var(--texto); }
+  .pular:focus { left: .5rem; z-index: 1; }
+  :focus-visible { outline: 3px solid var(--texto); outline-offset: 2px; }
+  .texto-pre { white-space: pre-wrap; font-family: inherit; }
+  @media print { h2 { break-after: avoid; } table { break-inside: auto; } .pular { display: none; } }
 </style>
 </head>
 <body>
+<a class="pular" href="#principal">Ir para o conteúdo</a>
 <header>
   <h1>{{ d.titulo }}</h1>
   {% if d.rotulo_prototipo %}<p class="faixa" role="note">{{ d.rotulo_prototipo }}</p>{% endif %}
@@ -30,7 +36,7 @@
      por {{ d.versao.gerado_por }}{% if d.versao.motivo_reemissao %} · motivo da reemissão:
      {{ d.versao.motivo_reemissao }}{% endif %}</p>
 </header>
-<main>
+<main id="principal">
 <section aria-labelledby="s1"><h2 id="s1">1. Identificação da demanda</h2>
   <table><caption>Demanda</caption><tbody>
     <tr><th scope="row">Identificador</th><td class="hash">{{ d.demanda.id }}</td></tr>
@@ -114,7 +120,7 @@
   {% if d.rotulo_prototipo %}<table><caption>Regras por ponto</caption>
     <thead><tr><th scope="col">Ponto</th><th scope="col">Categoria descritiva</th><th scope="col">Regras disparadas</th><th scope="col">Regras não avaliáveis (motivo)</th></tr></thead>
     <tbody>{% for p in d.resultado.por_ponto %}<tr><td>{{ p.codigo }}</td><td>{{ p.categoria }}</td><td>{{ p.disparadas|join(", ") or "nenhuma" }}</td><td>{% for r, m in p.nao_avaliaveis %}{{ r }}: {{ m }}{% if not loop.last %}; {% endif %}{% else %}—{% endfor %}</td></tr>{% endfor %}</tbody></table>{% endif %}
-  <pre style="white-space: pre-wrap">{{ d.resultado.texto }}</pre>
+  <pre class="texto-pre">{{ d.resultado.texto }}</pre>
 </section>
 
 <section aria-labelledby="s12"><h2 id="s12">12. Revisão técnica</h2>

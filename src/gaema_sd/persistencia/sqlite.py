@@ -13,6 +13,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Iterator, Optional, TypeVar
@@ -52,6 +53,46 @@ CREATE TABLE IF NOT EXISTS auditoria (
     hash_evento TEXT NOT NULL UNIQUE
 );
 
+CREATE TABLE IF NOT EXISTS fila_envio (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipo TEXT NOT NULL,
+    entidade_id TEXT NOT NULL,
+    operacao TEXT NOT NULL CHECK (operacao IN ('CRIAR', 'ATUALIZAR')),
+    versao_base INTEGER NOT NULL,
+    dados TEXT NOT NULL,
+    hash_dados TEXT NOT NULL,
+    chave_idempotencia TEXT NOT NULL DEFAULT '',
+    situacao TEXT NOT NULL DEFAULT 'PENDENTE'
+        CHECK (situacao IN ('PENDENTE', 'ENVIADO', 'CONFLITO', 'REJEITADO')),
+    tentativas INTEGER NOT NULL DEFAULT 0,
+    resultado TEXT NOT NULL DEFAULT '',
+    erro TEXT NOT NULL DEFAULT '',
+    criado_em TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL,
+    UNIQUE (tipo, entidade_id, operacao, hash_dados)
+);
+
+CREATE TABLE IF NOT EXISTS conflitos_sincronizacao (
+    id TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    entidade_id TEXT NOT NULL,
+    demanda_id TEXT NOT NULL DEFAULT '',
+    versao_base INTEGER NOT NULL,
+    versao_central INTEGER NOT NULL,
+    hash_central TEXT NOT NULL,
+    dados_dispositivo TEXT NOT NULL,
+    hash_dispositivo TEXT NOT NULL,
+    situacao TEXT NOT NULL DEFAULT 'ABERTO' CHECK (situacao IN ('ABERTO', 'RESOLVIDO')),
+    decisao TEXT NOT NULL DEFAULT '',
+    resolvido_por TEXT NOT NULL DEFAULT '',
+    motivo_resolucao TEXT NOT NULL DEFAULT '',
+    criado_em TEXT NOT NULL,
+    resolvido_em TEXT NOT NULL DEFAULT '',
+    UNIQUE (tipo, entidade_id, hash_dispositivo)
+);
+CREATE TRIGGER IF NOT EXISTS conflitos_sem_delete BEFORE DELETE ON conflitos_sincronizacao
+BEGIN SELECT RAISE(ABORT, 'conflito de sincronização não é apagado'); END;
+
 CREATE TRIGGER IF NOT EXISTS auditoria_sem_update BEFORE UPDATE ON auditoria
 BEGIN SELECT RAISE(ABORT, 'auditoria é somente acréscimo'); END;
 CREATE TRIGGER IF NOT EXISTS auditoria_sem_delete BEFORE DELETE ON auditoria
@@ -61,6 +102,9 @@ BEGIN SELECT RAISE(ABORT, 'histórico é somente acréscimo'); END;
 CREATE TRIGGER IF NOT EXISTS historico_sem_delete BEFORE DELETE ON historico
 BEGIN SELECT RAISE(ABORT, 'histórico é somente acréscimo'); END;
 """
+
+
+VERSAO_ESQUEMA = 1  # PRAGMA user_version; base para recusar backup de esquema mais novo que o código
 
 
 def _agora() -> str:
@@ -74,9 +118,15 @@ def _conteudo(obj) -> tuple[str, str]:
 
 class Repositorio:
     def __init__(self, caminho: str = ":memory:"):
+        self.caminho = caminho
         self.con = sqlite3.connect(caminho, isolation_level=None, timeout=10)
         self.con.execute("PRAGMA foreign_keys = ON")
+        self.con.execute("PRAGMA busy_timeout = 10000")
+        if caminho != ":memory:":
+            self.con.execute("PRAGMA journal_mode = WAL")  # leitores não bloqueiam o escritor
         self.con.executescript(ESQUEMA)
+        if self.con.execute("PRAGMA user_version").fetchone()[0] == 0:
+            self.con.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
         self._profundidade = 0
 
     def fechar(self) -> None:
@@ -178,6 +228,55 @@ class Repositorio:
         linhas = self.con.execute("SELECT dados FROM historico WHERE tipo=? AND id=? ORDER BY versao",
                                   (cls.__name__, id)).fetchall()
         return [de_dict(cls, json.loads(x[0])) for x in linhas]
+
+
+    # ------------------------------------------------------------ conflitos de sincronização
+
+    def registrar_conflito(self, *, tipo: str, entidade_id: str, demanda_id: str, versao_base: int,
+                           versao_central: int, hash_central: str, dados_dispositivo: str,
+                           hash_dispositivo: str) -> tuple[str, bool]:
+        """Guarda a versão do dispositivo ao lado da central. Reenvio do mesmo conflito não duplica."""
+        with self.transacao():
+            existente = self.con.execute(
+                "SELECT id FROM conflitos_sincronizacao WHERE tipo=? AND entidade_id=? AND hash_dispositivo=?",
+                (tipo, entidade_id, hash_dispositivo)).fetchone()
+            if existente:
+                return existente[0], False
+            id_ = str(uuid.uuid4())
+            self.con.execute(
+                "INSERT INTO conflitos_sincronizacao (id, tipo, entidade_id, demanda_id, versao_base,"
+                " versao_central, hash_central, dados_dispositivo, hash_dispositivo, criado_em)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (id_, tipo, entidade_id, demanda_id, versao_base, versao_central, hash_central,
+                 dados_dispositivo, hash_dispositivo, _agora()))
+        return id_, True
+
+    def obter_conflito(self, id_: str) -> dict:
+        self.con.row_factory = sqlite3.Row
+        try:
+            linha = self.con.execute("SELECT * FROM conflitos_sincronizacao WHERE id=?", (id_,)).fetchone()
+        finally:
+            self.con.row_factory = None
+        if linha is None:
+            raise RegistroNaoEncontrado(f"conflito de sincronização {id_} não encontrado")
+        return dict(linha)
+
+    def conflitos_abertos(self, demanda_id: str | None = None) -> int:
+        if demanda_id is None:
+            return self.con.execute(
+                "SELECT COUNT(*) FROM conflitos_sincronizacao WHERE situacao='ABERTO'").fetchone()[0]
+        return self.con.execute(
+            "SELECT COUNT(*) FROM conflitos_sincronizacao WHERE situacao='ABERTO' AND demanda_id=?",
+            (demanda_id,)).fetchone()[0]
+
+    def resolver_conflito(self, id_: str, *, decisao: str, resolvido_por: str, motivo: str) -> None:
+        with self.transacao():
+            cur = self.con.execute(
+                "UPDATE conflitos_sincronizacao SET situacao='RESOLVIDO', decisao=?, resolvido_por=?,"
+                " motivo_resolucao=?, resolvido_em=? WHERE id=? AND situacao='ABERTO'",
+                (decisao, resolvido_por, motivo, _agora(), id_))
+            if cur.rowcount == 0:
+                raise RegistroNaoEncontrado(f"conflito {id_} inexistente ou já resolvido")
 
 
 class ArmazenamentoAuditoriaSQLite:
