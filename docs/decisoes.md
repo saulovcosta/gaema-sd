@@ -72,3 +72,18 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Impacto:** `Nucleo.transitar` não recebe contexto; `estados/contexto.py` apura no banco e na trilha. A revisão que libera a emissão deve ser do próprio revisor que emite, e ele não pode ter participado da coleta (segregação de funções, AUTORAL). Reabertura só volta ao monitoramento se a demanda já teve diagnóstico emitido.
 - **Risco:** consulta ao banco a cada transição (lista e filtra registros); aceitável no protótipo, otimizar com índices na Fase 4.
 - **Teste:** `tests/test_regressao_revisao.py` (fluxo real pelo banco até DIAGNOSTICO_EMITIDO).
+
+## DEC-008 — Relatório em HTML (Jinja2) e PDF (reportlab), mapa em SVG próprio (03/10/2026)
+
+- **Hipótese:** HTML acessível e PDF idêntico a cada emissão atendem ao relatório reproduzível sem serviço externo.
+- **Motivo:** Jinja2 já estava no ambiente e escapa texto automaticamente; reportlab gera PDF determinístico (`invariant=1`); weasyprint não estava disponível. Mapa em SVG gerado da geometria evita depender de serviço de mapas.
+- **Impacto:** dependências novas fixadas (reportlab 4.2.5, pillow, chardet, Jinja2, MarkupSafe). Mapa é esquemático, sem escala cartográfica (dito no relatório).
+- **Risco:** visual simples; mapa sem base cartográfica. Aceitável no protótipo; mapa base fica para a Fase 5 (ArcGIS ou camada autorizada).
+- **Teste:** `tests/test_relatorio.py` (mesmos dados → mesmos bytes; seções; escape; acessibilidade básica).
+
+## DEC-009 — Diagnóstico só pelo motor, com fotografia das entradas (03/10/2026)
+
+- **Hipótese:** guardar no diagnóstico a fotografia canônica das entradas e o resultado completo do motor permite reprodução histórica mesmo após correções nos dados de campo.
+- **Motivo:** §11 do prompt (reproduzir resultados históricos) e impedir diagnóstico "digitado".
+- **Impacto:** `Nucleo.registrar` recusa `Diagnostico`; só `Nucleo.computar_diagnostico` grava. Novo cálculo substitui o anterior por vínculo (`substitui_diagnostico_id`), sem apagar.
+- **Teste:** `tests/test_protocolo.py` e `tests/test_regressao_revisao.py`.

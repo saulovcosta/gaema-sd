@@ -82,20 +82,26 @@ TEXTOS: dict[str, dict[str, str]] = {
         relacoes="1 CampanhaVistoria; 0..1 PontoAmostral; 0..1 Observacao; 0..1 Evidencia substituída.",
         validacoes="Tipo real pela assinatura (JPEG/PNG/PDF), tamanho, SHA-256; coordenada declarada completa. "
                    "Hash não é prova material absoluta; EXIF/GPS são declarações do dispositivo.",
-        atualizacao="**Imutável.** Correção gera nova Evidencia com `substitui_evidencia_id`.",
+        atualizacao="**Imutável.** Arquivo original guardado por `Nucleo.registrar_evidencia`, endereçado pelo "
+                    "hash e nunca sobrescrito; integridade conferível. Correção gera nova Evidencia com "
+                    "`substitui_evidencia_id`.",
         retencao=RETENCAO_PENDENTE),
     "VersaoProtocolo": dict(
         finalidade="Definição versionada das regras de diagnóstico.",
         relacoes="Usada por CampanhaVistoria, Diagnostico e Relatorio.",
-        validacoes="Versão semântica; hash da definição; protótipo exige o rótulo exato "
+        validacoes="Versão semântica; hash confere com a definição; definição válida (só presença/ausência); "
+                   "protótipo exige o rótulo exato "
                    "\"PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA\"; modo validado exige referência documental.",
         atualizacao="**Imutável.** Mudança gera nova versão; diagnósticos antigos continuam reproduzíveis.",
         retencao="Permanente enquanto houver diagnóstico que a referencie."),
     "Diagnostico": dict(
         finalidade="Resultado **computado** e descritivo. Só vale depois da RevisaoTecnica.",
         relacoes="1 Demanda, 1 CampanhaVistoria, 1 VersaoProtocolo; 0..n RevisaoTecnica.",
-        validacoes="Hashes de protocolo e entradas; limitações obrigatórias; categoria exige rótulo de validade.",
-        atualizacao="Recomputação gera novo Diagnostico (`substitui_diagnostico_id`).",
+        validacoes="Hashes de protocolo e entradas; o hash confere com a fotografia gravada das entradas; "
+                   "limitações obrigatórias; categoria exige rótulo de validade.",
+        atualizacao="**Imutável e gravado só pelo motor** (`Nucleo.computar_diagnostico`). Guarda a fotografia "
+                    "das entradas e o resultado completo, para reprodução. Recomputação gera novo Diagnostico "
+                    "(`substitui_diagnostico_id`).",
         retencao=RETENCAO_PENDENTE),
     "RevisaoTecnica": dict(
         finalidade="Juízo técnico humano sobre o diagnóstico.",
@@ -122,7 +128,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         atualizacao="Edição versionada.",
         retencao=RETENCAO_PENDENTE),
     "Relatorio": dict(
-        finalidade="Documento reproduzível emitido (HTML/PDF na Fase 3).",
+        finalidade="Documento reproduzível emitido em HTML ou PDF por `Nucleo.emitir_relatorio`, só após "
+                   "revisão técnica aprovada.",
         relacoes="1 Demanda, 1 Diagnostico, 0..1 RevisaoTecnica, 1 VersaoProtocolo; 0..1 Relatorio substituído.",
         validacoes="Hash do conteúdo; reemissão (versão > 1) exige relatório substituído e motivo.",
         atualizacao="**Imutável.** Toda correção gera nova versão.",

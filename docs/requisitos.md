@@ -14,7 +14,7 @@ Níveis atualizados ao fim de cada fase.
 | RQ-01 | Cobrir o ciclo: candidata → alerta → demanda → vistoria → diagnóstico → revisão → relatório → tratativa → monitoramento | INSTITUCIONAL | ESPECIFICADO |
 | RQ-02 | Identificar áreas indicativas por análise remota | OBSERVAÇÃO PÚBLICA (FC-01) | ESPECIFICADO |
 | RQ-03 | Registrar em campo invasoras, cupim de montículo e erosão laminar, além de outras variáveis | OBSERVAÇÃO PÚBLICA (FC-03) + INSTITUCIONAL (§11) | ESPECIFICADO |
-| RQ-04 | Categorias descritivas inspiradas nos 4 cenários públicos, só em protótipo rotulado | OBSERVAÇÃO PÚBLICA (FC-04) + AUTORAL | ESPECIFICADO |
+| RQ-04 | Categorias descritivas inspiradas nos 4 cenários públicos, só em protótipo rotulado | OBSERVAÇÃO PÚBLICA (FC-04) + AUTORAL | TESTADO LOCALMENTE (protótipo rotulado, por ponto) |
 | RQ-05 | Resultado orientar recuperação ou renovação, por decisão humana | OBSERVAÇÃO PÚBLICA (FC-05) + INSTITUCIONAL | ESPECIFICADO |
 | RQ-06 | Modelo com as 20 entidades do §7 | INSTITUCIONAL | TESTADO LOCALMENTE |
 | RQ-07 | Nunca confundir área de interesse, imóvel, cadastro, ocupante, autor, responsável e conclusão jurídica | INSTITUCIONAL | TESTADO LOCALMENTE (`test_fronteira_juridica.py`) |
@@ -43,12 +43,12 @@ Níveis atualizados ao fim de cada fase.
 
 | ID | Requisito | Proveniência | Nível |
 |---|---|---|---|
-| RQ-30 | Motor de protocolo versionado, com entradas brutas, unidades, explicação de regras e reprodução histórica | INSTITUCIONAL | ESPECIFICADO |
-| RQ-31 | Protótipo rotulado "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA" | INSTITUCIONAL | ESPECIFICADO |
+| RQ-30 | Motor de protocolo versionado, com entradas brutas, unidades, explicação de regras e reprodução histórica | INSTITUCIONAL | TESTADO LOCALMENTE |
+| RQ-31 | Protótipo rotulado "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA" | INSTITUCIONAL | TESTADO LOCALMENTE |
 | RQ-32 | Parâmetros de penetrometria (profundidade, repetições) | PENDENTE (LA-04) | ESPECIFICADO |
 | RQ-33 | Não automatizar autoria, ilicitude, dano jurídico, responsabilidade, nexo causal | INSTITUCIONAL | TESTADO LOCALMENTE (ausência de campos) |
-| RQ-34 | Relatório reproduzível e versionado em HTML e PDF | INSTITUCIONAL | ESPECIFICADO |
-| RQ-35 | Evidência com original, hash, data, autoria, vínculo a observação e ponto | INSTITUCIONAL | TESTADO LOCALMENTE (modelo, hash e validação; armazenamento do arquivo na Fase 3) |
+| RQ-34 | Relatório reproduzível e versionado em HTML e PDF | INSTITUCIONAL | TESTADO LOCALMENTE |
+| RQ-35 | Evidência com original, hash, data, autoria, vínculo a observação e ponto | INSTITUCIONAL | TESTADO LOCALMENTE |
 
 ## Segurança
 
@@ -75,14 +75,14 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | ID | Requisito | Proveniência | Nível |
 |---|---|---|---|
 | RQ-60 | Escopo do módulo alinhado à Linha de Atuação em Solos Degradados, vigência 2026/2028 (art. 16) | INSTITUCIONAL | ESPECIFICADO |
-| RQ-61 | Registrar a Peça de Informação Técnica do CAOMA/NIMA como origem de alerta ou demanda, com referência ao documento (art. 17, caput) | INSTITUCIONAL | ESPECIFICADO |
-| RQ-62 | Registrar a prioridade atribuída por pessoa, indicando o critério do art. 17 (I a IV) invocado e o motivo; o sistema não atribui prioridade sozinho | INSTITUCIONAL + AUTORAL | ESPECIFICADO |
+| RQ-61 | Registrar a Peça de Informação Técnica do CAOMA/NIMA como origem de alerta ou demanda, com referência ao documento (art. 17, caput) | INSTITUCIONAL | TESTADO LOCALMENTE |
+| RQ-62 | Registrar a prioridade atribuída por pessoa, indicando o critério do art. 17 (I a IV) invocado e o motivo; o sistema não atribui prioridade sozinho | INSTITUCIONAL + AUTORAL | TESTADO LOCALMENTE (registro humano do critério) |
 | RQ-63 | Critério I (erosão ativa de grande porte, especialmente voçorocas, nas regiões indicadas, com risco a curso d'água perene ou rodovia pública): o sistema registra voçorocas observadas e cruzamentos com camadas autorizadas (regiões, hidrografia, rodovias) como indícios; o "risco comprovado" é juízo técnico humano | INSTITUCIONAL + PENDENTE (camadas e critério de risco, LA-09) | ESPECIFICADO |
 | RQ-64 | Critério II (pastagem degradada atestada pelo CAOMA/NIMA com impacto supramunicipal): cruzamento com camadas de municípios e bacias como indício; a atestação é registro de origem externa | INSTITUCIONAL + PENDENTE (camadas autorizadas, LA-09) | ESPECIFICADO |
 | RQ-65 | Critério III (acima de 1.000 ha e mais de 40% em degradação severa): **não implementado**; depende de protocolo científico validado para "degradação severa" (LA-08). A área de referência, quando houver, vem de área de interesse ou cruzamento informado por pessoa, nunca de cadastro de imóvel | INSTITUCIONAL + **PENDENTE** | ESPECIFICADO |
-| RQ-66 | Critério IV (casos encaminhados por Promotorias, com anuência do Promotor Natural, ligados a mineração de grande escala): registrar o encaminhamento como origem e a anuência como providência humana | INSTITUCIONAL | ESPECIFICADO |
+| RQ-66 | Critério IV (casos encaminhados por Promotorias, com anuência do Promotor Natural, ligados a mineração de grande escala): registrar o encaminhamento como origem e a anuência como providência humana | INSTITUCIONAL | IMPLEMENTADO LOCALMENTE (origem do alerta; anuência como providência) |
 | RQ-67 | Dados do GAEMA SD exportáveis em formato aberto para eventual uso no Painel do art. 18; nenhuma integração declarada sem ambiente real | INSTITUCIONAL + PENDENTE (LA-10) | ESPECIFICADO |
-| RQ-68 | Apoio à capacitação (art. 18, parágrafo único): guia de uso e cenário sintético de treinamento | INSTITUCIONAL + AUTORAL | ESPECIFICADO |
-| RQ-69 | Diagnóstico de solo auditável e indicadores de avanço de PRAD aferidos semestralmente (art. 19, I): relatório reproduzível com trilha de auditoria e marcos de monitoramento com periodicidade configurável | INSTITUCIONAL | ESPECIFICADO |
+| RQ-68 | Apoio à capacitação (art. 18, parágrafo único): guia de uso e cenário sintético de treinamento | INSTITUCIONAL + AUTORAL | IMPLEMENTADO LOCALMENTE (cenário de demonstração `scripts/demo.sh`; guia de uso pendente) |
+| RQ-69 | Diagnóstico de solo auditável e indicadores de avanço de PRAD aferidos semestralmente (art. 19, I): relatório reproduzível com trilha de auditoria e marcos de monitoramento com periodicidade configurável | INSTITUCIONAL | IMPLEMENTADO LOCALMENTE (relatório auditável e marcos; aferição semestral é decisão humana) |
 | RQ-70 | Recomendações, comunicações a instituições financeiras e ações judiciais (art. 19, II a IV) são providências humanas registradas como `Providencia`; o sistema não gera minuta nem conclusão. Compartilhar dados com terceiros exige base legal e exportação controlada | INSTITUCIONAL + PENDENTE (base legal do compartilhamento) | ESPECIFICADO |
 | RQ-71 | Relatórios agregados de atividade para os marcos de out./2026 (relatório prévio à PGJ) e mar./2027 (relatório consolidado ao CPJ), e acompanhamento dos marcos do art. 20 | INSTITUCIONAL | ESPECIFICADO |

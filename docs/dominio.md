@@ -560,7 +560,7 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 
 **Validações.** Obrigatórios da tabela acima, mais: Tipo real pela assinatura (JPEG/PNG/PDF), tamanho, SHA-256; coordenada declarada completa. Hash não é prova material absoluta; EXIF/GPS são declarações do dispositivo.
 
-**Atualização.** **Imutável.** Correção gera nova Evidencia com `substitui_evidencia_id`.
+**Atualização.** **Imutável.** Arquivo original guardado por `Nucleo.registrar_evidencia`, endereçado pelo hash e nunca sobrescrito; integridade conferível. Correção gera nova Evidencia com `substitui_evidencia_id`.
 
 **Retenção.** PENDENTE (LA-06): depende de norma interna do MPTO. Proposta AUTORAL provisória: não excluir; inativar com motivo auditado.
 
@@ -619,7 +619,7 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 
 **Relações.** Usada por CampanhaVistoria, Diagnostico e Relatorio.
 
-**Validações.** Obrigatórios da tabela acima, mais: Versão semântica; hash da definição; protótipo exige o rótulo exato "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA"; modo validado exige referência documental.
+**Validações.** Obrigatórios da tabela acima, mais: Versão semântica; hash confere com a definição; definição válida (só presença/ausência); protótipo exige o rótulo exato "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA"; modo validado exige referência documental.
 
 **Atualização.** **Imutável.** Mudança gera nova versão; diagnósticos antigos continuam reproduzíveis.
 
@@ -679,9 +679,9 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 
 **Relações.** 1 Demanda, 1 CampanhaVistoria, 1 VersaoProtocolo; 0..n RevisaoTecnica.
 
-**Validações.** Obrigatórios da tabela acima, mais: Hashes de protocolo e entradas; limitações obrigatórias; categoria exige rótulo de validade.
+**Validações.** Obrigatórios da tabela acima, mais: Hashes de protocolo e entradas; o hash confere com a fotografia gravada das entradas; limitações obrigatórias; categoria exige rótulo de validade.
 
-**Atualização.** Recomputação gera novo Diagnostico (`substitui_diagnostico_id`).
+**Atualização.** **Imutável e gravado só pelo motor** (`Nucleo.computar_diagnostico`). Guarda a fotografia das entradas e o resultado completo, para reprodução. Recomputação gera novo Diagnostico (`substitui_diagnostico_id`).
 
 **Retenção.** PENDENTE (LA-06): depende de norma interna do MPTO. Proposta AUTORAL provisória: não excluir; inativar com motivo auditado.
 
@@ -815,7 +815,7 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 
 ## Relatorio
 
-**Finalidade.** Documento reproduzível emitido (HTML/PDF na Fase 3).
+**Finalidade.** Documento reproduzível emitido em HTML ou PDF por `Nucleo.emitir_relatorio`, só após revisão técnica aprovada.
 
 **Sensibilidade.** RESTRITA
 
