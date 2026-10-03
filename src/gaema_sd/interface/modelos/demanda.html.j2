@@ -1,0 +1,86 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Demanda{% endblock %}
+{% block conteudo %}
+<h1>{{ d.titulo }}</h1>
+<p class="hash">Identificador: {{ d.id }}</p>
+
+<h2>Situação</h2>
+<p><strong>{{ d.estado.value }}</strong> — {{ descricao_estado(d.estado.value) }}.
+  {% if d.estado_anterior %}Situação anterior: {{ d.estado_anterior.value }}.{% endif %}</p>
+<p>Critério de priorização (escolhido por pessoa; o sistema não calcula): <strong>{{ d.criterio_priorizacao.value if d.criterio_priorizacao else "não registrado" }}</strong>{% if d.motivo_priorizacao %} — {{ d.motivo_priorizacao }}{% endif %}</p>
+
+<h2>Resumo</h2>
+<table>
+  <caption>Dados registrados</caption>
+  <tbody>
+    <tr><th scope="row">Campanhas</th><td>{{ resumo.campanhas }}</td></tr>
+    <tr><th scope="row">Pontos amostrais</th><td>{{ resumo.pontos }}</td></tr>
+    <tr><th scope="row">Observações</th><td>{{ resumo.observacoes }}</td></tr>
+    <tr><th scope="row">Medições de penetração</th><td>{{ resumo.medicoes_penetracao }}</td></tr>
+    <tr><th scope="row">Evidências (fotos e documentos)</th><td>{{ resumo.evidencias }}</td></tr>
+    <tr><th scope="row">Diagnóstico</th><td>{% if resumo.diagnostico %}{{ resumo.diagnostico.rotulo_validade }}<br><span class="discreto">Categorias: {{ resumo.diagnostico.categoria_descritiva or "—" }}</span>{% else %}ainda não computado{% endif %}</td></tr>
+  </tbody>
+</table>
+
+<h2>Mover a demanda no fluxo</h2>
+{% if transicoes %}
+<table>
+  <caption>Próximas situações possíveis</caption>
+  <thead><tr><th scope="col">Para</th><th scope="col">Quem pode</th><th scope="col">Agora</th></tr></thead>
+  <tbody>
+  {% for t in transicoes %}
+    <tr>
+      <th scope="row">{{ t.destino }}<br><span class="discreto">{{ descricao_estado(t.destino) }}</span></th>
+      <td>{{ t.papeis|join(", ") }}</td>
+      <td>
+      {% if t.disponivel %}
+        <form method="post" action="/demanda/{{ d.id }}/transitar">
+          <input type="hidden" name="csrf" value="{{ sessao.csrf }}"><input type="hidden" name="destino" value="{{ t.destino }}">
+          {% if t.exige_motivo %}<label for="motivo-{{ t.destino }}">Motivo (mínimo 10 caracteres)</label>
+          <input type="text" id="motivo-{{ t.destino }}" name="motivo" required minlength="10">{% endif %}
+          <button type="submit">Mover para {{ t.destino }}</button>
+        </form>
+      {% else %}
+        <span>Indisponível para você agora.</span><br><span class="discreto">{{ t.bloqueio }}</span>
+      {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p>Não há situações seguintes a partir desta.</p>{% endif %}
+
+<h2>Relatórios</h2>
+{% if relatorios %}
+<table>
+  <caption>Relatórios emitidos (versões anteriores preservadas)</caption>
+  <thead><tr><th scope="col">Formato</th><th scope="col">Versão</th><th scope="col">Emitido em</th><th scope="col">Código de conferência</th><th scope="col">Abrir</th></tr></thead>
+  <tbody>{% for r in relatorios %}
+    <tr><td>{{ r.formato.value }}</td><td>{{ r.numero_versao }}</td><td>{{ r.gerado_em.isoformat() }}</td><td class="hash">{{ r.hash_conteudo }}</td>
+        <td><a href="/relatorio/{{ r.id }}">abrir versão {{ r.numero_versao }} ({{ r.formato.value }})</a></td></tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}<p>Nenhum relatório emitido.</p>{% endif %}
+{% if pode_emitir %}
+<form method="post" action="/demanda/{{ d.id }}/relatorio">
+  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <label for="formato">Formato</label>
+  <select id="formato" name="formato">{% for f in formatos %}<option value="{{ f }}">{{ f }}</option>{% endfor %}</select>
+  <label for="motivo-relatorio">Motivo da reemissão (obrigatório a partir da segunda versão; mínimo 10 caracteres)</label>
+  <input type="text" id="motivo-relatorio" name="motivo">
+  <button type="submit">Emitir relatório</button>
+</form>
+{% endif %}
+
+<h2>Histórico desta demanda</h2>
+{% if historico %}
+<table>
+  <caption>Últimos eventos da trilha de auditoria</caption>
+  <thead><tr><th scope="col">Quando</th><th scope="col">Ação</th><th scope="col">Usuário</th><th scope="col">De → para</th><th scope="col">Motivo</th></tr></thead>
+  <tbody>{% for e in historico|reverse %}
+    <tr><td>{{ e.ocorrido_em.isoformat() }}</td><td>{{ e.acao }}</td><td>{{ e.ator_id }}</td>
+        <td>{{ e.estado_origem or "—" }} → {{ e.estado_destino or "—" }}</td><td>{{ e.motivo or "—" }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}<p>Sem eventos.</p>{% endif %}
+{% endblock %}

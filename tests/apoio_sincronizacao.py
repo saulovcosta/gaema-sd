@@ -44,7 +44,7 @@ class Ambiente:
 
     def abrir_dispositivo(self):
         self.repo_disp = Repositorio(self.banco_dispositivo)
-        self.disp = Dispositivo(Nucleo(self.repo_disp, self.tmp / "dispositivo"), self.a["tecnico"])
+        self.disp = Dispositivo(Nucleo(self.repo_disp, self.tmp / "dispositivo", modo="dispositivo"), self.a["tecnico"])
         self.sinc = Sincronizador(self.disp, self.canal, tentativas_maximas=3, espera_inicial_s=2.0,
                                   esperar=self.esperas.append)
 

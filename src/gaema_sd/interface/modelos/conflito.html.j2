@@ -1,0 +1,31 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Conflito{% endblock %}
+{% block conteudo %}
+<h1>Conflito de sincronização</h1>
+<p>Registro: <strong>{{ c.tipo }}</strong> <span class="hash">{{ c.entidade_id }}</span><br>
+   Situação: <strong>{{ c.situacao }}</strong>{% if c.decisao %} — decisão: {{ c.decisao }}{% endif %}<br>
+   Versão que o aparelho conhecia: {{ c.versao_base }}; versão da central quando o conflito foi aberto: {{ c.versao_central }};
+   versão atual da central: {{ c.versao_atual_central if c.versao_atual_central is not none else "—" }}.</p>
+{% if c.campos %}
+<table>
+  <caption>O que difere entre as duas versões</caption>
+  <thead><tr><th scope="col">Campo</th><th scope="col">Central</th><th scope="col">Aparelho</th></tr></thead>
+  <tbody>{% for f in c.campos %}<tr><th scope="row">{{ f.campo }}</th><td>{{ f.central }}</td><td>{{ f.aparelho }}</td></tr>{% endfor %}</tbody>
+</table>
+{% else %}<p>Não há diferença de conteúdo nos campos exibidos.</p>{% endif %}
+{% if c.situacao == "ABERTO" %}
+<form method="post" action="/conflitos/{{ c.id }}/resolver">
+  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <label for="decisao">Decisão</label>
+  <select id="decisao" name="decisao">
+    <option value="MANTER_CENTRAL">Manter a versão da central (descarta o efeito da versão do aparelho; ela fica guardada)</option>
+    {% if c.aceitar_possivel %}<option value="ACEITAR_DISPOSITIVO">Aceitar a versão do aparelho (vira a versão corrente da central)</option>{% endif %}
+  </select>
+  {% if not c.aceitar_possivel %}<p class="discreto">“Aceitar o aparelho” não está disponível: o registro mudou na central depois do conflito, ou é uma evidência (imutável), ou tem outro identificador.</p>{% endif %}
+  <label for="motivo">Motivo (mínimo 10 caracteres; não escreva dados pessoais)</label>
+  <input type="text" id="motivo" name="motivo" required minlength="10">
+  <button type="submit">Registrar decisão</button>
+</form>
+{% endif %}
+<p><a href="/conflitos">Voltar à lista</a></p>
+{% endblock %}

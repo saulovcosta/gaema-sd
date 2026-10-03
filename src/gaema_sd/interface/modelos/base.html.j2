@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}GAEMA SD{% endblock %} — GAEMA SD (protótipo)</title>
+<style>
+  :root { --texto:#111; --fundo:#fff; --borda:#666; --destaque:#8a1c1c; --suave:#f2f2f2; --link:#0b3d91; --ok:#0f5c2e; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:var(--texto); background:var(--fundo);
+         max-width: 70rem; margin: 0 auto; padding: 1rem; line-height: 1.5; font-size: 1.05rem; }
+  a { color: var(--link); } a:visited { color: #4b2a8a; }
+  h1 { font-size: 1.6rem; } h2 { font-size: 1.25rem; border-bottom: 2px solid var(--borda); margin-top: 2rem; }
+  table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem; font-size: .96rem; }
+  caption { text-align: left; font-weight: 600; padding: .25rem 0; }
+  th, td { border: 1px solid var(--borda); padding: .4rem .55rem; text-align: left; vertical-align: top; }
+  th { background: var(--suave); }
+  .faixa { border: 3px solid var(--destaque); color: var(--destaque); font-weight: 700; padding: .5rem .8rem; margin: 0 0 1rem; }
+  .aviso-ok { border-left: 6px solid var(--ok); background: var(--suave); padding: .6rem .8rem; margin: .8rem 0; }
+  .aviso-erro { border-left: 6px solid var(--destaque); background: var(--suave); padding: .6rem .8rem; margin: .8rem 0; }
+  nav ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin: .5rem 0 1rem; }
+  label { display: block; font-weight: 600; margin-top: .6rem; }
+  input[type=text], select, textarea { width: 100%; max-width: 40rem; padding: .45rem; font: inherit; border: 2px solid var(--borda); }
+  button { font: inherit; padding: .5rem 1rem; margin-top: .6rem; background: var(--link); color: #fff; border: 2px solid var(--link);
+           cursor: pointer; }
+  button.secundario { background: #fff; color: var(--link); }
+  .pular { position: absolute; left: -999px; top: 0; background: var(--fundo); color: var(--texto); padding: .5rem; border: 2px solid var(--texto); }
+  .pular:focus { left: .5rem; z-index: 1; }
+  :focus-visible { outline: 3px solid var(--texto); outline-offset: 2px; }
+  .hash { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; word-break: break-all; }
+  .discreto { color: #444; font-size: .92rem; }
+  form.linha { margin: 0; }
+  .usuario { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 1rem; }
+  .usuario button { margin-top: 0; }
+  @media print { .pular, nav { display: none; } }
+</style>
+</head>
+<body>
+<a class="pular" href="#principal">Ir para o conteúdo</a>
+<header>
+  <p class="faixa" role="note">PROTÓTIPO COM DADOS SINTÉTICOS — sem validade científica ou jurídica. Sem autenticação real: você escolhe um usuário de teste. Não integrado ao ArcGIS, ao Radar Ambiental nem a sistema do MPTO.</p>
+  <p><strong>GAEMA SD</strong> — operação local</p>
+  {% if ator %}
+  <div class="usuario"><span>Usuário de teste: <strong>{{ ator.id }}</strong> ({{ rotulo_papel(ator) }})</span>
+    <form method="post" action="/sair" class="linha">
+      <input type="hidden" name="csrf" value="{{ sessao.csrf }}"><button type="submit" class="secundario">Sair</button></form></div>
+  <nav aria-label="Navegação principal"><ul>
+    <li><a href="/painel">Painel</a></li>
+    {% if permissoes.RESOLVER_CONFLITO_SINCRONIZACAO %}<li><a href="/conflitos">Conflitos de sincronização</a></li>{% endif %}
+    {% if permissoes.VERIFICAR_AUDITORIA %}<li><a href="/auditoria">Auditoria</a></li>{% endif %}
+    {% if permissoes.EXPORTAR %}<li><a href="/exportar">Exportar</a></li>{% endif %}
+    {% if permissoes.GERIR_BACKUP %}<li><a href="/backup">Backup</a></li>{% endif %}
+    <li><a href="/ajuda">Ajuda e limites</a></li>
+  </ul></nav>
+  {% endif %}
+</header>
+<main id="principal">
+{% for nivel, texto in avisos %}
+  {% if nivel == "ok" %}<p class="aviso-ok" role="status">{{ texto }}</p>{% else %}<p class="aviso-erro" role="alert">{{ texto }}</p>{% endif %}
+{% endfor %}
+{% block conteudo %}{% endblock %}
+</main>
+<footer><p class="discreto">GAEMA SD — protótipo local. Esta tela só funciona neste computador (127.0.0.1) e não envia nada para fora.</p></footer>
+</body>
+</html>

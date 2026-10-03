@@ -32,7 +32,7 @@ SECOES = ["1. Identificação da demanda", "2. Objetivo", "3. Área e mapa", "4.
 @pytest.fixture
 def n(tmp_path):
     repo = Repositorio(":memory:")
-    yield Nucleo(repo, tmp_path)
+    yield Nucleo(repo, tmp_path, modo="livre")   # teste de unidade do arquivo de evidência, sem a cadeia de campo
     repo.fechar()
 
 

@@ -227,6 +227,17 @@ class Repositorio:
             raise RegistroNaoEncontrado(f"{cls.__name__} {id} não encontrado")
         return de_dict(cls, json.loads(linha[0]))
 
+    def achar_por_chave_ou_id(self, cls: type[T], id: str, chave: str = "") -> Optional[T]:
+        """Busca indexada (chave primária e índice único de idempotência), sem varrer a tabela."""
+        linha = None
+        if chave:
+            linha = self.con.execute("SELECT dados FROM registros WHERE tipo=? AND chave_idempotencia=?",
+                                     (cls.__name__, chave)).fetchone()
+        if linha is None:
+            linha = self.con.execute("SELECT dados FROM registros WHERE tipo=? AND id=?",
+                                     (cls.__name__, id)).fetchone()
+        return de_dict(cls, json.loads(linha[0])) if linha else None
+
     def listar(self, cls: type[T]) -> list[T]:
         linhas = self.con.execute("SELECT dados FROM registros WHERE tipo=? ORDER BY rowid",
                                   (cls.__name__,)).fetchall()
@@ -305,6 +316,18 @@ class Repositorio:
         if linha is None:
             raise RegistroNaoEncontrado(f"conflito de sincronização {id_} não encontrado")
         return dict(linha)
+
+    def listar_conflitos(self, *, apenas_abertos: bool = True) -> list[dict]:
+        self.con.row_factory = sqlite3.Row
+        try:
+            filtro = "WHERE situacao='ABERTO'" if apenas_abertos else ""
+            linhas = self.con.execute(
+                "SELECT id, tipo, entidade_id, demanda_id, versao_base, versao_central, enviado_por, situacao,"
+                f" decisao, criado_em, resolvido_em FROM conflitos_sincronizacao {filtro} ORDER BY criado_em, id"
+            ).fetchall()
+        finally:
+            self.con.row_factory = None
+        return [dict(l) for l in linhas]
 
     def conflitos_abertos(self, demanda_id: str | None = None) -> int:
         if demanda_id is None:

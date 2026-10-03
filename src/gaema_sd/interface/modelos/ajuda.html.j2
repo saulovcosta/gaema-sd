@@ -1,0 +1,20 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Ajuda e limites{% endblock %}
+{% block conteudo %}
+<h1>Ajuda e limites</h1>
+<h2>O que esta tela faz</h2>
+<ul>
+  <li>Mostra as demandas e a situação de cada uma, e permite mover a demanda no fluxo, com motivo, conforme o seu papel.</li>
+  <li>Emite e abre relatórios (a abertura confere o código de conferência registrado).</li>
+  <li>Mostra conflitos de sincronização e permite ao coordenador decidir.</li>
+  <li>Permite exportar o pacote em formato próprio, verificar a trilha de auditoria, gerar a âncora e criar/verificar backups (conforme o papel).</li>
+</ul>
+<h2>O que NÃO faz</h2>
+<ul>
+  <li>Não tem autenticação real, não coleta dados de campo (isso é do aparelho) e não cadastra demandas novas.</li>
+  <li>Não conclui autoria, ilicitude, dano jurídico, responsabilidade ou nexo causal: essas conclusões são sempre humanas.</li>
+  <li>Não está integrada ao ArcGIS, ao Radar Ambiental, ao Painel do art. 18 nem a sistema do MPTO.</li>
+  <li>Não foi testada com leitor de tela nem com pessoas usuárias (verificações automáticas de acessibilidade apenas).</li>
+</ul>
+<p>Guia completo: <code>docs/guia-capacitacao.md</code>. Pendências: <code>docs/pendencias.md</code>.</p>
+{% endblock %}

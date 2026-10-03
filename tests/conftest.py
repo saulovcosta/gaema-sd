@@ -31,5 +31,5 @@ def cenario():
 @pytest.fixture
 def nucleo(tmp_path):
     repo = Repositorio(":memory:")
-    yield Nucleo(repo, tmp_path)
+    yield Nucleo(repo, tmp_path, modo="livre")   # testes de unidade sem a cadeia demanda→equipe→campanha
     repo.fechar()

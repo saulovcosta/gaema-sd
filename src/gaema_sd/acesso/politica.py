@@ -47,6 +47,7 @@ class Acao(str, Enum):
     VERIFICAR_AUDITORIA = "VERIFICAR_AUDITORIA"
     SINCRONIZAR = "SINCRONIZAR"
     RESOLVER_CONFLITO_SINCRONIZACAO = "RESOLVER_CONFLITO_SINCRONIZACAO"
+    GERIR_BACKUP = "GERIR_BACKUP"
 
 
 P = Papel
@@ -74,6 +75,7 @@ MATRIZ: dict[Acao, frozenset[Papel]] = {
     Acao.VERIFICAR_AUDITORIA: frozenset({P.AUDITOR, P.ADMINISTRADOR}),
     Acao.SINCRONIZAR: frozenset({P.TECNICO_CAMPO}),  # o dispositivo envia como o técnico dono dele
     Acao.RESOLVER_CONFLITO_SINCRONIZACAO: frozenset({P.COORDENADOR}),
+    Acao.GERIR_BACKUP: frozenset({P.ADMINISTRADOR}),
 }
 
 

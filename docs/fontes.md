@@ -18,6 +18,7 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | F9 | Field Maps, sincronização | https://doc.arcgis.com/en/field-maps/android/use-maps/sync.htm | ABRIU | Camada hospedada: "the last edit synced is preserved"; dados versionados: conflito resolvido por reconcile/post do administrador |
 | F10 / F12 | Vídeo "Video Tutorial Projeto SIPADE" | https://www.youtube.com/watch?v=NtxHv9Dzgzk | **ABRIU (via cópia do usuário)** | Canal "Mauro Borges França" (homônimo de coautor de F2; identidade não confirmada). Analisado em 03/10/2026 a partir de cópia MP4 compartilhada pelo usuário: telas e diagramas de processo. Achados em `docs/sipade-videos.md` |
 | F13 | Portaria GAEMA nº 001/2026 (Coordenação do CAOMA/GAEMA, 15/09/2026) | Documento fornecido pelo usuário (PDF, 13 p.); **não** copiado para o repositório | ABRIU | Cap. V, arts. 16 a 20: institui a Linha de Atuação em Solos Degradados e o Plano de Trabalho do GAEMA SD 2026/2028 (gatilhos de intervenção, Painel de Monitoramento, instrumentos, cronograma). Os demais capítulos tratam de outras frentes e não foram incorporados. Registro sem nomes, números de procedimento ou dados pessoais |
+| F14 | Página pública do Radar Ambiental (CAOMA/MPTO) | https://www.mpto.mp.br/caop-do-meio-ambiente/radar-ambiental/ | ABRIU (03/10/2026, por `curl` pelo proxy do ambiente; o leitor de páginas do assistente recebeu 403 do site) | OBSERVAÇÃO PÚBLICA: ver FC-20 a FC-24 |
 
 ## 2. Matriz da Fase 1
 
@@ -46,6 +47,11 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | FC-17 | Painel de Monitoramento de Pastagens Degradadas, no Radar Ambiental do aplicativo MPTO Cidadão, desenvolvido a partir da customização da plataforma SIPADE/ABRAMPA, é o instrumento primário de identificação de alvos, geração de evidências e subsídio probatório (art. 18); capacitação coordenada com o CAOMA (art. 18, parágrafo único) | F13 |
 | FC-18 | Instrumentos: IC e TAC com PRAD, diagnóstico de solo auditável e indicadores de avanço aferidos semestralmente pelo CAOMA; recomendações ao órgão ambiental estadual; articulação com instituições financeiras do crédito rural; ACP; demais da Resolução CPJ nº 009/2022 (art. 19) | F13 |
 | FC-19 | Cronograma (art. 20): capacitação na plataforma até o 2º sem./2026; primeiras Peças de Informação Técnica, notificações administrativas nos casos prioritários até o 1º sem./2027; primeiros TACs com PRAD até o 2º sem./2027; relatório prévio à PGJ em out./2026; relatório consolidado ao CPJ em mar./2027 | F13 |
+| FC-20 | A página descreve o Radar Ambiental como ferramenta de livre acesso, a todos os cidadãos, a estatísticas atualizadas em tempo real sobre queimadas, desmatamentos e destinação de resíduos sólidos no Tocantins | F14 (OBSERVAÇÃO PÚBLICA) |
+| FC-21 | A página diz que proprietários rurais também podem consultar, na plataforma, as apurações ambientais realizadas pelo MPTO | F14 |
+| FC-22 | A página diz que o Radar "é composto por três paineis" e pode ser acessado no Portal do MPTO e no aplicativo MPTO Cidadão; ela lista quatro painéis (Queimadas, Gestão dos Resíduos Sólidos, Desmatamento, Bacia do Rio Formoso), além do título "Contra Fogo" | F14 |
+| FC-23 | Os links dos painéis listados apontam para ArcGIS StoryMaps (`storymaps.arcgis.com`) | F14 |
+| FC-24 | **Ausências:** o Painel de Monitoramento de Pastagens Degradadas não aparece na página em 03/10/2026; a página não informa API, exportação, documentação técnica, quem opera o Radar, quais camadas usa nem se há organização ArcGIS própria | F14 |
 
 ### 2.2 INFERÊNCIAS (raciocínio próprio, não fato)
 
@@ -57,6 +63,9 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | IN-05 | "GAEMA SD" tem dois sentidos: na Portaria, é a frente de atuação de Promotores de Justiça; neste repositório, é o nome provisório do módulo de software | F13 |
 | IN-06 | O Painel do art. 18 nasce da customização da plataforma SIPADE/ABRAMPA; este repositório continua sendo implementação independente, e a relação entre ambos depende de decisão institucional | F13, DEC-001 |
 | IN-07 | Os critérios do art. 17 orientam a priorização humana a partir de Peças de Informação Técnica; o software pode organizar indícios e indicadores, mas não deflagra intervenção | F13, DEC-006 |
+| IN-08 | Os painéis públicos do Radar são publicados como ArcGIS StoryMaps; é provável que o MPTO use ArcGIS Online, mas isso não dá acesso, nem prova Client ID, serviços ou camadas utilizáveis (LA-05 continua aberta) | FC-23 |
+| IN-09 | Como o Radar é público e proprietários rurais consultam apurações, dado enviado a um painel pode ficar visível a terceiros; reforça LA-06 e RQ-70 e a decisão de exportar sem geometria, texto livre nem pessoas | FC-20, FC-21 |
+| IN-10 | Que o painel de pastagens do art. 18 não conste da página pública pode significar que ainda não foi publicado ou que tem acesso restrito; não há como saber pela página | FC-24 |
 | IN-04 | O cenário 4 do SIPADE menciona "dano ambiental"; no GAEMA SD essa expressão não pode ser saída automática, porque dano jurídico é conclusão humana | FC-04, prompt §11 |
 
 ### 2.3 LACUNAS
@@ -71,7 +80,7 @@ Regra: fonte que não abriu é LACUNA. Lacuna não é preenchida com suposição
 | LA-06 | Normas internas de retenção documental e de classificação de sigilo do MPTO | Retenção marcada PENDENTE em `docs/dominio.md` |
 | LA-08 | Critério técnico de "degradação severa" da plataforma SIPADE (art. 17, III) não é público | Gatilho de 40% fica PENDENTE de protocolo científico validado; o sistema não o calcula nem o sinaliza |
 | LA-09 | Operacionalização de "risco comprovado de assoreamento", "impacto supramunicipal" e dos recortes Serras Gerais, Jalapão e MATOPIBA (art. 17, I e II) | Dependem de camadas oficiais autorizadas e de juízo técnico humano |
-| LA-10 | Arquitetura, acesso e dados do Painel do art. 18 | Nenhuma integração declarada |
+| LA-10 | Arquitetura, acesso e dados do Painel do art. 18 (a página pública do Radar não o lista: FC-24) | Nenhuma integração declarada |
 | LA-07 | Autorização formal de uso de SICAR, MapBiomas, PRODES, DETER | Nenhuma ingestão real; só desenho do pipeline |
 
 ### 2.4 DECISÕES (detalhes em `docs/decisoes.md`)

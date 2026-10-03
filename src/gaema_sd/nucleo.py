@@ -18,11 +18,15 @@ from typing import TypeVar
 
 from .acesso.politica import Acao, Ator, exigir
 from .auditoria.trilha import TrilhaAuditoria, sanear_texto
+from .backup.ancora import conferir_ancora, gerar_ancora
+from .backup.backup import criar_backup as criar_backup_arquivos
+from .backup.backup import verificar_backup as verificar_backup_arquivos
 from .dominio import entidades as E
 from .dominio.enums import Estado, FormatoRelatorio, Papel, Sensibilidade, StatusSincronizacao
 from .dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
 from .erros import (
     AcessoNegado,
+    AuditoriaCorrompida,
     ConflitoAtualizacao,
     ConflitoIdempotencia,
     ErroGaema,
@@ -93,12 +97,20 @@ _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 ESTADOS_DE_COLETA = (Estado.EM_CAMPO, Estado.COLETA_PARCIAL, Estado.AGUARDANDO_SINCRONIZACAO,
                      Estado.CONFLITO_SINCRONIZACAO)
 
+# Papel da instalação. "central" confere origem, equipe e estado em TODA entrada de dado de campo (R-28); "dispositivo"
+# é o aparelho de campo (não tem a campanha, só grava local e enfileira); "livre" é só para testes e desenvolvimento.
+MODOS = ("central", "dispositivo", "livre")
+TIPOS_DE_CAMPO = tuple(TIPOS_SINCRONIZAVEIS.values())
+
 ESTADOS_COM_RELATORIO = (Estado.DIAGNOSTICO_EMITIDO, Estado.EM_TRATATIVA, Estado.EM_MONITORAMENTO,
                          Estado.ENCERRADA, Estado.REABERTA)
 
 
 class Nucleo:
-    def __init__(self, repo: Repositorio, diretorio_saida: str | Path = "saida"):
+    def __init__(self, repo: Repositorio, diretorio_saida: str | Path = "saida", *, modo: str = "central"):
+        if modo not in MODOS:
+            raise ErroGaema(f"modo {modo!r} desconhecido; use um de {MODOS}")
+        self.modo = modo
         self.repo = repo
         self.saida = Path(diretorio_saida)
         self.trilha = TrilhaAuditoria(ArmazenamentoAuditoriaSQLite(repo))
@@ -157,6 +169,10 @@ class Nucleo:
         preencher = {campo: ator.id} if campo and getattr(obj, campo) == "" else {}
         obj = dataclasses.replace(obj, criado_por=ator.id, **preencher)  # autoria vem do login
         try:
+            if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
+                demanda = self._contexto_de_coleta(ator, obj)
+                if self.repo.achar_por_chave_ou_id(type(obj), obj.id, getattr(obj, "chave_idempotencia", "")) is None:
+                    self._exigir_estado_de_coleta(demanda)   # reenvio idempotente continua valendo depois
             alertas = exigir_sem_erros(self._regras_de_criacao(ator, obj) + validar(obj))
             with self.repo.transacao():
                 gravado, criado = self.repo.inserir(obj)
@@ -170,6 +186,10 @@ class Nucleo:
             if any(p.codigo in ("ESTADO_INICIAL", "AUTORIA_DIVERGENTE") for p in e.problemas):
                 self._auditar_recusa(ator, "CRIACAO_RECUSADA", tipo, obj.id, e)
             raise
+        except ErroGaema as e:
+            if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
+                self._auditar_recusa(ator, "CRIACAO_RECUSADA", tipo, obj.id, e)
+            raise
         return gravado, alertas
 
     def atualizar(self, ator: Ator, obj: T, versao_lida: int) -> tuple[T, list[Problema]]:
@@ -177,6 +197,8 @@ class Nucleo:
         tipo = type(obj).__name__
         self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], tipo, obj.id)
         try:
+            if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
+                self._exigir_estado_de_coleta(self._contexto_de_coleta(ator, obj))
             with self.repo.transacao():
                 if isinstance(obj, IMUTAVEIS):
                     raise ErroGaema(f"{tipo} é imutável: registre nova versão vinculada à anterior")
@@ -446,6 +468,8 @@ class Nucleo:
         """Aplica um item vindo do dispositivo. Reenvio idêntico não duplica; versões divergentes
         não são sobrescritas: viram conflito (as duas versões ficam guardadas) e a Demanda vai a
         CONFLITO_SINCRONIZACAO quando estava aguardando sincronização."""
+        if self.modo != "central":
+            raise ErroGaema("só a instalação central recebe sincronização")
         self._exigir(ator, Acao.SINCRONIZAR, item.tipo, item.entidade_id)
         cls = TIPOS_SINCRONIZAVEIS.get(item.tipo)
         try:
@@ -506,10 +530,7 @@ class Nucleo:
                 else ResultadoSincronizacao.APLICADO)
 
     def _existente_por_chave_ou_id(self, cls, obj):
-        for r in self.repo.listar(cls):
-            if r.id == obj.id or (obj.chave_idempotencia and r.chave_idempotencia == obj.chave_idempotencia):
-                return r
-        return None
+        return self.repo.achar_por_chave_ou_id(cls, obj.id, obj.chave_idempotencia)
 
     @staticmethod
     def _conteudo_comparavel(registro) -> str:
@@ -653,6 +674,120 @@ class Nucleo:
                 "hash": hashlib.sha256(exportacao_painel.serializar(pacote)).hexdigest()})
         return pacote
 
+    # ------------------------------------------------------------ operação (usada pela interface local)
+
+    def listar(self, ator: Ator, cls: type[T]) -> list[T]:
+        """Lista registros de um tipo. Leitura restrita é auditada uma vez por listagem (não uma por registro)."""
+        restrito = cls.SENSIBILIDADE in (Sensibilidade.RESTRITA, Sensibilidade.SIGILOSA)
+        self._exigir(ator, Acao.LER_RESTRITO if restrito else Acao.LER, cls.__name__, "*")
+        itens = self.repo.listar(cls)
+        if restrito:
+            with self.repo.transacao():
+                self.trilha.registrar(ator, "LISTAGEM_RESTRITA", cls.__name__, "*", detalhes={"quantidade": len(itens)})
+        return itens
+
+    def transicoes_possiveis(self, ator: Ator, demanda_id: str) -> list[dict]:
+        """Para cada destino da situação atual: se este usuário pode agora e, se não, por quê. Não altera nada."""
+        self._exigir(ator, Acao.LER_RESTRITO, "Demanda", demanda_id)
+        d = self.repo.obter(E.Demanda, demanda_id)
+        contexto = montar_contexto(self.repo, d, ator, self.trilha.eventos)
+        saida = []
+        for destino in maquina.destinos_possiveis(d.estado):
+            t = maquina.TABELA[(d.estado, destino)]
+            item = {"destino": destino.value, "descricao": t.descricao, "exige_motivo": t.exige_motivo,
+                    "papeis": sorted(p.value for p in t.papeis), "disponivel": True, "bloqueio": ""}
+            try:
+                maquina.avaliar(d, destino, ator, "x" * maquina.MOTIVO_MINIMO, contexto)
+            except (AcessoNegado, TransicaoInvalida) as e:
+                item["disponivel"], item["bloqueio"] = False, sanear_texto(str(e))[:300]
+            saida.append(item)
+        return saida
+
+    def resumo_demanda(self, ator: Ator, demanda_id: str) -> dict:
+        """Contagens, rótulo de validade e relatórios de uma demanda (sem geometria nem pessoas)."""
+        self._exigir(ator, Acao.LER_RESTRITO, "Demanda", demanda_id)
+        pacote = exportacao_painel.montar_pacote(self.repo, gerado_por_papeis=[], gerado_em=datetime.now(timezone.utc),
+                                                 demanda_ids=[demanda_id])
+        if not pacote["demandas"]:
+            raise RegistroNaoEncontrado(f"Demanda {demanda_id} não encontrada")
+        return pacote["demandas"][0]
+
+    def historico_de(self, ator: Ator, entidade: str, entidade_id: str, limite: int = 30) -> list[E.EventoAuditoria]:
+        self._exigir(ator, Acao.LER, entidade, entidade_id)
+        return [e for e in self.trilha.eventos if e.entidade == entidade and e.entidade_id == entidade_id][-limite:]
+
+    def eventos_recentes(self, ator: Ator, limite: int = 30) -> list[E.EventoAuditoria]:
+        self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
+        return list(self.trilha.eventos)[-limite:]
+
+    def listar_conflitos(self, ator: Ator, *, apenas_abertos: bool = True) -> list[dict]:
+        self._exigir(ator, Acao.RESOLVER_CONFLITO_SINCRONIZACAO, "ConflitoSincronizacao", "*")
+        return self.repo.listar_conflitos(apenas_abertos=apenas_abertos)
+
+    def comparar_conflito(self, ator: Ator, conflito_id: str) -> dict:
+        """Campos que diferem entre a versão da central e a do aparelho, para o coordenador decidir."""
+        self._exigir(ator, Acao.RESOLVER_CONFLITO_SINCRONIZACAO, "ConflitoSincronizacao", conflito_id)
+        c = self.repo.obter_conflito(conflito_id)
+        cls = TIPOS_SINCRONIZAVEIS[c["tipo"]]
+        aparelho = json.loads(c["dados_dispositivo"])
+        try:
+            atual = self.repo.obter(cls, c["entidade_id"])
+        except RegistroNaoEncontrado:
+            atual = None
+        central = para_dict(atual) if atual else {}
+        ignorar = _META | {"id", "sintetico"}
+        campos = [{"campo": k, "central": str(central.get(k, "—"))[:300], "aparelho": str(aparelho.get(k, "—"))[:300]}
+                  for k in sorted(set(central) | set(aparelho)) if k not in ignorar and central.get(k) != aparelho.get(k)]
+        aceitar = (atual is not None and cls is not E.Evidencia and aparelho.get("id") == c["entidade_id"]
+                   and atual.versao == c["versao_central"])
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "LEITURA_RESTRITA", "ConflitoSincronizacao", conflito_id)
+        return {**{k: c[k] for k in ("id", "tipo", "entidade_id", "demanda_id", "versao_base", "versao_central",
+                                     "enviado_por", "situacao", "decisao", "criado_em")},
+                "versao_atual_central": atual.versao if atual else None, "campos": campos, "aceitar_possivel": aceitar}
+
+    def abrir_relatorio(self, ator: Ator, relatorio_id: str) -> tuple[bytes, E.Relatorio]:
+        """Devolve o arquivo do relatório SE ele ainda tem o hash registrado (nunca serve arquivo adulterado)."""
+        rel = self.ler(ator, E.Relatorio, relatorio_id)
+        pasta = (self.saida / "relatorios").resolve()
+        caminho = pasta / f"relatorio-{re.sub('[^0-9a-fA-F]', '', rel.demanda_id)[:8]}-v{rel.numero_versao}.{rel.formato.value.lower()}"
+        if caminho.resolve().parent != pasta or not caminho.is_file():
+            raise ErroGaema("arquivo do relatório não encontrado")
+        conteudo = caminho.read_bytes()
+        if hashlib.sha256(conteudo).hexdigest() != rel.hash_conteudo:
+            with self.repo.transacao():
+                self.trilha.registrar(ator, "RELATORIO_NAO_CONFERE", "Relatorio", rel.id)
+            raise ErroGaema("o arquivo do relatório não confere com o hash registrado; não será aberto")
+        return conteudo, rel
+
+    def _pasta_backups(self) -> Path:
+        return self.saida / "backups"
+
+    def listar_backups(self, ator: Ator) -> list[str]:
+        self._exigir(ator, Acao.GERIR_BACKUP, "Backup", "*")
+        pasta = self._pasta_backups()
+        return sorted(p.name for p in pasta.iterdir() if p.is_dir()) if pasta.is_dir() else []
+
+    def criar_backup(self, ator: Ator) -> dict:
+        """Backup lógico em `saida/backups/<data-hora>` (verificado ao criar). A guarda FORA da máquina é institucional."""
+        self._exigir(ator, Acao.GERIR_BACKUP, "Backup", "*")
+        nome = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        manifesto = criar_backup_arquivos(self.repo, self.saida, self._pasta_backups() / nome)
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "BACKUP_CRIADO", "Backup", nome,
+                                  detalhes={"arquivos": len(manifesto["arquivos"]),
+                                            "eventos_auditoria": manifesto["auditoria"]["eventos"]})
+        return {"nome": nome, "arquivos": len(manifesto["arquivos"]), "eventos": manifesto["auditoria"]["eventos"]}
+
+    def verificar_backup(self, ator: Ator, nome: str, ancora: dict | None = None) -> list[str]:
+        self._exigir(ator, Acao.GERIR_BACKUP, "Backup", nome)
+        if not re.fullmatch(r"\d{8}T\d{6}Z", nome or ""):
+            raise ErroGaema("nome de backup inválido")
+        problemas = verificar_backup_arquivos(self._pasta_backups() / nome, ancora)
+        with self.repo.transacao():
+            self.trilha.registrar(ator, "BACKUP_VERIFICADO", "Backup", nome, detalhes={"problemas": len(problemas)})
+        return problemas
+
     # ------------------------------------------------------------ leitura
 
     def ler(self, ator: Ator, cls: type[T], id: str) -> T:
@@ -664,6 +799,18 @@ class Nucleo:
                 self.trilha.registrar(ator, "LEITURA_RESTRITA", cls.__name__, id)
         return obj
 
-    def verificar_auditoria(self, ator: Ator) -> int:
+    def verificar_auditoria(self, ator: Ator, ancora: dict | None = None) -> int:
+        """Confere a cadeia da trilha. Com `ancora` (guardada fora do banco), confere também truncamento e reescrita."""
         self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
-        return self.trilha.verificar()
+        n = self.trilha.verificar()
+        if ancora is not None:
+            problemas = conferir_ancora(self.trilha.eventos, ancora)
+            if problemas:
+                raise AuditoriaCorrompida("; ".join(problemas))
+        return n
+
+    def gerar_ancora(self, ator: Ator) -> dict:
+        """Âncora da trilha atual, para guardar FORA do banco (ver backup/ancora.py). Não contém dados de registros."""
+        self._exigir(ator, Acao.VERIFICAR_AUDITORIA, "EventoAuditoria", "*")
+        self.trilha.verificar()
+        return gerar_ancora(self.trilha.eventos)

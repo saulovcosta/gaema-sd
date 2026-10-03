@@ -15,7 +15,7 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 | LA-07 | Institucional | Autorização formal de uso de SICAR, MapBiomas, PRODES, DETER | Nenhuma ingestão | Camadas de cruzamento (`CatalogoCamadas`) |
 | LA-08 | Científica | Critério técnico de "degradação severa" (art. 17, III); gatilho de 40% | Não calculado nem sinalizado | Apoio ao critério III |
 | LA-09 | Institucional | Como operacionalizar "risco comprovado de assoreamento", "impacto supramunicipal" e os recortes Serras Gerais, Jalapão e MATOPIBA (art. 17, I e II) | Priorização é registro humano | Apoio aos critérios I e II com camadas autorizadas |
-| LA-10 | Institucional | Arquitetura, acesso e dados do Painel do art. 18 | Pacote de exportação em formato próprio; nenhuma integração declarada | Formato de troca real e decisão entre complementar ou alimentar o Painel |
+| LA-10 | Institucional | Arquitetura, acesso e dados do Painel do art. 18 (a página pública do Radar, consultada em 03/10/2026, não o lista e não traz API, exportação nem documentação técnica; FC-24) | Pacote de exportação em formato próprio; nenhuma integração declarada | Formato de troca real e decisão entre complementar ou alimentar o Painel |
 
 ## 2. Outras pendências institucionais
 

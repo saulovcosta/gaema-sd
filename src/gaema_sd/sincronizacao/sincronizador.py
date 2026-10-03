@@ -44,6 +44,12 @@ class ResumoReconciliacao:
     motivo_interrupcao: str = ""
 
 
+@dataclass
+class ResumoRodada:
+    reconciliacao: ResumoReconciliacao
+    envio: ResumoSincronizacao
+
+
 class Sincronizador:
     def __init__(self, dispositivo: Dispositivo, canal: CanalSimulado, *, tentativas_maximas: int | None = None,
                  espera_inicial_s: float | None = None, esperar: Callable[[float], None] = time.sleep):
@@ -53,6 +59,14 @@ class Sincronizador:
         self.espera_inicial_s = espera_inicial_s if espera_inicial_s is not None \
             else parametro("sincronizacao_espera_inicial_s")
         self.esperar = esperar
+
+    def rodada(self) -> ResumoRodada:
+        """Uma passada completa do aparelho: primeiro busca as decisões de conflito já tomadas (assim o que ficou
+        retido é descartado ou reajustado), depois envia a fila. É isto que uma rotina periódica chamaria; aqui o
+        canal é simulado (não há rede real)."""
+        rec = self.reconciliar()
+        envio = self.executar()
+        return ResumoRodada(reconciliacao=rec, envio=envio)
 
     def executar(self) -> ResumoSincronizacao:
         resumo = ResumoSincronizacao()

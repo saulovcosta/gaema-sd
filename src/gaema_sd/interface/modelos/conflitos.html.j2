@@ -1,0 +1,18 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Conflitos de sincronização{% endblock %}
+{% block conteudo %}
+<h1>Conflitos de sincronização</h1>
+<p>Um conflito acontece quando o aparelho de campo e a central alteraram o mesmo registro. O sistema guarda as duas versões e espera a sua decisão.</p>
+{% if conflitos %}
+<table>
+  <caption>Conflitos (abertos e já decididos)</caption>
+  <thead><tr><th scope="col">Registro</th><th scope="col">Situação</th><th scope="col">Versões (base / central)</th><th scope="col">Enviado por</th><th scope="col">Ver</th></tr></thead>
+  <tbody>{% for c in conflitos %}
+    <tr><td>{{ c.tipo }}<br><span class="hash discreto">{{ c.entidade_id }}</span></td>
+        <td>{{ c.situacao }}{% if c.decisao %} — {{ c.decisao }}{% endif %}</td>
+        <td>{{ c.versao_base }} / {{ c.versao_central }}</td><td>{{ c.enviado_por or "não registrado" }}</td>
+        <td><a href="/conflitos/{{ c.id }}">abrir conflito</a></td></tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}<p>Nenhum conflito registrado.</p>{% endif %}
+{% endblock %}
