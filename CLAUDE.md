@@ -50,4 +50,5 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 - Histórico de registro para quem não tem `VERIFICAR_AUDITORIA`: só mudanças de situação, sem pessoa nem motivo.
 - Relatório: `relatorio/modelo.html.j2` imprime em A4; datas pelo filtro `data_br`, hashes pelo filtro `blocos` (`<data value=hash>`); manter `@page`, sem `style=`.
 - Acessibilidade da interface: axe-core e navegador automatizado cobrem só o automático; não declarar conformidade WCAG; leitor de tela e pessoas usuárias seguem NÃO EXECUTADOS.
+- Cabeçalho do relatório (DEC-027): logo `assets/logo-mpto-gaema.png` só no relatório (a interface mantém identidade própria); frase institucional só por `relatorio/institucional.py::linha_institucional`. Endosso só por `config/endosso.json` (vazio = sem endosso; parcial ou inválido = sem endosso); nunca escrever "endosso" sem a negativa enquanto o campo estiver vazio (`tests/test_relatorio_institucional.py`).
 

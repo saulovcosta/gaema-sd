@@ -7,7 +7,7 @@ from html import escape
 from shapely import wkt as shapely_wkt
 from shapely.errors import ShapelyError
 
-LARGURA, ALTURA, MARGEM = 480, 320, 24
+LARGURA, ALTURA, MARGEM = 640, 420, 28
 
 
 def projecao(geometria_wkt: str, pontos: list[dict]):
@@ -31,9 +31,12 @@ def projecao(geometria_wkt: str, pontos: list[dict]):
     minx, maxx, miny, maxy = min(xs), max(xs), min(ys), max(ys)
     dx, dy = (maxx - minx) or 1e-4, (maxy - miny) or 1e-4
     escala = min((LARGURA - 2 * MARGEM) / dx, (ALTURA - 2 * MARGEM) / dy)
+    folga_x = (LARGURA - 2 * MARGEM - dx * escala) / 2     # centraliza o desenho na moldura
+    folga_y = (ALTURA - 2 * MARGEM - dy * escala) / 2
 
     def projetar(lon: float, lat: float) -> tuple[float, float]:
-        return (round(MARGEM + (lon - minx) * escala, 2), round(ALTURA - MARGEM - (lat - miny) * escala, 2))
+        return (round(MARGEM + folga_x + (lon - minx) * escala, 2),
+                round(ALTURA - MARGEM - folga_y - (lat - miny) * escala, 2))
 
     return projetar, aneis
 
@@ -54,10 +57,10 @@ def svg(geometria_wkt: str, pontos: list[dict], titulo: str) -> str:
             partes.append(f'<polygon points="{pts}" fill="#e8f0e0" stroke="#2f5d1e" stroke-width="2"/>')
         for p in pontos:
             x, y = projetar(p["longitude"], p["latitude"])
-            partes.append(f'<circle cx="{x}" cy="{y}" r="5" fill="#8a1c1c"/>')
-            partes.append(f'<text x="{x + 8}" y="{y - 6}" font-size="12" font-family="sans-serif" '
+            partes.append(f'<circle cx="{x}" cy="{y}" r="6" fill="#8a1c1c"/>')
+            partes.append(f'<text x="{x + 8}" y="{y - 6}" font-size="14" font-family="sans-serif" '
                           f'fill="#111111">{escape(p["codigo"])}</text>')
-    partes.append(f'<text x="{MARGEM}" y="{ALTURA - 6}" font-size="10" font-family="sans-serif" fill="#333333">'
+    partes.append(f'<text x="{MARGEM}" y="{ALTURA - 6}" font-size="12" font-family="sans-serif" fill="#333333">'
                   'Esquema sem escala; norte para cima</text>')
     partes.append("</svg>")
     return "".join(partes)

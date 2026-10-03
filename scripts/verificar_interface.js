@@ -68,8 +68,8 @@ async function axe(page) {
 
 async function entrar(page, usuario) {
   await page.goto(BASE + "/entrar");
-  await page.check(`input[name=usuario][value=${usuario}]`);
-  await Promise.all([page.waitForURL("**/painel"), page.click("form[action='/entrar'] button[type=submit]")]);
+  await Promise.all([page.waitForURL("**/painel"),
+                     page.click(`form[action='/entrar']:has(input[name=usuario][value=${usuario}]) button[type=submit]`)]);
 }
 
 (async () => {

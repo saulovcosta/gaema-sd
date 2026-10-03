@@ -43,6 +43,7 @@ Quem aprova cada item, em que ambiente e em que data são decisões instituciona
 | H-F05 | Campo | Tela de operação para quem não programa | Protótipo avaliado por usuárias e usuários | README, RQ-91 | NÃO EXECUTADO (a interface local existe e foi verificada por testes e navegador automatizado; nenhuma pessoa usuária a avaliou) |
 | H-F06 | Acessibilidade | Interface local com verificação automática (axe-core WCAG 2.0/2.1/2.2 A e AA, 360 e 1280 px, claro e escuro, zoom 200%, ordem de Tab e foco visível) | `scripts/verificar_interface.js`, execução de 03/10/2026: 83 telas, 0 violações, 12 itens de contraste indecidíveis pela ferramenta (rótulos do mapa) conferidos por cálculo em `tests/test_interface.py` | RQ-92, RQ-93 | EXECUTADO LOCALMENTE (cobre só o automático; não é conformidade) |
 | H-F07 | Acessibilidade | Interface local com leitor de tela (NVDA, Orca ou TalkBack) e com pessoas usuárias em campo e no escritório | Relato do teste | RQ-96 | NÃO EXECUTADO |
+| H-I08 | Institucional | Ato de endosso do CAOMA e autorização de uso da marca do MPTO no relatório | Ato formal com número e data, registrado em `config/endosso.json` e em `docs/decisoes.md` | RQ-98, R-36 | PENDENTE |
 | H-S08 | Segurança | Revisão independente da Fase 6 por agente separado, com falhas reproduzidas, corrigidas e testes de regressão | `tests/test_regressao_fase6.py`, DEC-026 | R-30 | EXECUTADO LOCALMENTE (revisor foi um agente de IA; 15 achados) |
 
 ## Como usar

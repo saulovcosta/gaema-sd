@@ -14,7 +14,7 @@ def _html_v2(pasta):
 def test_impressao_em_a4_sem_corte_de_linha_de_tabela(modelo):
     t = _html_v2(modelo)
     assert "@page { size: A4;" in t
-    assert re.search(r"tr, figure, \.aviso, \.ficha \{ break-inside: avoid; \}", t)
+    assert re.search(r"tr, figure, \.aviso, \.ficha, table\.inteira \{ break-inside: avoid; \}", t)
     assert "thead { display: table-header-group; }" in t
 
 

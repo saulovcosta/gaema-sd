@@ -49,6 +49,10 @@
   .barra { display:flex; flex-wrap:wrap; align-items:center; gap:var(--e2) var(--e4); padding:var(--e3) 0; }
   .marca { font-weight:700; font-size:var(--t1); color:var(--marca); text-decoration:none; display:inline-flex; align-items:center; gap:var(--e2); min-height:44px; }
   .marca svg { width:1.5rem; height:1.5rem; }
+  .marca-sub { display:block; font-weight:400; font-size:var(--t-1); color:var(--texto-2); }
+  .papeis { list-style:none; padding:0; margin:0; display:grid; gap:var(--e3); grid-template-columns:repeat(auto-fill, minmax(16rem, 1fr)); }
+  .papeis button { width:100%; text-align:left; min-height:44px; }
+  .papeis .pode { margin:var(--e1) 0 0; font-size:var(--t-1); color:var(--texto-2); }
   .usuario { display:flex; flex-wrap:wrap; align-items:center; gap:var(--e2) var(--e3); margin-left:auto; }
   .chip { display:inline-flex; align-items:center; gap:var(--e1); background:var(--superficie-2); border:1px solid var(--borda);
           border-radius:999px; padding:var(--e1) var(--e3); font-size:var(--t-1); }
@@ -164,12 +168,12 @@
 {{ c.simbolos() }}
 <a class="pular" href="#principal">Ir para o conteúdo</a>
 <header class="topo">
-  <div class="faixa-prototipo" role="note"><div class="conteiner"><strong>PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA</strong> · Dados sintéticos · Sem autenticação real (escolhe-se um usuário de teste) · Não integrado ao ArcGIS, ao Radar Ambiental nem a sistema do MPTO</div></div>
+  <div class="faixa-prototipo" role="note"><div class="conteiner"><strong>PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA</strong> · DADOS SINTÉTICOS · SEM INTEGRAÇÃO COM ARCGIS, RADAR, PAINEL OU SISTEMAS DO MPTO</div></div>
   <div class="conteiner">
     <div class="barra">
-      <a class="marca" href="{{ '/painel' if ator else '/entrar' }}">{{ c.icone("marca") }}<span>GAEMA SD<span class="so-leitor"> — página inicial</span></span></a>
+      <a class="marca" href="{{ '/painel' if ator else '/entrar' }}">{{ c.icone("marca") }}<span>GAEMA SD <span class="marca-sub">Linha de Atuação em Solos Degradados</span><span class="so-leitor"> — página inicial</span></span></a>
       <div class="usuario">
-        {% if ator %}<span class="chip">{{ c.icone("pessoa") }}<span>{{ L.papeis(ator.papeis) }} · {{ ator.id }}</span></span>{% endif %}
+        {% if ator %}<span class="chip" title="Papel escolhido para teste; não há autenticação real">{{ c.icone("pessoa") }}<span>Papel em teste: {{ L.papeis(ator.papeis) }}<span class="so-leitor"> (sem autenticação real; usuário {{ ator.id }})</span></span></span>{% endif %}
         <form method="post" action="/tema" class="em-linha">
           <input type="hidden" name="csrf" value="{{ sessao.csrf if sessao else '' }}">
           <label for="tema">Tema</label>

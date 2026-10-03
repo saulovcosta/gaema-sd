@@ -8,6 +8,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from markupsafe import Markup, escape
 
+from .institucional import LOGO_ALT, logo_data_uri
 from .mapa import svg
 
 _AMBIENTE = Environment(loader=FileSystemLoader(str(Path(__file__).parent)), autoescape=True,
@@ -48,5 +49,6 @@ _AMBIENTE.filters.update(data_br=data_br, blocos=blocos)
 
 def renderizar(dados: dict) -> bytes:
     mapa = Markup(svg(dados["area"]["geometria_wkt"], dados["pontos"], "Mapa esquemático da área"))  # já escapado
-    texto = _AMBIENTE.get_template("modelo.html.j2").render(d=dados, mapa_svg=mapa)
+    texto = _AMBIENTE.get_template("modelo.html.j2").render(d=dados, mapa_svg=mapa, logo=logo_data_uri(),
+                                                           logo_alt=LOGO_ALT)
     return texto.encode("utf-8")

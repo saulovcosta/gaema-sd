@@ -103,6 +103,8 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 - **Segurança da central:** todo dado de campo confere origem, equipe e situação da demanda, e não pode ser "mudado de demanda" depois (fecha R-28). **Âncora da trilha** para guardar fora da máquina (R-19, em parte).
 - **Revisão independente** por agente de IA separado: 15 falhas reproduzidas e corrigidas, cada uma com teste. A verificação com navegador real achou mais uma: o próprio login era recusado pelo navegador; corrigida.
 
+- **Cabeçalho institucional do relatório:** logo e "Ministério Público do Estado do Tocantins · CAOMA · GAEMA" no topo, e a linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal." A frase só muda se `config/endosso.json` receber o número e a data de um ato formal; hoje está vazio.
+
 **Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 83 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
 
 ## Para quem programa

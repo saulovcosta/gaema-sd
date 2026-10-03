@@ -31,6 +31,7 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 | Item | Situação |
 |---|---|
 | Autenticação real de usuários | Não existe: na interface local escolhe-se um usuário SINTÉTICO de teste; no código, o ator é informado pelo chamador |
+| Endosso do CAOMA e autorização de uso da marca | PENDENTE: o relatório imprime "Sem endosso institucional formal" até haver ato (`config/endosso.json`) |
 | Tela de operação | Existe uma interface local de teste (`scripts/interface.sh`, só em 127.0.0.1, dados sintéticos); avaliação com pessoas usuárias NÃO EXECUTADA |
 | Survey123 Connect: abrir, validar e publicar o XLSForm | NÃO EXECUTADO (só estrutura e sintaxe XLSForm/ODK com pyxform) |
 | Formato real de exportação do Survey123 | NÃO verificado |

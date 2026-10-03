@@ -1,0 +1,13 @@
+{
+  "_aviso": "Endosso institucional do GAEMA SD. VAZIO = sem endosso: o relatório imprime 'Sem endosso institucional formal.'. Preencher os DOIS campos só com ato formal do CAOMA, com registro em docs/decisoes.md.",
+  "ato_numero": {
+    "valor": "",
+    "proveniencia": "INSTITUCIONAL",
+    "observacao": "Número do ato do CAOMA que endossa o GAEMA SD (letras, números, ponto, barra, hífen e espaço; até 40 caracteres). Vazio enquanto não houver ato."
+  },
+  "ato_data": {
+    "valor": "",
+    "proveniencia": "INSTITUCIONAL",
+    "observacao": "Data do ato, no formato DD/MM/AAAA. Vazio enquanto não houver ato."
+  }
+}

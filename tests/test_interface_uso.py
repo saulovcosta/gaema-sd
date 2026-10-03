@@ -313,3 +313,16 @@ def test_descartar_rascunho(com_campo):
 def test_campo_desligado_explica_como_ligar(sistema):
     t = cliente(sistema, "tecnico").get("/campo").texto
     assert "O Campo não está ligado nesta execução" in t and "scripts/interface.sh" in t
+
+
+def test_entrada_em_um_toque_faixa_curta_e_papel_em_teste(sistema):
+    from gaema_sd.interface import USUARIOS_DE_TESTE
+    t = Cliente(sistema[0]).get("/entrar").texto
+    assert t.count('<button type="submit">Entrar como ') == len(USUARIOS_DE_TESTE)
+    assert t.count('name="usuario"') == len(USUARIOS_DE_TESTE) and 'type="radio"' not in t
+    assert "autenticação real" in t and "Linha de Atuação em Solos Degradados" in t
+    assert ("PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA</strong> · DADOS SINTÉTICOS · "
+            "SEM INTEGRAÇÃO COM ARCGIS, RADAR, PAINEL OU SISTEMAS DO MPTO") in t
+    painel = cliente(sistema, "coord").get("/painel").texto
+    assert "Papel em teste: Coordenador" in painel and "sem autenticação real" in painel
+    assert "autenticação real" in cliente(sistema, "coord").get("/ajuda").texto

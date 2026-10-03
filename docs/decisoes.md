@@ -244,3 +244,16 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Não corrigido (registrado):** a trilha é lida inteira a cada página (12; R-34); pontos do mapa com ~32 px a 360 px (R-35).
 - **Risco:** o revisor é um agente de IA (R-30).
 - **Teste:** `tests/test_regressao_fase6.py` (mutações nas correções: 5 de 6 mortas; a sobrevivente é equivalente).
+
+## DEC-027 — Cabeçalho institucional e endosso configurável (03/10/2026)
+
+- **Contexto:** pedido do usuário: o relatório deve trazer a identificação do MPTO, do CAOMA e do GAEMA, sem sugerir chancela que não existe.
+- **Decisão:**
+  - O logo fornecido pelo usuário fica em `assets/logo-mpto-gaema.png`, com o hash conferido por teste. No HTML ele vai embutido (`data:`), porque o relatório não tem recurso externo; no PDF, como imagem.
+  - O logo aparece **só no cabeçalho do relatório**; a interface mantém a identidade própria (DEC-025).
+  - A frase institucional vem de uma única função, `relatorio/institucional.py::linha_institucional`.
+  - O endosso vem só de `config/endosso.json`, vazio por padrão, e só vale com número e data do ato válidos e não futuros em relação à emissão. **Na dúvida (campo vazio, parcial ou malformado, arquivo ausente), o relatório sai como não endossado.**
+  - O estado do endosso fica nos dados do relatório.
+- **Também:** tabela de pontos com coordenadas em uma linha; mapa do relatório maior e centralizado (640×420 no HTML, largura útil no PDF); títulos do PDF presos ao conteúdo seguinte; tabelas curtas do HTML não se partem.
+- **Risco:** R-36.
+- **Teste:** `tests/test_relatorio_institucional.py`.

@@ -57,6 +57,13 @@ Atualizado em: 03/10/2026, fim da Fase 6 (interface local e segurança da centra
 - **Revisão independente da Fase 6 por agente separado** (DEC-026): 15 achados (1 alto: técnico movia dado de campo de outra demanda), todos corrigidos com teste de regressão e reproduzidos de novo contra a árvore corrigida.
 - **Verificação com navegador real automatizado** (Chromium + axe-core 4.13, `scripts/verificar_interface.js`): achou um defeito que os testes não pegavam — o navegador mandava `Origin: null` e a interface recusava o próprio login (corrigido, DEC-026). Depois das correções: 83 telas (360 e 1280 px, claro e escuro, tema escolhido na tela, zoom 200%), **0 violações** do axe-core, nenhuma rolagem horizontal, próxima ação e faixa de protótipo em todas, títulos sem salto, foco visível em todas as paradas de Tab.
 
+### Fase 6 (complemento) — cabeçalho institucional do relatório
+- Relatório HTML e PDF com o logo (`assets/logo-mpto-gaema.png`) e "Ministério Público do Estado do Tocantins · CAOMA · GAEMA" no topo da primeira página; faixa de protótipo; linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal." (DEC-027).
+- Endosso só por `config/endosso.json` (vazio); sem número e data válidos, o relatório nunca afirma endosso (teste com configuração vazia, parcial, inválida, futura e válida).
+- Tabela de pontos com coordenadas em uma linha; mapa maior e centralizado.
+- Interface: nome por extenso, faixa curta, "Papel em teste" e entrada em um toque (a partir dos artefatos enviados pelo usuário).
+- Primeira página do HTML impresso pelo Chromium e do PDF do reportlab convertida em imagem e conferida. O PDF ficou com espaço livre no fim da página 1, porque o mapa maior começa na página 2 junto com o título da seção 3.
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |
@@ -67,6 +74,7 @@ Atualizado em: 03/10/2026, fim da Fase 6 (interface local e segurança da centra
 | Entrada de dado de campo na central (origem, equipe, estado, vínculo) | TESTADO LOCALMENTE | Em todos os caminhos (modo central); sem ambiente real |
 | Concorrência, segurança básica, logs | TESTADO LOCALMENTE | Threads em uma máquina; mascaramento parcial (alguns formatos de CPF e e-mail; não pega nome nem CNPJ/telefone com máscara) |
 | Backup, restauração, rollback e âncora da trilha | TESTADO LOCALMENTE | Manifesto sem assinatura; sem rotina agendada, destino ou retenção; quem guarda a âncora fora da máquina: PENDENTE |
+| Cabeçalho institucional e endosso configurável do relatório | TESTADO LOCALMENTE | Sem ato de endosso (H-I08); autorização de uso da marca PENDENTE |
 | Relatório HTML acessível, impressão em A4 | TESTADO LOCALMENTE (verificações automáticas; PDF A4 renderizado e conferido visualmente) | Leitor de tela e pessoas usuárias: NÃO EXECUTADO |
 | Interface local de operação (escritório e campo simulado) | TESTADO LOCALMENTE (testes automáticos + navegador automatizado + axe-core) | Sem autenticação real (R-31); só 127.0.0.1; aparelho e rede simulados; leitor de tela e pessoas usuárias NÃO EXECUTADOS; não há conformidade WCAG declarada |
 | Adaptadores ArcGIS | IMPLEMENTADO LOCALMENTE (interface; recusam por padrão) | Nada integrado; sem organização ArcGIS (LA-05) |
@@ -82,7 +90,7 @@ Nenhuma entrega passou de TESTADO LOCALMENTE: nada está INTEGRÁVEL, VALIDADO E
 ## Testes executados
 
 Fase 6, em 03/10/2026:
-- `scripts/testar.sh` → **443 passed** (329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6).
+- `scripts/testar.sh` → **463 passed** depois do cabeçalho institucional (antes, 443: 329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6).
 - `scripts/demo.sh` → "Resultado: OK". `scripts/demo_sincronizacao.sh` → "Resultado: OK" (conflito, decisão, aparelho converge).
 - `python3 scripts/gerar_contratos.py` → nenhum arquivo gerado mudou. `pip-audit -r requirements-dev.txt` → "No known vulnerabilities found".
 - `scripts/interface.sh` → a interface abriu em http://127.0.0.1:8765/ (resposta 200 em `/entrar`); login, navegação e coleta em etapas feitos por Chromium automatizado.

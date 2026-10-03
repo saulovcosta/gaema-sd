@@ -133,3 +133,12 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-94 | Mapa da demanda com legenda, escala aproximada, aviso de "esquemático", ponto selecionado destacado por forma e lista sincronizada; descrição textual para leitor de tela | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (escala aproximada: 111.320 m por grau, AUTORAL) |
 | RQ-95 | Relatório para A4: bloco de identificação (demanda, versão, emissão, protocolo e hashes legíveis em grupos), seções em ordem fixa, linha de tabela sem corte, datas sem microssegundos | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (PDF renderizado pelo Chromium e conferido visualmente) |
 | RQ-96 | Teste da interface com leitor de tela e com pessoas usuárias, em campo e no escritório | INSTITUCIONAL | ESPECIFICADO — NÃO EXECUTADO |
+
+## Cabeçalho institucional do relatório (Fase 6, complemento)
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-97 | Relatório (HTML e PDF) com logo do MPTO/Gaema (`assets/logo-mpto-gaema.png`) e o texto "Ministério Público do Estado do Tocantins · CAOMA · GAEMA" no topo da primeira página; sem o arquivo do logo, só o texto | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (primeira página renderizada em imagem e conferida) |
+| RQ-98 | Sob o cabeçalho, a faixa de protótipo e a linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal."; só com número E data do ato válidos em `config/endosso.json` a linha vira "Endossado pelo CAOMA, ato nº X, de DD/MM/AAAA"; sem isso, "endosso" só aparece na negativa | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (configuração vazia, parcial, inválida, futura e válida) |
+| RQ-99 | Tabela de pontos com coordenadas e cabeçalho "Longitude" em uma linha (alerta de GPS em coluna própria) e mapa do relatório maior e centralizado | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE |
+| RQ-100 | Interface: nome por extenso ("Linha de Atuação em Solos Degradados"), faixa curta em caixa alta, crachá "Papel em teste" e entrada em um toque por papel | INSTITUCIONAL (artefatos do usuário) | TESTADO LOCALMENTE |
