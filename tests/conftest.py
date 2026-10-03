@@ -29,7 +29,7 @@ def cenario():
 
 
 @pytest.fixture
-def nucleo():
+def nucleo(tmp_path):
     repo = Repositorio(":memory:")
-    yield Nucleo(repo)
+    yield Nucleo(repo, tmp_path)
     repo.fechar()

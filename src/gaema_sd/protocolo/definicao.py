@@ -91,11 +91,13 @@ def carregar_definicao(dados: dict) -> DefinicaoProtocolo:
     except ValueError as e:
         raise DefinicaoInvalida(str(e)) from e
     rotulo = dados.get("rotulo", "")
+    _exigir(isinstance(rotulo, str), "rótulo deve ser texto")
     regras_brutas = dados.get("regras", [])
     categorias = dados.get("categorias", {})
     _exigir(isinstance(regras_brutas, list) and isinstance(categorias, dict), "regras/categorias mal formadas")
     if modo is ModoProtocolo.DESCRITIVO:
         _exigir(not regras_brutas and not categorias, "modo DESCRITIVO não tem regras nem categorias")
+        _exigir(rotulo == "", "modo DESCRITIVO não tem rótulo (o sistema usa texto fixo)")
     elif modo is ModoProtocolo.PROTOTIPO_TESTE:
         _exigir(rotulo == ROTULO_PROTOTIPO, f"protótipo exige o rótulo exato '{ROTULO_PROTOTIPO}'")
         _exigir(bool(regras_brutas), "protótipo sem regras")

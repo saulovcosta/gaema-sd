@@ -10,7 +10,6 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from .. import config
 from ..dominio import entidades as E
 from ..dominio.enums import ModoProtocolo, ResultadoRevisao
 from ..dominio.serializacao import para_dict
@@ -44,21 +43,31 @@ def diagnostico_vigente(repo, demanda_id: str) -> Optional[E.Diagnostico]:
     return vigentes[-1] if vigentes else None
 
 
-def revisao_aprovada(repo, diagnostico_id: str) -> Optional[E.RevisaoTecnica]:
-    revs = sorted((r for r in repo.listar(E.RevisaoTecnica) if r.diagnostico_id == diagnostico_id),
-                  key=lambda r: r.revisado_em)
-    return revs[-1] if revs and revs[-1].resultado in APROVACOES else None
+def revisao_aprovada(repo, demanda_id: str, diagnostico_id: str, eventos) -> Optional[E.RevisaoTecnica]:
+    """Revisão que autorizou DIAGNOSTICO_EMITIDO: do revisor que fez a transição, aprovada.
+
+    Usa a ordem de gravação (não a data declarada). Se a revisão mais recente do diagnóstico
+    não for aprovação, não há revisão válida para o relatório.
+    """
+    transicoes = [e for e in eventos if e.acao == "TRANSICAO" and e.entidade_id == demanda_id
+                  and e.estado_destino == "DIAGNOSTICO_EMITIDO"]
+    revs = [r for r in repo.listar(E.RevisaoTecnica) if r.diagnostico_id == diagnostico_id]
+    if not transicoes or not revs or revs[-1].resultado not in APROVACOES:
+        return None
+    autor = transicoes[-1].ator_id
+    candidatas = [r for r in revs if r.revisor_id == autor and r.resultado in APROVACOES]
+    return candidatas[-1] if candidatas else None
 
 
-def montar(repo, demanda_id: str, *, numero_versao: int, gerado_em: datetime, gerado_por: str,
+def montar(repo, demanda_id: str, *, numero_versao: int, gerado_em: datetime, gerado_por: str, eventos,
            motivo_reemissao: str = "", anteriores: list[E.Relatorio] = ()) -> dict:
     demanda = repo.obter(E.Demanda, demanda_id)
     diag = diagnostico_vigente(repo, demanda_id)
     if diag is None:
         raise ErroGaema("demanda sem diagnóstico")
-    revisao = revisao_aprovada(repo, diag.id)
+    revisao = revisao_aprovada(repo, demanda_id, diag.id, eventos)
     if revisao is None:
-        raise ErroGaema("diagnóstico sem revisão técnica aprovada")
+        raise ErroGaema("diagnóstico sem revisão técnica aprovada válida (ou com revisão posterior não aprovada)")
     vp = repo.obter(E.VersaoProtocolo, diag.versao_protocolo_id)
     definicao = json.loads(vp.definicao_json)
     resultado = json.loads(diag.resultado_json)
@@ -71,7 +80,7 @@ def montar(repo, demanda_id: str, *, numero_versao: int, gerado_em: datetime, ge
 
     entradas = json.loads(diag.entradas_canonicas)
     codigos = {p["id"]: p["codigo"] for p in entradas["pontos"]}
-    limite_gps = config.parametro("gps_precisao_maxima_m")
+    limite_gps = entradas["parametros"]["gps_precisao_maxima_m"]  # valor gravado com o diagnóstico
     pontos = [dict(p, gps_ruim=limite_gps is not None and (p["precisao_gps_m"] is None
                                                               or p["precisao_gps_m"] > float(limite_gps)))
               for p in sorted(entradas["pontos"], key=lambda x: x["codigo"])]

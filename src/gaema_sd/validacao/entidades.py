@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import re
+from datetime import timedelta
 
 from ..dominio import entidades as E
 from ..dominio.serializacao import sha256_texto
@@ -210,9 +211,12 @@ def _diagnostico(o: E.Diagnostico):
 
 
 def _revisao(o: E.RevisaoTecnica):
+    p = []
     if len(o.fundamentacao.strip()) < 20:
-        return [erro("FUNDAMENTACAO_CURTA", "fundamentacao", "fundamentar a revisão (mín. 20 caracteres)")]
-    return []
+        p.append(erro("FUNDAMENTACAO_CURTA", "fundamentacao", "fundamentar a revisão (mín. 20 caracteres)"))
+    if o.revisado_em > E.agora() + timedelta(minutes=5):
+        p.append(erro("DATA_FUTURA", "revisado_em", "data da revisão no futuro"))
+    return p
 
 
 def _plano(o: E.PlanoRecuperacao):

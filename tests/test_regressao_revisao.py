@@ -11,6 +11,7 @@ from gaema_sd.dominio.enums import Estado, ResultadoRevisao
 from gaema_sd.erros import ConflitoAtualizacao, ConflitoIdempotencia, ErroGaema, TransicaoInvalida, ValidacaoFalhou
 from gaema_sd.estados import transitar
 from gaema_sd.persistencia import Repositorio
+from gaema_sd.sinteticos import FOTO_SINTETICA
 
 from .test_estados import CTX_OK
 
@@ -49,8 +50,9 @@ def levar_ate_revisao(nucleo, a, c):
     nucleo.registrar(a["coord"], c["CampanhaVistoria"][0])
     t(a["coord"], d, S.PLANEJADA)
     t(a["tecnico"], d, S.EM_CAMPO)
-    for chave in ("PontoAmostral", "Observacao", "MedicaoPenetracao", "Evidencia"):
+    for chave in ("PontoAmostral", "Observacao", "MedicaoPenetracao"):
         nucleo.registrar(a["tecnico"], c[chave][0])
+    nucleo.registrar_evidencia(a["tecnico"], c["Evidencia"][0], FOTO_SINTETICA)
     t(a["tecnico"], d, S.AGUARDANDO_SINCRONIZACAO)
     t(a["sistema"], d, S.EM_VALIDACAO)
     diag = nucleo.computar_diagnostico(a["sistema"], d, c["CampanhaVistoria"][0].id)
@@ -121,7 +123,7 @@ def test_4_autoria_nao_pode_ser_forjada(nucleo, atores, cenario):
     assert r.revisor_id == atores["revisor"].id
     ev = dataclasses.replace(cenario["Evidencia"][0], registrado_por="outra-pessoa")
     with pytest.raises(ValidacaoFalhou, match="registrado_por"):
-        nucleo.registrar(atores["tecnico"], ev)
+        nucleo.registrar_evidencia(atores["tecnico"], ev, FOTO_SINTETICA)
 
 
 # 5 ------------------------------------------------------------------------

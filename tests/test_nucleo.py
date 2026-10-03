@@ -48,7 +48,9 @@ def test_erro_de_validacao_nao_grava(nucleo, atores, cenario):
 
 
 def test_imutaveis_e_estado_so_por_transicao(nucleo, atores, cenario):
-    ev, _ = nucleo.registrar(atores["tecnico"], cenario["Evidencia"][0])
+    from gaema_sd.sinteticos import FOTO_SINTETICA
+
+    ev = nucleo.registrar_evidencia(atores["tecnico"], cenario["Evidencia"][0], FOTO_SINTETICA)
     with pytest.raises(ErroGaema, match="imutável"):
         nucleo.atualizar(atores["tecnico"], ev, ev.versao)
     d, _ = nucleo.registrar(atores["coord"], cenario["Demanda"][0])

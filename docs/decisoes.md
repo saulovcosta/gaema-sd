@@ -87,3 +87,10 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Motivo:** §11 do prompt (reproduzir resultados históricos) e impedir diagnóstico "digitado".
 - **Impacto:** `Nucleo.registrar` recusa `Diagnostico`; só `Nucleo.computar_diagnostico` grava. Novo cálculo substitui o anterior por vínculo (`substitui_diagnostico_id`), sem apagar.
 - **Teste:** `tests/test_protocolo.py` e `tests/test_regressao_revisao.py`.
+
+## DEC-010 — Fechamento de brechas apontadas na revisão da Fase 3 (03/10/2026)
+
+- **Hipótese:** todo artefato com arquivo (relatório, evidência) só deve existir no banco junto com o arquivo correspondente, e vice-versa.
+- **Motivo:** revisão independente reproduziu relatório e evidência gravados sem arquivo, e arquivo sem registro.
+- **Impacto:** `Nucleo.registrar` recusa `Relatorio`, `Evidencia` e `Diagnostico`; cada um tem método próprio. Arquivo gravado em temporário e renomeado de forma atômica; se o registro falha, o arquivo é removido. Revisões ordenadas pela gravação no banco, não pela data declarada; data de revisão no futuro é recusada. Parâmetros operacionais usados entram na fotografia do diagnóstico.
+- **Teste:** `tests/test_regressao_fase3.py`.

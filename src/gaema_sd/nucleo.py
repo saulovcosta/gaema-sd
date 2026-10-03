@@ -125,6 +125,10 @@ class Nucleo:
         """Grava registro novo. Devolve (registro, alertas). Reenvio idêntico não duplica."""
         if isinstance(obj, E.Diagnostico):
             raise ErroGaema("diagnóstico só é gravado pelo motor de protocolo (Nucleo.computar_diagnostico)")
+        if isinstance(obj, E.Relatorio):
+            raise ErroGaema("relatório só é gravado na emissão (Nucleo.emitir_relatorio)")
+        if isinstance(obj, E.Evidencia):
+            raise ErroGaema("evidência só é gravada com o arquivo (Nucleo.registrar_evidencia)")
         return self._registrar(ator, obj)
 
     def _registrar(self, ator: Ator, obj: T) -> tuple[T, list[Problema]]:
@@ -288,8 +292,14 @@ class Nucleo:
             falha = ValidacaoFalhou(problemas)
             self._auditar_recusa(ator, "ANEXO_RECUSADO", "Evidencia", evidencia.id, falha)
             raise falha
+        evidencia = dataclasses.replace(evidencia, sha256=r.sha256, tamanho_bytes=r.tamanho_bytes,
+                                        armazenamento_ref=f"evidencias/{r.sha256}", criado_por=ator.id,
+                                        registrado_por=evidencia.registrado_por or ator.id)
+        # Valida o registro ANTES de tocar no disco: recusa não deixa arquivo órfão.
+        exigir_sem_erros(self._regras_de_criacao(ator, evidencia) + validar(evidencia))
         caminho = self._caminho_evidencia(r.sha256)
-        if caminho.exists():
+        ja_existia = caminho.exists()
+        if ja_existia:
             if hashlib.sha256(caminho.read_bytes()).hexdigest() != r.sha256:
                 raise ErroGaema(f"arquivo guardado {caminho.name} não confere com o hash; verificar armazenamento")
         else:
@@ -297,17 +307,20 @@ class Nucleo:
             temporario = caminho.with_suffix(".parcial")
             temporario.write_bytes(conteudo)
             os.replace(temporario, caminho)
-        evidencia = dataclasses.replace(evidencia, sha256=r.sha256, tamanho_bytes=r.tamanho_bytes,
-                                        armazenamento_ref=f"evidencias/{r.sha256}")
-        return self._registrar(ator, evidencia)[0]
+        try:
+            return self._registrar(ator, evidencia)[0]
+        except BaseException:
+            if not ja_existia:
+                caminho.unlink(missing_ok=True)
+            raise
 
     def verificar_evidencia(self, ator: Ator, evidencia_id: str) -> bool:
         """Confere se o arquivo guardado ainda tem o hash registrado."""
         self._exigir(ator, Acao.LER_RESTRITO, "Evidencia", evidencia_id)
         ev = self.repo.obter(E.Evidencia, evidencia_id)
-        caminho = self.saida / ev.armazenamento_ref if ev.armazenamento_ref else None
-        integro = bool(caminho and caminho.exists()
-                       and hashlib.sha256(caminho.read_bytes()).hexdigest() == ev.sha256)
+        caminho = self._caminho_evidencia(ev.sha256)  # caminho derivado do hash, nunca do texto gravado
+        integro = (ev.armazenamento_ref == f"evidencias/{ev.sha256}" and caminho.exists()
+                   and hashlib.sha256(caminho.read_bytes()).hexdigest() == ev.sha256)
         with self.repo.transacao():
             self.trilha.registrar(ator, "VERIFICACAO_EVIDENCIA", "Evidencia", ev.id, detalhes={"integro": integro})
         return integro
@@ -328,11 +341,12 @@ class Nucleo:
             raise ErroGaema("reemissão exige motivo (mínimo 10 caracteres)")
         numero = anteriores[-1].numero_versao + 1 if anteriores else 1
         gerado_em = gerado_em or datetime.now(timezone.utc)
+        eventos = self.trilha.eventos
         dados = montagem.montar(self.repo, demanda.id, numero_versao=numero, gerado_em=gerado_em,
-                                gerado_por=ator.id, motivo_reemissao=motivo_reemissao.strip(),
+                                gerado_por=ator.id, eventos=eventos, motivo_reemissao=motivo_reemissao.strip(),
                                 anteriores=anteriores)
         diag = montagem.diagnostico_vigente(self.repo, demanda.id)
-        revisao = montagem.revisao_aprovada(self.repo, diag.id)
+        revisao = montagem.revisao_aprovada(self.repo, demanda.id, diag.id, eventos)
         conteudo = (relatorio_pdf if formato is FormatoRelatorio.PDF else relatorio_html).renderizar(dados)
         caminho = self.saida / "relatorios" / f"relatorio-{demanda.id[:8]}-v{numero}.{formato.value.lower()}"
         if caminho.exists():
@@ -342,9 +356,17 @@ class Nucleo:
                           hash_conteudo=hashlib.sha256(conteudo).hexdigest(), gerado_por=ator.id,
                           gerado_em=gerado_em, substitui_relatorio_id=anteriores[-1].id if anteriores else None,
                           motivo_reemissao=motivo_reemissao.strip())
-        gravado = self._registrar(ator, rel)[0]
+        # Arquivo primeiro (temporário + renomeação atômica), registro depois; se o registro falhar,
+        # o arquivo é removido: nunca há registro sem arquivo nem arquivo sem registro.
         caminho.parent.mkdir(parents=True, exist_ok=True)
-        caminho.write_bytes(conteudo)
+        temporario = caminho.with_suffix(caminho.suffix + ".parcial")
+        temporario.write_bytes(conteudo)
+        os.replace(temporario, caminho)
+        try:
+            gravado = self._registrar(ator, rel)[0]
+        except BaseException:
+            caminho.unlink(missing_ok=True)
+            raise
         return gravado, caminho
 
     # ------------------------------------------------------------ leitura

@@ -64,8 +64,8 @@ def montar_contexto(repo, demanda: E.Demanda, ator: Ator,
     diagnosticos = [d for d in todos_diag
                     if d.situacao is not SituacaoDiagnostico.SUBSTITUIDO and d.id not in substituidos]
     ids_diag = {d.id for d in diagnosticos}
-    revisoes = sorted((r for r in repo.listar(E.RevisaoTecnica) if r.diagnostico_id in ids_diag),
-                      key=lambda r: r.revisado_em)
+    # ordem de gravação no banco, não a data declarada pelo revisor
+    revisoes = [r for r in repo.listar(E.RevisaoTecnica) if r.diagnostico_id in ids_diag]
     ultima = revisoes[-1] if revisoes else None
 
     planos = [p for p in repo.listar(E.PlanoRecuperacao) if p.demanda_id == demanda.id]

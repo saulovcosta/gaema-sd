@@ -74,7 +74,7 @@ def test_pdf_valido_com_todas_as_secoes(n, atores, emitido):
 
 
 def test_mesmos_dados_mesmo_arquivo(n, atores, emitido):
-    dados = montagem.montar(n.repo, emitido, numero_versao=1, gerado_em=FIXO, gerado_por="x")
+    dados = montagem.montar(n.repo, emitido, numero_versao=1, gerado_em=FIXO, gerado_por="x", eventos=n.trilha.eventos)
     assert rhtml.renderizar(dados) == rhtml.renderizar(dados)
     assert rpdf.renderizar(dados) == rpdf.renderizar(dados)
 
@@ -127,7 +127,7 @@ def test_acessibilidade_basica_do_html(n, atores, emitido):
 def test_relatorio_nao_tem_campos_de_conclusao_juridica(n, atores, emitido):
     from .test_fronteira_juridica import PROIBIDO
 
-    dados = montagem.montar(n.repo, emitido, numero_versao=1, gerado_em=FIXO, gerado_por="x")
+    dados = montagem.montar(n.repo, emitido, numero_versao=1, gerado_em=FIXO, gerado_por="x", eventos=n.trilha.eventos)
 
     def chaves(x):
         if isinstance(x, dict):

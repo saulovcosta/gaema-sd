@@ -143,7 +143,7 @@ class Repositorio:
         return de_dict(cls, json.loads(linha[0]))
 
     def listar(self, cls: type[T]) -> list[T]:
-        linhas = self.con.execute("SELECT dados FROM registros WHERE tipo=? ORDER BY gravado_em, id",
+        linhas = self.con.execute("SELECT dados FROM registros WHERE tipo=? ORDER BY rowid",
                                   (cls.__name__,)).fetchall()
         return [de_dict(cls, json.loads(x[0])) for x in linhas]
 

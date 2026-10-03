@@ -36,12 +36,13 @@ METODO_PENETROMETRIA = ("Estatística descritiva por profundidade: número de re
 
 def entradas_de(pontos: Iterable[E.PontoAmostral], observacoes: Iterable[E.Observacao],
                 medicoes: Iterable[E.MedicaoPenetracao], evidencias: Iterable[E.Evidencia]) -> dict:
-    """Fotografia canônica: só conteúdo de campo, sem datas de gravação nem versão do registro."""
+    """Fotografia canônica: conteúdo de campo e parâmetros usados, sem datas de gravação nem versão do registro."""
 
     def ordenar(itens):
         return sorted(itens, key=lambda x: x["id"])
 
     return {
+        "parametros": {"gps_precisao_maxima_m": config.parametro("gps_precisao_maxima_m")},
         "pontos": ordenar({"id": p.id, "codigo": p.codigo, "latitude": float(p.latitude),
                            "longitude": float(p.longitude),
                            "precisao_gps_m": None if p.precisao_gps_m is None else float(p.precisao_gps_m),
@@ -61,7 +62,7 @@ def entradas_de(pontos: Iterable[E.PontoAmostral], observacoes: Iterable[E.Obser
 
 def normalizar(entradas: dict) -> dict:
     """Ordena cada lista por id: a ordem de chegada não altera hash nem resultado."""
-    return {k: sorted(v, key=lambda x: x["id"]) for k, v in entradas.items()}
+    return {k: sorted(v, key=lambda x: x["id"]) if isinstance(v, list) else v for k, v in entradas.items()}
 
 
 def hash_entradas(entradas: dict) -> str:
@@ -256,7 +257,7 @@ def _limitacoes(definicao: DefinicaoProtocolo, entradas: dict, por_ponto: list[R
     lim = ["Resultado computado automaticamente: só tem valor técnico depois da revisão técnica humana.",
            "O sistema não conclui autoria, ilicitude, dano jurídico, responsabilidade nem nexo causal."]
     lim += list(definicao.limitacoes)
-    limite = config.parametro("gps_precisao_maxima_m")
+    limite = entradas["parametros"]["gps_precisao_maxima_m"]  # valor gravado na fotografia
     ruins = [p["codigo"] for p in entradas["pontos"]
              if limite is not None and (p["precisao_gps_m"] is None or p["precisao_gps_m"] > float(limite))]
     if ruins:

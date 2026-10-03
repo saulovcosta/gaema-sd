@@ -17,7 +17,8 @@ DESCR = ler_arquivo("gaema-descritivo-0.1.0.json")
 
 def _entradas(pontos: dict[str, dict[str, str]], medicoes=(), precisao=4.0, hipotese=None):
     """pontos = {"P01": {"PLANTAS_INVASORAS": "sim", ...}} — valores de presença."""
-    ent = {"pontos": [], "observacoes": [], "medicoes": [], "evidencias": []}
+    ent = {"parametros": {"gps_precisao_maxima_m": 10.0}, "pontos": [], "observacoes": [], "medicoes": [],
+           "evidencias": []}
     for i, (cod, obs) in enumerate(sorted(pontos.items())):
         pid = f"p{i}"
         ent["pontos"].append({"id": pid, "codigo": cod, "latitude": -10.5, "longitude": -48.5,
@@ -157,7 +158,7 @@ def test_limitacoes_gps_ruim_e_hipotese_alternativa():
 
 def test_hash_independe_da_ordem_e_muda_com_valor_bruto():
     ent = _entradas({"P01": NADA, "P02": {**NADA, "CUPINS_MONTICULO": "sim"}})
-    invertida = {k: list(reversed(v)) for k, v in ent.items()}
+    invertida = {k: list(reversed(v)) if isinstance(v, list) else v for k, v in ent.items()}
     assert hash_entradas(ent) == hash_entradas(invertida)
     alterada = copy.deepcopy(ent)
     alterada["observacoes"][0]["valor_bruto"] = "sim"
