@@ -247,6 +247,9 @@ class Nucleo:
             divergencias.append("hash das entradas")
         if resultado_para_json(r) != d.resultado_json:
             divergencias.append("resultado do motor")
+        if (r.texto_descritivo(), r.categoria_resumo, r.regras_disparadas) != (
+                d.resultado_descritivo, d.categoria_descritiva, d.regras_disparadas):
+            divergencias.append("texto, categoria ou regras gravados")
         atuais = self._entradas_da_campanha(d.campanha_id)
         saida = {"reproduzido": not divergencias, "divergencias": divergencias,
                  "entradas_atuais_iguais": hash_entradas(atuais) == d.hash_entradas}

@@ -59,8 +59,13 @@ def entradas_de(pontos: Iterable[E.PontoAmostral], observacoes: Iterable[E.Obser
     }
 
 
+def normalizar(entradas: dict) -> dict:
+    """Ordena cada lista por id: a ordem de chegada não altera hash nem resultado."""
+    return {k: sorted(v, key=lambda x: x["id"]) for k, v in entradas.items()}
+
+
 def hash_entradas(entradas: dict) -> str:
-    return sha256_texto(json_canonico(entradas))
+    return sha256_texto(json_canonico(normalizar(entradas)))
 
 
 # ------------------------------------------------------------------ resultado
@@ -175,6 +180,7 @@ def _avaliar_regra(r: Regra, estados) -> tuple[Optional[bool], str]:
 
 
 def avaliar(definicao: DefinicaoProtocolo, hash_definicao: str, entradas: dict) -> ResultadoMotor:
+    entradas = normalizar(entradas)
     obs_por_ponto: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
     for o in entradas["observacoes"]:
         obs_por_ponto[o["ponto_id"]][o["variavel"]].append(o)
