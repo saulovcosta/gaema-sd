@@ -261,10 +261,25 @@ class Aplicacao:
         # Atenção: com Referrer-Policy "no-referrer" o navegador manda "Origin: null" em todo formulário e esta
         # conferência recusaria a própria interface; por isso a política é "same-origin" (nada vaza para fora).
         origem = environ.get("HTTP_ORIGIN")
-        if origem is not None and origem.lower() not in self._origens_aceitas(host):
-            return self._erro(403, "Pedido recusado: veio de outra página que não esta interface.",
-                              L.como_usar_botoes(bool(self.hosts_https)))
-        return None
+        if origem is None or self._origem_valida(origem.lower(), host):
+            return None
+        como = L.como_usar_botoes(bool(self.hosts_https))
+        if self.hosts_https:   # só no Codespace (dados sintéticos): mostra o que chegou, para a equipe técnica diagnosticar
+            como += f" Detalhe para a equipe técnica: endereço recebido «{host[:120]}»; origem recebida «{origem[:120]}»."
+        return self._erro(403, "Pedido recusado: veio de outra página que não esta interface.", como)
+
+    def _origem_valida(self, origem: str, host: str) -> bool:
+        if origem in self._origens_aceitas(host):
+            return True
+        if not self.hosts_https:
+            return False
+        # Codespace (DEC-032): o encaminhamento do GitHub pode entregar a origem como "null" ou com http/https; a proteção
+        # real continua sendo o token CSRF e o cookie SameSite=Strict, que um site de fora não tem. Outro site, outro
+        # Codespace ou endereço parecido continuam recusados.
+        if origem == "null":
+            return True
+        partes = urllib.parse.urlsplit(origem)
+        return partes.scheme in ("http", "https") and partes.netloc in self.hosts and not (partes.path or partes.query)
 
     def _origens_aceitas(self, host: str) -> set[str]:
         """Origem do formulário que vale para este pedido. Dentro de um Codespace, o encaminhamento entrega o pedido com

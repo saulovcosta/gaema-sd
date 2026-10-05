@@ -313,3 +313,10 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
   - **Textos** (`interface/linguagem.py`): no Codespace, a mensagem de erro e o rodapé falam do "endereço do seu Codespace" em vez de "127.0.0.1" e "só neste computador".
 - **Teste:** `tests/test_codespaces.py` (`test_caso_real_*`, `test_cabecalhos_do_cliente_nao_ampliam_o_que_e_aceito`, `test_cookie_secure_pelo_encaminhamento_com_host_local`, `test_textos_no_codespace_*`, `test_fora_do_codespace_*`). Os 4 primeiros falharam no código anterior.
 
+## DEC-032 — Login ainda recusado no Codespace real: origem tolerante e diagnóstico na tela (05/10/2026)
+- **Fato:** com o código da DEC-031 já rodando (textos novos na tela), o login continuou recusado no Codespace real. A origem que o navegador/encaminhamento entrega ainda não é conhecida com certeza; a DEC-031 foi um palpite.
+- **Decisão:** só dentro do Codespace (variáveis do GitHub presentes), a conferência de `Origin` aceita também `null` e o endereço do próprio Codespace/localhost em `http` ou `https`. Outro site, outro Codespace, endereço com sufixo, `usuario@` ou caminho continuam recusados. Fora do Codespace nada muda.
+- **Por que é aceitável:** o token CSRF e o cookie `SameSite=Strict` seguem exigidos; um site de fora não tem nenhum dos dois. A porta é privada e os dados são sintéticos. Ainda é uma conferência a menos (R-39).
+- **Diagnóstico:** no Codespace, a mensagem de recusa mostra o endereço e a origem recebidos (texto escapado, limitado a 120 caracteres). Serve para descobrir o valor real se ainda falhar; remover quando houver Codespace real validado.
+- **Teste:** `tests/test_codespaces.py` (`test_codespace_aceita_origem_nula_*`, `test_codespace_recusado_mostra_*`, `test_fora_do_codespace_origem_nula_*`). CODESPACE REAL: reteste pendente.
+
