@@ -1072,6 +1072,9 @@ class _Silencioso(WSGIRequestHandler):
 class _ServidorComThreads(ThreadingMixIn, WSGIServer):
     """Cada conexão em sua thread: uma conexão lenta ou parada não trava as outras."""
     daemon_threads = True
+    # Fila de conexões à espera de aceite. O padrão do socketserver (5) recusava conexões quando vários usuários abriam
+    # páginas ao mesmo tempo (ConnectionResetError no CI, teste test_pr4_3). Valor técnico AUTORAL.
+    request_queue_size = 64
 
 
 def _eh_multipart(environ) -> bool:
