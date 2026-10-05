@@ -105,7 +105,7 @@ def test_codespaces_continua_recusando_outras_origens_e_enderecos(servidor):
     csrf = re.search(r'name="csrf" value="([0-9a-f]+)"', texto).group(1)
     cookie = r.getheader("Set-Cookie").split(";")[0]
     corpo = urllib.parse.urlencode({"csrf": csrf, "usuario": "coord"})
-    for origem in (f"http://{fora}", "https://outro-8765.app.github.dev", "null", "https://evil.example"):
+    for origem in ("https://outro-8765.app.github.dev", "https://evil.example"):   # http e "null": DEC-032
         r, _ = _pedir(porta, "POST", "/entrar", fora, {"Cookie": cookie, "Origin": origem}, corpo)
         assert r.status == 403, origem
     for host in ("outro-codespace-8765.app.github.dev", f"glowing-spork-6v544q9px99r2gvg-9999.app.github.dev",
@@ -157,8 +157,8 @@ def test_caso_real_host_local_com_origem_publica_do_codespace_e_aceito(servidor)
 
 def test_caso_real_outras_origens_continuam_recusadas(servidor):
     _, porta, fora = servidor
-    for origem in ("https://evil.example", "https://outro-codespace-8765.app.github.dev", "null",
-                   f"http://{fora}", f"https://{fora}.evil.example"):
+    for origem in ("https://evil.example", "https://outro-codespace-8765.app.github.dev",
+                   f"https://{fora}.evil.example", f"https://{fora}@evil.example", f"https://{fora}/x"):
         r, texto = _login_com(porta, f"localhost:{porta}", origem)
         assert r.status == 403, origem
         assert "127.0.0.1" not in texto and "endereço do seu Codespace" in texto      # mensagem certa no Codespace
@@ -210,3 +210,34 @@ def test_fora_do_codespace_host_local_com_origem_publica_continua_recusado(model
         t.join(10)
         srv.server_close()
         repo.fechar()
+
+
+def test_codespace_aceita_origem_nula_e_variantes_de_esquema(servidor):
+    """DEC-032: o encaminhamento real pode entregar Origin como "null" ou com http; o token CSRF segue exigido."""
+    _, porta, fora = servidor
+    for origem in ("null", f"http://{fora}", f"https://{fora}", f"http://localhost:{porta}"):
+        r, _ = _login_com(porta, f"localhost:{porta}", origem)
+        assert r.status == 303, origem
+
+
+def test_codespace_recusado_mostra_o_que_chegou_para_diagnostico(servidor):
+    _, porta, _ = servidor
+    r, texto = _login_com(porta, f"localhost:{porta}", "https://evil.example")
+    assert r.status == 403 and "origem recebida" in texto and "evil.example" in texto
+    r, texto = _login_com(porta, f"localhost:{porta}", "https://<script>x</script>.example")
+    assert "<script>x" not in texto                                                  # sempre escapado
+
+
+def test_fora_do_codespace_origem_nula_continua_recusada_sem_detalhe(modelo, tmp_path):
+    destino = tmp_path / "srv"
+    shutil.copytree(modelo, destino)
+    repo = Repositorio(str(destino / "gaema-demo.db"))
+    srv = servir(Nucleo(repo, destino), 0, ambiente={})
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    porta = srv.server_address[1]
+    try:
+        r, texto = _login_com(porta, f"127.0.0.1:{porta}", "null")
+        assert r.status == 403 and "origem recebida" not in texto
+    finally:
+        srv.shutdown(); t.join(10); srv.server_close(); repo.fechar()
