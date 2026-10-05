@@ -285,3 +285,31 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Limite:** testado simulando o encaminhamento (conexão em 127.0.0.1 com o Host público). **Não testado num Codespace real.**
 - **Teste:** `tests/test_codespaces.py`; suíte completa também em Python 3.12 (475 testes; um aviso interno do reportlab sobre Python 3.14).
 
+## DEC-030 — Rodada 1: abrir de verdade (05/10/2026)
+
+- **PRs:** PR 6 mesclado depois da suíte (481 testes passaram, 1 pulado). PR 5, de outra sessão, fechado com comentário. Os itens exclusivos dele vieram para esta rodada: porta 8765 marcada `"visibility": "private"` e CSS da tabela da interface.
+- **Cookie:** recebe `Secure` quando o pedido chega pelo endereço https do Codespaces. No acesso local por http fica sem `Secure`, senão o navegador descarta o cookie e o login falha. Seguem `HttpOnly`, `SameSite=Strict` e `Path=/`.
+- **Cabeçalho `Server`:** passa a ser `GAEMA-SD`, sem a versão do Python. O `wsgiref` só escreve o dele quando a aplicação não define um.
+- **Tabela de pontos da interface:**
+  - cabeçalho sem quebra no meio da palavra ("Longitude");
+  - números sem quebra em tela larga;
+  - selos ("selecionado", "acima do limite") na linha de baixo e com quebra permitida.
+  - Medido no navegador: a tabela cabe na coluna a 360 e 1280 px. O roteiro `scripts/verificar_interface.js` passou a medir isso.
+- **CI:** `.github/workflows/testes.yml` roda a cada push e pull request: testes, demonstração e `pip-audit`. Só leitura, sem segredos.
+- **Teste:** `tests/test_rodada1.py`, `tests/test_codespaces.py`.
+
+## DEC-031 — Login recusado no Codespace real: origem pública com Host local (05/10/2026)
+
+- **Sintoma (CODESPACE REAL, testado pelo usuário):** a página abriu em `https://<codespace>-8765.app.github.dev/entrar`. Ao tocar em "Entrar como Coordenador", apareceu "Pedido recusado: veio de outra página que não esta interface".
+- **Causa (confirmada pelo código e pelo sintoma):**
+  - A página abriu, então o Host recebido estava na lista aceita.
+  - Se o Host fosse o endereço público, a origem esperada seria a mesma do navegador e o login passaria.
+  - Logo, o encaminhamento do Codespaces entrega `Host: localhost:8765` (ou `127.0.0.1:8765`). A conferência esperava `http://localhost:8765` e recebia `Origin: https://<codespace>-8765.app.github.dev`.
+  - A documentação pública do GitHub sobre encaminhamento de portas não informa o Host entregue. O teste simulado da DEC-029 supôs o Host público e por isso não pegou o caso.
+- **Correção (mínima):**
+  - Dentro de um Codespace, a origem `https://` do endereço calculado por `hosts_codespaces` também é aceita quando o Host é local. O endereço vem **só** das variáveis do GitHub, nunca de `X-Forwarded-Host` nem de outro cabeçalho do cliente. Fora do Codespace nada muda.
+  - **Cookie:** `Secure` também quando o Host é local e `X-Forwarded-Proto: https`. Esse cabeçalho só **acrescenta** proteção, nunca aceita endereço nem origem. Sem ele, o cookie sai sem `Secure` e o login continua funcionando.
+  - **Redirecionamentos e links:** já eram relativos (`/painel`), sem endereço absoluto a corrigir.
+  - **Textos** (`interface/linguagem.py`): no Codespace, a mensagem de erro e o rodapé falam do "endereço do seu Codespace" em vez de "127.0.0.1" e "só neste computador".
+- **Teste:** `tests/test_codespaces.py` (`test_caso_real_*`, `test_cabecalhos_do_cliente_nao_ampliam_o_que_e_aceito`, `test_cookie_secure_pelo_encaminhamento_com_host_local`, `test_textos_no_codespace_*`, `test_fora_do_codespace_*`). Os 4 primeiros falharam no código anterior.
+

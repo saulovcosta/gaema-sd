@@ -15,6 +15,8 @@ Não precisa instalar nada no seu computador. Tudo roda com **dados inventados**
 5. Para recomeçar do zero: no terminal do Codespace, aperte Ctrl+C e digite `scripts/interface.sh`. Cada abertura cria um cenário novo.
 6. Ao terminar, pare o Codespace (menu **Codespaces** → **Stop**) para não gastar a cota.
 
+A cada envio ao GitHub, os testes, a demonstração e a auditoria de dependências rodam sozinhos na aba **Actions** do repositório.
+
 O endereço só abre para quem é dono do Codespace, porque a porta fica privada. Não há senha nem autenticação real; não use dados reais.
 
 ## O que o sistema faz (e o que não faz)
@@ -37,6 +39,7 @@ Inspira-se funcionalmente no SIPADE (IFTM e MPMG), sem copiar código, textos ou
 | 4 | Robustez: offline, sincronização, segurança, backup, acessibilidade | Concluída (testada localmente, com rede simulada) |
 | 5 | Preparação institucional: adaptadores, formulário XLSForm, pontos de integração, homologação, capacitação | Concluída como preparação, com revisão independente por agente de IA; testada localmente; **nada foi integrado** |
 | 6 | Interface local de operação, segurança da central, âncora da trilha, relatório A4 | Concluída como protótipo local (testada localmente e com navegador automatizado); **sem autenticação real** |
+| Rodada 1 | Abrir no navegador pelo Codespaces: porta privada, cookie seguro, verificação automática no GitHub | Testada localmente e com navegador automatizado; **não testada num Codespace real** |
 
 Detalhes do andamento: `docs/ESTADO.md`.
 

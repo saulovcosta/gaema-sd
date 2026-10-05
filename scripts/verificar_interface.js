@@ -40,11 +40,13 @@ async function medir(page, largura) {
         cortados.push(`${el.tagName.toLowerCase()}.${el.className}`);
       }
     }
+    const tabelasExcedem = [...document.querySelectorAll("table")].filter((t) =>
+      t.getBoundingClientRect().right > t.parentElement.getBoundingClientRect().right + 1).map((t) => (t.caption || {}).innerText);
     const titulos = [...document.querySelectorAll("h1,h2,h3,h4")].map((h) => +h.tagName[1]);
     let salto = false;
     for (let i = 1; i < titulos.length; i++) if (titulos[i] > titulos[i - 1] + 1) salto = true;
     return {
-      rolagem_horizontal: doc.scrollWidth > doc.clientWidth,
+      rolagem_horizontal: doc.scrollWidth > doc.clientWidth, tabelas_excedem: tabelasExcedem,
       scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth,
       largos: largos.slice(0, 8), pequenos: pequenos.slice(0, 12), n_pequenos: pequenos.length, cortados: cortados.slice(0, 8),
       h1: document.querySelectorAll("h1").length, salto_de_titulo: salto,

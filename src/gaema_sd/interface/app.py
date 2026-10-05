@@ -165,13 +165,14 @@ class Aplicacao:
             ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; "
                                         "base-uri 'none'; frame-ancestors 'none'"),
             ("X-Content-Type-Options", "nosniff"), ("X-Frame-Options", "DENY"), ("Referrer-Policy", "same-origin"),
+            ("Server", "GAEMA-SD"),   # sem versão do Python: o wsgiref só escreve o dele se a aplicação não definir
             ("Cache-Control", "no-store"), ("Cross-Origin-Opener-Policy", "same-origin"),
         ]
 
     def _despachar(self, environ) -> Resposta:
         host = (environ.get("HTTP_HOST") or "").lower()
         if host not in self.hosts:
-            return self._erro(400, "Endereço não permitido. Esta interface só atende neste computador.")
+            return self._erro(400, "Endereço não permitido. " + L.onde_atende(bool(self.hosts_https)))
         metodo, caminho = environ["REQUEST_METHOD"].upper(), environ.get("PATH_INFO", "/")
         achou_caminho = False
         for m, padrao, funcao in self.rotas:
@@ -206,6 +207,10 @@ class Aplicacao:
             if funcao not in self._livres and ator is None:
                 return self._ir("/entrar")
             self._caminho = caminho
+            # Cookie Secure: pedido pelo endereço https do Codespaces. O encaminhamento entrega Host = localhost; aí vale o
+            # X-Forwarded-Proto, usado SÓ para acrescentar Secure (nunca para aceitar endereço ou origem).
+            self._https = bool(self.hosts_https) and (
+                host in self.hosts_https or (environ.get("HTTP_X_FORWARDED_PROTO") or "").lower() == "https")
             resp = funcao(sessao, ator, form, *achou.groups())
             log.info("%s %s -> %s", metodo, re.sub(_UUID, "{id}", caminho), resp.status)
             return resp
@@ -246,19 +251,27 @@ class Aplicacao:
         for k in [k for k, v in self.sessoes.items() if agora - v.usada_em > SESSAO_TTL]:
             self.sessoes.pop(k)
 
-    @staticmethod
-    def _cookie(sid: str, *, apagar: bool = False) -> str:
-        return f"sid={'' if apagar else sid}; HttpOnly; SameSite=Strict; Path=/" + ("; Max-Age=0" if apagar else "")
+    def _cookie(self, sid: str, *, apagar: bool = False) -> str:
+        """Cookie de sessão. `Secure` só quando o pedido veio por https (Codespaces): no acesso local por http o
+        navegador descartaria um cookie Secure e o login não funcionaria."""
+        return (f"sid={'' if apagar else sid}; HttpOnly; SameSite=Strict; Path=/" + ("; Max-Age=0" if apagar else "")
+                + ("; Secure" if getattr(self, "_https", False) else ""))
 
     def _conferir_origem(self, environ, host: str) -> Resposta | None:
         # Atenção: com Referrer-Policy "no-referrer" o navegador manda "Origin: null" em todo formulário e esta
         # conferência recusaria a própria interface; por isso a política é "same-origin" (nada vaza para fora).
         origem = environ.get("HTTP_ORIGIN")
-        esperada = f"https://{host}" if host in self.hosts_https else f"http://{host}"
-        if origem is not None and origem.lower() != esperada:
+        if origem is not None and origem.lower() not in self._origens_aceitas(host):
             return self._erro(403, "Pedido recusado: veio de outra página que não esta interface.",
-                              "Use os botões desta interface, aberta em 127.0.0.1.")
+                              L.como_usar_botoes(bool(self.hosts_https)))
         return None
+
+    def _origens_aceitas(self, host: str) -> set[str]:
+        """Origem do formulário que vale para este pedido. Dentro de um Codespace, o encaminhamento entrega o pedido com
+        Host = localhost:PORTA, mas o navegador manda Origin = https://<codespace>-PORTA.<domínio>: esse endereço é
+        aceito, calculado SÓ das variáveis do GitHub (hosts_codespaces), nunca de cabeçalho do cliente (DEC-031)."""
+        aceitas = {f"https://{host}"} if host in self.hosts_https else {f"http://{host}"}
+        return aceitas | {f"https://{h}" for h in self.hosts_https}
 
     def _ler_corpo(self, environ) -> str | Resposta:
         try:
@@ -298,7 +311,8 @@ class Aplicacao:
         permissoes = {a.name: bool(ator and pode(ator, a)) for a in Acao}
         html = self.env.get_template(nome + ".html.j2").render(
             sessao=sessao, ator=ator, avisos=avisos, permissoes=permissoes, tema=(sessao.tema if sessao else "auto"),
-            menu=self._menu(ator), pagina_atual=getattr(self, "_caminho", ""), barra_campo=self._barra_campo(ator), **ctx)
+            menu=self._menu(ator), pagina_atual=getattr(self, "_caminho", ""), barra_campo=self._barra_campo(ator),
+            no_codespace=bool(self.hosts_https), **ctx)
         return Resposta(status, html.encode("utf-8"))
 
     def _erro(self, status: int, mensagem: str, como_resolver: str = "") -> Resposta:
@@ -306,7 +320,8 @@ class Aplicacao:
         if como_resolver or m.o_que_houve.startswith("Não foi possível"):
             m = L.Mensagem(mensagem, como_resolver or "Volte e tente de novo. Se continuar, chame a equipe técnica.", "")
         html = self.env.get_template("erro.html.j2").render(
-            sessao=None, ator=None, avisos=[], permissoes={}, tema="auto", menu=[], pagina_atual="", barra_campo=None, m=m)
+            sessao=None, ator=None, avisos=[], permissoes={}, tema="auto", menu=[], pagina_atual="", barra_campo=None, m=m,
+            no_codespace=bool(self.hosts_https))
         return Resposta(status, html.encode("utf-8"))
 
     def _sem_permissao(self, e: Exception) -> Resposta:
