@@ -221,15 +221,17 @@ def test_barra_de_campo_permanente_para_o_tecnico(com_campo):
 def test_coleta_completa_em_etapas_salva_no_aparelho_e_sincroniza(com_campo):
     amb, app, campo = com_campo
     c = Cliente(app).entrar("tecnico")
-    assert "Etapa 1 de 4" in c.get("/campo/coleta").texto and 'aria-current="step"' in c.get("/campo/coleta").texto
+    assert "Etapa 1 de 5" in c.get("/campo/coleta").texto and 'aria-current="step"' in c.get("/campo/coleta").texto
     _etapa1(c, amb, latitude="abc")
     t = c.get("/campo/coleta").texto
     assert "Alguns campos da etapa 1 precisam de ajuste" in t and "latitude precisa ser um número" in t
     assert 'value="abc"' in t                                    # nada se perde: o que foi digitado fica
     _etapa1(c, amb)
-    assert "Etapa 2 de 4" in c.get("/campo/coleta").texto
+    assert "Etapa 2 de 5" in c.get("/campo/coleta").texto
     c.post("/campo/coleta/visto", {"PLANTAS_INVASORAS": "sim", "SULCOS": "nao", "hipotese": "pisoteio (sintético)"})
-    assert "Etapa 3 de 4" in c.get("/campo/coleta").texto
+    assert "Etapa 3 de 5" in c.get("/campo/coleta").texto
+    c.post("/campo/coleta/ambiente", {})                         # ambiente é opcional: em branco não gera registro
+    assert "Etapa 4 de 5" in c.get("/campo/coleta").texto
     c.post("/campo/coleta/medicao", {"profundidade": "dez", "unidade_p": "cm", "resistencia": "1,5", "unidade_r": "mpa"})
     assert "A repetição não foi anotada" in c.get("/campo/coleta").texto
     for prof, res in (("20", "1,5"), ("20", "1,7"), ("20", "9")):
@@ -242,7 +244,7 @@ def test_coleta_completa_em_etapas_salva_no_aparelho_e_sincroniza(com_campo):
     assert "Conferir antes de salvar" in conf and "Sim, presente" in conf and "Não observado" in conf and "1,7" in conf
     c.post("/campo/coleta/salvar")
     t = c.get("/campo").texto
-    assert "Ponto P09 salvo no aparelho: 3 observação(ões) e 2 medição(ões)" in t and campo.rascunho() is None
+    assert "Ponto P09 salvo no aparelho: 3 observação(ões), 2 medição(ões) e 0 foto(s)" in t and campo.rascunho() is None
     assert campo.status()["pendentes"] == 6
     c.post("/campo/sincronizar")
     t = c.get("/campo").texto
@@ -256,7 +258,7 @@ def test_sem_rede_nada_se_perde_e_a_barra_mostra(com_campo):
     amb, app, campo = com_campo
     c = Cliente(app).entrar("tecnico")
     c.post("/campo/rede")
-    _etapa1(c, amb); c.post("/campo/coleta/visto", {}); c.post("/campo/coleta/conferir")
+    _etapa1(c, amb); c.post("/campo/coleta/visto", {}); c.post("/campo/coleta/ambiente", {}); c.post("/campo/coleta/conferir")
     c.post("/campo/coleta/salvar")
     c.post("/campo/sincronizar")
     t = c.get("/campo").texto
@@ -282,10 +284,10 @@ def test_rascunho_sobrevive_ao_reinicio_do_aparelho(com_campo, tmp_path):
 def test_nao_pula_etapa_nem_salva_antes_da_conferencia(com_campo):
     amb, app, campo = com_campo
     c = Cliente(app).entrar("tecnico")
-    assert "Etapa 1 de 4" in c.pedir("GET", "/campo/coleta", cabecalhos={"QUERY_STRING": "etapa=4"}).texto
+    assert "Etapa 1 de 5" in c.pedir("GET", "/campo/coleta", cabecalhos={"QUERY_STRING": "etapa=5"}).texto
     _etapa1(c, amb)
     c.post("/campo/coleta/conferir")
-    assert "complete as etapas anteriores" in c.get("/campo/coleta").texto.lower() or "Etapa 2 de 4" in c.get("/campo/coleta").texto
+    assert "complete as etapas anteriores" in c.get("/campo/coleta").texto.lower() or "Etapa 2 de 5" in c.get("/campo/coleta").texto
     c.post("/campo/coleta/salvar")
     assert "ainda não passou por todas as etapas" in c.get("/campo/coleta").texto
     assert campo.status()["pendentes"] == 0

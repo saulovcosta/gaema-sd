@@ -37,6 +37,7 @@
 
 <h2>Mapa e pontos</h2>
 {% if pontos %}
+<p><a class="alvo-toque" href="#lista-pontos">Ir para a lista de pontos (alternativa ao mapa, com as mesmas informações)</a></p>
 <div class="mapa-bloco">
   <figure class="cartao">
     {{ mapa }}
@@ -50,9 +51,9 @@
       <p class="discreto">Esquema sem base cartográfica: não serve para medir área nem para localizar limites. Escala aproximada; coordenadas em WGS84. Toque num ponto para destacá-lo na lista.</p>
     </figcaption>
   </figure>
-  <div>
+  <div id="lista-pontos">
     <table class="tabela">
-      <caption>Pontos amostrais</caption>
+      <caption>Lista de pontos (alternativa ao mapa)</caption>
       <thead><tr><th scope="col">Ponto</th><th scope="col" class="num">Latitude</th><th scope="col" class="num">Longitude</th><th scope="col" class="num">Precisão do GPS</th></tr></thead>
       <tbody>{% for p in pontos %}
         <tr id="ponto-{{ p.codigo }}"{% if p.codigo == selecionado %} class="selecionado"{% endif %}>

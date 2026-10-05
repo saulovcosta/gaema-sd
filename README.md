@@ -113,7 +113,7 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 - **Cada tela começa por "O que fazer agora".** As situações aparecem em linguagem comum (por exemplo, "Conflito: aguardando decisão do coordenador"), com ícone e texto, não só cor.
 - **O papel aparece no topo**, com o que pode e o que não pode fazer. Botão sem permissão aparece desabilitado, com o motivo ao lado. Erro diz "o que houve" e "como resolver".
 - **Escritório:** início com "Exige atenção", demanda com mapa esquemático (escala aproximada, lista de pontos ligada ao mapa), mudanças de situação, relatórios, conflitos lado a lado, auditoria com âncora, exportação e backup.
-- **Campo (aparelho simulado):** rede, fila e última sincronização sempre visíveis; coleta em 4 etapas com rascunho salvo a cada etapa; unidade sempre visível; desfazer; conferência antes de salvar; "Sincronizar agora" mostra o resultado ("1 enviado(s), 0 conflito(s)").
+- **Campo (aparelho simulado):** rede, fila e última sincronização sempre visíveis; coleta em 5 etapas com rascunho salvo a cada etapa (ponto, o que foi visto, ambiente do ponto e fotos, penetrometria, conferência); unidade sempre visível; desfazer; conferência antes de salvar; "Sincronizar agora" mostra o resultado ("1 enviado(s), 0 conflito(s)").
 - **Temas claro e escuro**, com contraste conferido; funciona em tela de celular de 360 px sem rolagem lateral.
 - **Relatório para A4** com bloco de identificação, datas legíveis e hashes em grupos.
 - **Segurança da central:** todo dado de campo confere origem, equipe e situação da demanda, e não pode ser "mudado de demanda" depois (fecha R-28). **Âncora da trilha** para guardar fora da máquina (R-19, em parte).
@@ -121,7 +121,9 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 
 - **Cabeçalho institucional do relatório:** logo e "Ministério Público do Estado do Tocantins · CAOMA · GAEMA" no topo, e a linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal." A frase só muda se `config/endosso.json` receber o número e a data de um ato formal; hoje está vazio.
 
-**Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 83 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
+- **Rodada 2 (coleta completa):** altura do pasto, tipo de solo, formação geológica (texto como consta no mapa consultado, com a fonte) e chuva nas últimas 48 h; até 5 fotos JPEG/PNG por ponto, que chegam à central como evidência depois de sincronizar; opções sim/não/não observado em botões grandes; lista de pontos como alternativa ao mapa. Nenhuma faixa, lista ou limite inventado.
+
+**Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 91 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
 
 ## Para quem programa
 

@@ -218,3 +218,13 @@ def rodape_local(no_codespace: bool) -> str:
                 "dados sintéticos; nada é enviado a sistemas externos.")
     return "GAEMA SD — protótipo local, só neste computador (127.0.0.1); nada é enviado para fora."
 
+
+# ---- coleta: tipos de foto (CategoriaEvidencia) em linguagem comum ------------------------------------------------------
+from ..dominio.enums import CategoriaEvidencia as _C  # noqa: E402
+
+CATEGORIA_FOTO = {_C.FOTO_PANORAMICA: "Foto panorâmica da área", _C.FOTO_SOLO: "Foto do solo",
+                  _C.FOTO_FORRAGEIRA: "Foto do capim (forrageira)", _C.FOTO_INVASORA: "Foto de planta invasora",
+                  _C.FOTO_CUPINZEIRO: "Foto de cupinzeiro", _C.FOTO_EROSAO: "Foto de erosão",
+                  _C.FOTO_MEDICAO: "Foto da medição", _C.DOCUMENTO: "Documento", _C.OUTRA: "Outra"}
+CATEGORIA_FOTO_POR_CODIGO = {c.value: t for c, t in CATEGORIA_FOTO.items()}
+

@@ -62,7 +62,9 @@ async function axe(page) {
     const r = await axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] } });
     return {
       violacoes: r.violations.map((v) => ({ id: v.id, impacto: v.impact, n: v.nodes.length, alvo: v.nodes.slice(0, 3).map((n) => n.target.join(" ")), resumo: v.help })),
-      incompletos: r.incomplete.map((v) => ({ id: v.id, n: v.nodes.length })),
+      incompletos: r.incomplete.map((v) => ({ id: v.id, n: v.nodes.length,
+        nos: v.nodes.slice(0, 20).map((n) => ({ alvo: n.target.join(" "), dados: (n.any[0] || {}).data || null,
+                                                 motivo: ((n.any[0] || {}).message || "").slice(0, 160) })) })),
       aprovadas: r.passes.length,
     };
   });
@@ -121,21 +123,37 @@ async function entrar(page, usuario) {
             await page.fill("input[name=precisao]", "4");
             await page.fill("input[name=capturado_em]", "2026-10-03T09:30");
             await Promise.all([page.waitForNavigation(), page.click("form[action='/campo/coleta/ponto'] button[type=submit]")]);
-            for (const etapa of [2, 3, 4]) {
+            for (const etapa of [2, 3, 4, 5]) {
               const nome = `${largura}-${esquema}-tecnico-coleta-etapa${etapa}`;
               await page.screenshot({ path: path.join(OUT, nome + ".png"), fullPage: true });
               const m = await medir(page, largura);
               const a = await axe(page);
+              // botões sim/não/não observado: tamanho real de cada rótulo clicável
+              m.opcoes_menor = await page.$$eval("label.opcao", (ls) => ls.length ? ls.map((l) => {
+                const r = l.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)];
+              }).reduce((a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1])]) : null);
               relatorio.push({ nome, largura, esquema, usuario, caminho: `/campo/coleta (etapa ${etapa})`, status: 200, ...m, axe: a });
               if (etapa === 2) {
                 await Promise.all([page.waitForNavigation(), page.click("form[action='/campo/coleta/visto'] button[type=submit]")]);
               } else if (etapa === 3) {
+                await page.setInputFiles("input[name=foto]", { name: "ponto-sintetico.png", mimeType: "image/png",
+                  buffer: Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("foto sintetica " + largura + esquema)]) });
+                await Promise.all([page.waitForNavigation(), page.click("form[action='/campo/coleta/foto'] button[type=submit]")]);
+                const nomeF = `${largura}-${esquema}-tecnico-coleta-etapa3-com-foto`;
+                await page.screenshot({ path: path.join(OUT, nomeF + ".png"), fullPage: true });
+                relatorio.push({ nome: nomeF, largura, esquema, usuario, caminho: "/campo/coleta (etapa 3, 1 foto)", status: 200,
+                                 foto_anexada: (await page.content()).includes("Foto 1 anexada"),
+                                 ...(await medir(page, largura)), axe: await axe(page) });
+                await page.fill("input[name=altura]", "35");
+                await page.fill("input[name=solo]", "Solo sintético");
+                await Promise.all([page.waitForNavigation(), page.click("form[action='/campo/coleta/ambiente'] button[type=submit]")]);
+              } else if (etapa === 4) {
                 await page.fill("input[name=profundidade]", "20");
                 await page.fill("input[name=resistencia]", "1,4");
                 await Promise.all([page.waitForNavigation(), page.click("form[action='/campo/coleta/medicao'] button[type=submit]")]);
-                const nome3 = `${largura}-${esquema}-tecnico-coleta-etapa3-com-medicao`;
-                await page.screenshot({ path: path.join(OUT, nome3 + ".png"), fullPage: true });
-                relatorio.push({ nome: nome3, largura, esquema, usuario, caminho: "/campo/coleta (etapa 3, 1 medição)", status: 200,
+                const nome4 = `${largura}-${esquema}-tecnico-coleta-etapa4-com-medicao`;
+                await page.screenshot({ path: path.join(OUT, nome4 + ".png"), fullPage: true });
+                relatorio.push({ nome: nome4, largura, esquema, usuario, caminho: "/campo/coleta (etapa 4, 1 medição)", status: 200,
                                  ...(await medir(page, largura)), axe: await axe(page) });
                 await Promise.all([page.waitForNavigation(), page.click("form[action='/campo/coleta/conferir'] button[type=submit]")]);
               }
