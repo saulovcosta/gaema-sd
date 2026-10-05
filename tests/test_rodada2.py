@@ -288,3 +288,8 @@ def test_mapa_do_relatorio_nao_passa_da_largura_por_causa_da_borda():
     regra = re.search(r"figure svg \{([^}]*)\}", modelo).group(1)
     assert "width: 100%" in regra and "border:" in regra and "box-sizing: border-box" in regra
     assert "max-height: 150mm" in regra                                           # mapa maior da Rodada 1 continua
+
+
+def test_servidor_aceita_fila_de_conexoes_simultaneas():
+    """Regressão: com a fila padrão (5), 14 conexões simultâneas recebiam ConnectionResetError no CI (test_pr4_3)."""
+    assert A._ServidorComThreads.request_queue_size >= 64
