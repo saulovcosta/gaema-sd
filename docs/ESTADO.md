@@ -80,7 +80,7 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | Cabeçalho `Server` sem versão do Python, inclusive em página de erro | UNITÁRIO (servidor real) | passou |
 | `scripts/demo.sh`; `gerar_contratos.py`; `pip-audit` | UNITÁRIO | OK; sem diferença; sem vulnerabilidade conhecida |
 | 83 telas a 360 e 1280 px, claro e escuro, zoom 200%: axe-core, rolagem lateral, tabela dentro da coluna, "Longitude" inteira | NAVEGADOR AUTOMATIZADO (Chromium) | 0 violações; 12 contrastes "a revisar" (Rodada 2); sem rolagem; nenhuma tabela passa da coluna |
-| GitHub Actions (`.github/workflows/testes.yml`) | ver PR da Rodada 1 | resultado lido no PR depois do envio |
+| GitHub Actions (`.github/workflows/testes.yml`), Python 3.12.14 no GitHub, push e pull request do PR 7 | UNITÁRIO (no GitHub) | verde nas duas execuções: **487 passed**, inclusive o teste pulado aqui, que confirma que a porta não responde fora de 127.0.0.1; demonstração "Resultado: OK"; pip-audit sem vulnerabilidade |
 | Abrir num Codespace real, aba abrindo sozinha, porta privada | CODESPACE REAL | **NÃO EXECUTADO** (este ambiente não cria Codespace) |
 
 ## Nível de pronto real de cada entrega
