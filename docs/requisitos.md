@@ -152,3 +152,14 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-103 | Opções sim / não / não observado como caixas clicáveis de pelo menos 44 px, com foco visível e estado marcado por forma e texto | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE (UNITÁRIO + NAVEGADOR AUTOMATIZADO) |
 | RQ-104 | Lista de pontos identificada como alternativa ao mapa, com link de salto antes do mapa | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE |
 | RQ-105 | Contrastes que o axe-core deixa "a revisar" conferidos à mão e recalculados por teste (`docs/acessibilidade-contraste.md`) | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE |
+
+## Rodada 3 — telas do escritório
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-106 | Analista cria demanda pela tela (fonte manual, área candidata, alerta, área de interesse e demanda numa transação auditada); coordenador vê o botão desabilitado com motivo | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
+| RQ-107 | Município opcional na demanda, em texto, sem cadastro e sem identificar imóvel | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
+| RQ-108 | Pedido, aprovação e rejeição de usuário de teste (identificador sintético; só ADMINISTRADOR decide, com motivo); a tela diz que não há autenticação real (R-31) | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
+| RQ-109 | Coordenador escolhe a equipe; coordenador ou técnico da equipe agenda a vistoria (protocolo descritivo como padrão) | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
+| RQ-110 | Filtros do painel por situação, equipe, município e data, sem ampliar o acesso | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
+| RQ-111 | Autoatribuição pelo técnico como opção em `config/parametros.json`, desligada por padrão, com proveniência | OBSERVAÇÃO PÚBLICA (V-14) + AUTORAL (desligada) | TESTADO LOCALMENTE |

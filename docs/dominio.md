@@ -158,10 +158,11 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 | `referencia_interna` | str | não |
 | `criterio_priorizacao` | CriterioPriorizacao (lista fixa) (opcional) | não |
 | `motivo_priorizacao` | str | não |
+| `municipio` | str | não |
 
 **Relações.** 0..n Alerta; 0..1 AreaCandidata, AreaInteresse, Equipe; 0..n CampanhaVistoria, Diagnostico, Providencia, PlanoRecuperacao, Relatorio.
 
-**Validações.** Obrigatórios da tabela acima, mais: DUPLICADA exige `duplicada_de` diferente do próprio id.
+**Validações.** Obrigatórios da tabela acima, mais: DUPLICADA exige `duplicada_de` diferente do próprio id. `municipio` é texto como informado (sem cadastro de municípios); não identifica imóvel.
 
 **Atualização.** Estado muda **só** por transição auditada; demais campos por edição versionada.
 
@@ -190,7 +191,8 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
   "duplicada_de": null,
   "referencia_interna": "",
   "criterio_priorizacao": null,
-  "motivo_priorizacao": ""
+  "motivo_priorizacao": "",
+  "municipio": ""
 }
 ```
 
@@ -962,6 +964,38 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 **Validações.** Obrigatórios da tabela acima, mais: ATIVA só com evidência de teste em ambiente real; guarda o NOME da variável de ambiente, nunca o segredo.
 
 **Atualização.** Edição versionada; só ADMINISTRADOR.
+
+**Retenção.** PENDENTE (LA-06): depende de norma interna do MPTO. Proposta AUTORAL provisória: não excluir; inativar com motivo auditado.
+
+**Exemplo sintético.** Gerado na Fase 3 (fluxo de diagnóstico e relatório).
+
+## PedidoAcesso
+
+**Finalidade.** Pedido de **usuário de teste** para a interface local. **Não há autenticação real (R-31)**: aprovar só libera um papel de teste com identificador sintético.
+
+**Sensibilidade.** INTERNA
+
+| Campo | Tipo | Obrigatório |
+|---|---|---|
+| `id` | str | não |
+| `versao` | int | não |
+| `criado_em` | datetime | não |
+| `criado_por` | str | não |
+| `atualizado_em` | datetime (opcional) | não |
+| `sintetico` | bool | não |
+| `identificador` | str | sim |
+| `papel` | Papel (lista fixa) | sim |
+| `motivo` | str | sim |
+| `situacao` | SituacaoPedidoAcesso (lista fixa) | não |
+| `decidido_por` | str | não |
+| `motivo_decisao` | str | não |
+| `decidido_em` | datetime (opcional) | não |
+
+**Relações.** Independente. Decidido por ADMINISTRADOR; aprovado, aparece na lista de entrada da interface.
+
+**Validações.** Obrigatórios da tabela acima, mais: Identificador `usuario-sintetico-…` (nunca nome, e-mail ou documento); papel diferente de SISTEMA e ADMINISTRADOR; motivo com 10+ caracteres; decisão com quem, quando e motivo.
+
+**Atualização.** Só por `Nucleo.decidir_acesso_teste` (PENDENTE → APROVADO ou REJEITADO), auditado; decisão não volta atrás (novo pedido = novo registro).
 
 **Retenção.** PENDENTE (LA-06): depende de norma interna do MPTO. Proposta AUTORAL provisória: não excluir; inativar com motivo auditado.
 

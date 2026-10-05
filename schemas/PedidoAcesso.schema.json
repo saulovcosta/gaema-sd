@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaema-sd/PedidoAcesso.schema.json",
+  "title": "PedidoAcesso",
+  "description": "Pedido de usuário de TESTE (identificador sintético). Sem autenticação real (R-31).",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "versao": {
+      "type": "integer"
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "criado_por": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sintetico": {
+      "type": "boolean"
+    },
+    "identificador": {
+      "type": "string"
+    },
+    "papel": {
+      "type": "string",
+      "enum": [
+        "ANALISTA_TRIAGEM",
+        "COORDENADOR",
+        "TECNICO_CAMPO",
+        "REVISOR_TECNICO",
+        "MEMBRO_MP",
+        "AUDITOR",
+        "ADMINISTRADOR",
+        "SISTEMA"
+      ]
+    },
+    "motivo": {
+      "type": "string"
+    },
+    "situacao": {
+      "type": "string",
+      "enum": [
+        "PENDENTE",
+        "APROVADO",
+        "REJEITADO"
+      ]
+    },
+    "decidido_por": {
+      "type": "string"
+    },
+    "motivo_decisao": {
+      "type": "string"
+    },
+    "decidido_em": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "identificador",
+    "papel",
+    "motivo"
+  ],
+  "additionalProperties": false
+}

@@ -14,4 +14,20 @@
   </form></li>
 {% endfor %}
 </ul>
+<section class="cartao" aria-labelledby="t-pedir">
+  <h2 id="t-pedir">Pedir um usuário de teste</h2>
+  <p><strong>Sem autenticação real (R-31).</strong> O pedido vai para o administrador. Aprovado, o usuário de teste aparece nesta lista e qualquer pessoa com acesso a esta página pode usá-lo. Não cria conta, senha nem acesso a sistema do MPTO.</p>
+  <form method="post" action="/acesso/pedir">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="identificador">Identificador de teste</label>
+    <span class="ajuda-campo" id="aj-ident">Comece com “usuario-sintetico-” e use só letras minúsculas, números e hífen (ex.: usuario-sintetico-campo-2). Nunca use nome, e-mail ou documento.</span>
+    <input type="text" id="identificador" name="identificador" value="usuario-sintetico-" maxlength="60" required aria-describedby="aj-ident" autocomplete="off">
+    <label for="papel">Papel pedido</label>
+    <select id="papel" name="papel">{% for v, t in papeis_pediveis %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select>
+    <label for="motivo-pedido">Motivo</label>
+    <span class="ajuda-campo" id="aj-motivo-pedido">Para que o usuário de teste vai servir (pelo menos 10 letras).</span>
+    <input type="text" id="motivo-pedido" name="motivo" required minlength="10" maxlength="300" aria-describedby="aj-motivo-pedido">
+    <div class="acoes"><button type="submit" class="secundario">Enviar pedido</button></div>
+  </form>
+</section>
 {% endblock %}

@@ -6,11 +6,12 @@ from gaema_sd.dominio.serializacao import de_dict, para_dict
 EXIGIDAS = """AreaCandidata Alerta Demanda AreaInteresse Equipe CampanhaVistoria PontoAmostral Observacao
 MedicaoPenetracao Evidencia VersaoProtocolo Diagnostico RevisaoTecnica Providencia PlanoRecuperacao
 MarcoMonitoramento Relatorio EventoAuditoria FonteDado IntegracaoExterna""".split()
+NOVAS = ["PedidoAcesso"]   # Rodada 3: usuário de teste pedido pela interface (DEC-034)
 
 
-def test_as_20_entidades_exigidas_existem():
-    assert sorted(EXIGIDAS) == sorted(E.POR_NOME)
-    assert len(E.ENTIDADES) == 20
+def test_as_20_entidades_exigidas_existem_mais_as_novas():
+    assert sorted(EXIGIDAS + NOVAS) == sorted(E.POR_NOME)
+    assert len(E.ENTIDADES) == 21
 
 
 def test_ida_e_volta_preserva_tudo(cenario):

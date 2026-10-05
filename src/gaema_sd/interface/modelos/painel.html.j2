@@ -22,6 +22,23 @@
 {% endif %}
 
 <h2>Demandas</h2>
+<div class="acoes">{% if pode_criar %}<a class="botao" href="/demanda/nova">Nova demanda</a>{% else %}{{ c.bloqueado("Nova demanda", razao_criar, "nova") }}{% endif %}</div>
+<form method="get" action="/painel" class="cartao filtros" aria-labelledby="t-filtros">
+  <h3 id="t-filtros">Filtrar a lista</h3>
+  {% if erros_filtro %}<p class="aviso erro" role="alert">{{ c.icone("atencao") }}<span>Filtro ignorado: {{ erros_filtro|join("; ") }}.</span></p>{% endif %}
+  <div class="grade">
+    <div><label for="f-situacao">Situação</label>
+      <select id="f-situacao" name="situacao"><option value="">Todas</option>{% for v, t in situacoes %}<option value="{{ v }}"{% if v == filtros.situacao %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div><label for="f-equipe">Equipe responsável pela vistoria</label>
+      <select id="f-equipe" name="equipe"><option value="">Todas</option><option value="sem"{% if filtros.equipe == "sem" %} selected{% endif %}>Sem equipe definida</option>{% for v, t in equipes %}<option value="{{ v }}"{% if v == filtros.equipe %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div><label for="f-municipio">Município (parte do nome)</label>
+      <input type="text" id="f-municipio" name="municipio" value="{{ filtros.municipio }}" maxlength="80"></div>
+    <div><label for="f-de">Criada a partir de</label><input type="date" id="f-de" name="de" value="{{ filtros.de }}"></div>
+    <div><label for="f-ate">Criada até</label><input type="date" id="f-ate" name="ate" value="{{ filtros.ate }}"></div>
+  </div>
+  <div class="acoes"><button type="submit" class="secundario">Filtrar</button>{% if filtros.ativo %}<a class="botao secundario" href="/painel">Limpar filtros</a>{% endif %}</div>
+  <p class="discreto" role="status">Mostrando {{ demandas|length }} de {{ todas }} demanda(s) que seu papel pode ver.</p>
+</form>
 {% if demandas %}
 <ul class="lista">{% for d in demandas %}
   <li>
@@ -29,11 +46,15 @@
     <p><strong>Próxima ação:</strong> {{ L.situacao(d.estado).acao }} <span class="discreto">Quem age: {{ L.quem_age(d.estado) }}.</span></p>
     <dl class="dados">
       <dt>Prioridade</dt><dd>{{ L.CRITERIO.get(d.criterio_priorizacao, "não registrada") }}</dd>
+      <dt>Equipe</dt><dd>{{ d.equipe_nome }}</dd>
+      <dt>Município</dt><dd>{{ d.municipio or "não informado" }}</dd>
+      <dt>Criada em</dt><dd>{{ d.criado.strftime("%d/%m/%Y") }}</dd>
       <dt>Pontos coletados</dt><dd>{{ d.pontos }}</dd>
       <dt>Relatórios</dt><dd>{{ d.relatorios|length }}</dd>
     </dl>
   </li>
 {% endfor %}</ul>
+{% elif filtros.ativo %}<p>Nenhuma demanda com estes filtros. <a href="/painel">Limpar filtros</a></p>
 {% else %}<p>Nenhuma demanda cadastrada neste banco.</p>{% endif %}
 {% endif %}
 

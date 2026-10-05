@@ -22,7 +22,7 @@ from .backup.ancora import conferir_ancora, gerar_ancora
 from .backup.backup import criar_backup as criar_backup_arquivos
 from .backup.backup import verificar_backup as verificar_backup_arquivos
 from .dominio import entidades as E
-from .dominio.enums import Estado, FormatoRelatorio, Papel, Sensibilidade, StatusSincronizacao
+from .dominio.enums import Estado, FormatoRelatorio, Papel, Sensibilidade, SituacaoPedidoAcesso, StatusSincronizacao
 from .dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
 from .erros import (
     AcessoNegado,
@@ -37,6 +37,7 @@ from .erros import (
 from .estados import maquina
 from .exportacao import painel as exportacao_painel
 from .estados.contexto import montar_contexto
+from .config import parametro
 from .persistencia.sqlite import ArmazenamentoAuditoriaSQLite, Repositorio
 from .protocolo.definicao import canonizar, carregar_definicao
 from .sincronizacao.item import DecisaoConflito, ItemSincronizacao, ResultadoSincronizacao
@@ -70,6 +71,7 @@ ACAO_DE_ESCRITA: dict[type, Acao] = {
     E.PlanoRecuperacao: Acao.GERIR_PLANO_MONITORAMENTO,
     E.MarcoMonitoramento: Acao.GERIR_PLANO_MONITORAMENTO,
     E.Relatorio: Acao.EMITIR_RELATORIO,
+    E.PedidoAcesso: Acao.PEDIR_ACESSO_TESTE,
 }
 
 # Correção gera novo registro (com vínculo ao anterior), nunca alteração.
@@ -89,6 +91,8 @@ AUTORIA: dict[type, str] = {
 TIPOS_SINCRONIZAVEIS: dict[str, type] = {c.__name__: c for c in
                                          (E.PontoAmostral, E.Observacao, E.MedicaoPenetracao, E.Evidencia)}
 ATOR_SINCRONIZACAO = Ator.de("processo-sincronizacao", Papel.SISTEMA)
+# Quem pede usuário de teste pela página de entrada (não há login nem autenticação real, R-31).
+ATOR_PEDIDO_ACESSO = Ator.de("visitante-pedido-acesso", Papel.SISTEMA)
 DECISOES_CONFLITO = ("MANTER_CENTRAL", "ACEITAR_DISPOSITIVO")
 _META = {"versao", "atualizado_em", "status_sincronizacao", "criado_por", "criado_em"}
 
@@ -150,6 +154,10 @@ class Nucleo:
         if isinstance(obj, E.Demanda) and (obj.estado is not Estado.CANDIDATA or obj.estado_anterior is not None):
             problemas.append(erro("ESTADO_INICIAL", "estado",
                                   "demanda nasce em CANDIDATA; outros estados só por transição"))
+        if isinstance(obj, E.PedidoAcesso) and (obj.situacao is not SituacaoPedidoAcesso.PENDENTE or obj.decidido_por
+                                                or obj.motivo_decisao or obj.decidido_em is not None):
+            problemas.append(erro("ESTADO_INICIAL", "situacao",
+                                  "pedido nasce PENDENTE; decisão só por Nucleo.decidir_acesso_teste"))
         campo = AUTORIA.get(type(obj))
         if campo and getattr(obj, campo) not in ("", ator.id):
             problemas.append(erro("AUTORIA_DIVERGENTE", campo, "deve ser o próprio usuário que registra"))
@@ -177,6 +185,8 @@ class Nucleo:
         campo = AUTORIA.get(type(obj))
         preencher = {campo: ator.id} if campo and getattr(obj, campo) == "" else {}
         obj = dataclasses.replace(obj, criado_por=ator.id, **preencher)  # autoria vem do login
+        if isinstance(obj, E.CampanhaVistoria) and self._so_tecnico(ator):
+            self._exigir_vistoria_da_equipe(ator, obj)
         try:
             if self.modo == "central" and isinstance(obj, TIPOS_DE_CAMPO):
                 demanda = self._contexto_de_coleta(ator, obj)
@@ -213,6 +223,8 @@ class Nucleo:
             with self.repo.transacao():
                 if isinstance(obj, IMUTAVEIS):
                     raise ErroGaema(f"{tipo} é imutável: registre nova versão vinculada à anterior")
+                if isinstance(obj, E.PedidoAcesso):
+                    raise ErroGaema("pedido de acesso só muda por decisão do administrador (Nucleo.decidir_acesso_teste)")
                 original = self.repo.obter(type(obj), obj.id)
                 if original.versao != versao_lida:
                     raise ConflitoAtualizacao(
@@ -293,6 +305,93 @@ class Nucleo:
         if t is not None and (ator.papeis & t.papeis) == {Papel.TECNICO_CAMPO} and \
                 ator.id not in self._membros_da_demanda(demanda):
             raise AcessoNegado("técnico de campo só move demanda da própria equipe")
+
+    def _exigir_vistoria_da_equipe(self, ator: Ator, campanha: E.CampanhaVistoria) -> None:
+        """Técnico de campo só agenda vistoria de demanda da própria equipe, com a equipe da demanda."""
+        try:
+            demanda = self.repo.obter(E.Demanda, campanha.demanda_id)
+            equipe = self.repo.obter(E.Equipe, demanda.equipe_id) if demanda.equipe_id else None
+        except RegistroNaoEncontrado:
+            demanda = equipe = None
+        if equipe is None or campanha.equipe_id != equipe.id or ator.id not in {m.usuario_id for m in equipe.membros}:
+            e = AcessoNegado("técnico de campo só agenda vistoria de demanda da própria equipe")
+            self._auditar_recusa(ator, "ACESSO_NEGADO", "CampanhaVistoria", campanha.id, e)
+            raise e
+
+    def registrar_em_lote(self, ator: Ator, objetos: list) -> list:
+        """Grava vários registros novos numa transação só (ex.: fonte, área candidata, alerta, área de interesse e
+        demanda criadas juntas pela interface). Se um falhar, nada fica gravado; cada criação é auditada."""
+        for obj in objetos:
+            self._exigir(ator, ACAO_DE_ESCRITA[type(obj)], type(obj).__name__, obj.id)
+            if isinstance(obj, (E.Diagnostico, E.Relatorio, E.Evidencia, *TIPOS_DE_CAMPO)):
+                raise ErroGaema(f"{type(obj).__name__} não entra por gravação em lote")
+        try:
+            with self.repo.transacao():
+                return [self._registrar(ator, obj)[0] for obj in objetos]
+        except ErroGaema as e:                 # a recusa de dentro voltou com a transação; registra a do lote
+            self._auditar_recusa(ator, "CRIACAO_RECUSADA", "+".join(type(o).__name__ for o in objetos)[:120],
+                                 objetos[-1].id if objetos else "*", e)
+            raise
+
+    ESTADOS_SEM_EQUIPE_FIXA = (Estado.CANDIDATA, Estado.ALERTA, Estado.EM_TRIAGEM, Estado.DEMANDA_ABERTA, Estado.REABERTA)
+
+    def definir_equipe(self, ator: Ator, demanda_id: str, equipe_id: str) -> E.Demanda:
+        """Coordenador escolhe a equipe da demanda antes da atribuição (a transição para ATRIBUIDA confere a equipe)."""
+        self._exigir(ator, Acao.GERIR_EQUIPE, "Demanda", demanda_id)
+        d = self.repo.obter(E.Demanda, demanda_id)
+        self.repo.obter(E.Equipe, equipe_id)                          # equipe tem de existir
+        if d.estado not in self.ESTADOS_SEM_EQUIPE_FIXA:
+            e = ErroGaema("a equipe só é escolhida antes da atribuição (até a demanda aberta ou reaberta)")
+            self._auditar_recusa(ator, "ATUALIZACAO_RECUSADA", "Demanda", demanda_id, e)
+            raise e
+        return self.atualizar(ator, dataclasses.replace(d, equipe_id=equipe_id), d.versao)[0]   # confere a versão
+
+    # ------------------------------------------------------------ usuários de TESTE (sem autenticação real, R-31)
+
+    def pedir_acesso_teste(self, ator: Ator, identificador: str, papel: Papel, motivo: str, *,
+                           reservados: frozenset[str] = frozenset()) -> E.PedidoAcesso:
+        """Registra pedido de usuário de teste (PENDENTE). `reservados`: identificadores já usados pela interface."""
+        self._exigir(ator, Acao.PEDIR_ACESSO_TESTE, "PedidoAcesso", "*")
+        identificador = (identificador or "").strip().lower()
+        pedidos = self.repo.listar(E.PedidoAcesso)
+        if identificador in reservados or any(p.identificador == identificador and p.situacao is not
+                                              SituacaoPedidoAcesso.REJEITADO for p in pedidos):
+            raise ErroGaema("identificador já usado ou já pedido; escolha outro")
+        if sum(p.situacao is SituacaoPedidoAcesso.PENDENTE for p in pedidos) >= \
+                int(parametro("interface_pedidos_acesso_pendentes_max")):
+            raise ErroGaema("há pedidos demais esperando decisão; peça ao administrador que decida os pendentes")
+        pedido = E.PedidoAcesso(identificador=identificador, papel=papel, motivo=sanear_texto(motivo or "").strip()[:300],
+                                sintetico=True)
+        return self._registrar(ator, pedido)[0]
+
+    def decidir_acesso_teste(self, ator: Ator, pedido_id: str, aprovar: bool, motivo: str) -> E.PedidoAcesso:
+        """Administrador aprova ou rejeita (com motivo). Decisão não volta atrás; auditada."""
+        self._exigir(ator, Acao.DECIDIR_ACESSO_TESTE, "PedidoAcesso", pedido_id)
+        motivo = sanear_texto(motivo or "").strip()[:300]
+        try:
+            with self.repo.transacao():
+                atual = self.repo.obter(E.PedidoAcesso, pedido_id)
+                if atual.situacao is not SituacaoPedidoAcesso.PENDENTE:
+                    raise ErroGaema("pedido já decidido; um novo pedido é um novo registro")
+                agora_ = datetime.now(timezone.utc)
+                novo = dataclasses.replace(
+                    atual, situacao=SituacaoPedidoAcesso.APROVADO if aprovar else SituacaoPedidoAcesso.REJEITADO,
+                    decidido_por=ator.id, motivo_decisao=motivo, decidido_em=agora_, atualizado_em=agora_)
+                exigir_sem_erros(validar(novo))
+                gravado = self.repo.atualizar(novo, atual.versao)
+                self.trilha.registrar(ator, "ACESSO_TESTE_APROVADO" if aprovar else "ACESSO_TESTE_REJEITADO",
+                                      "PedidoAcesso", pedido_id, motivo=motivo,
+                                      detalhes={"papel": atual.papel.value})
+        except (ErroGaema, RegistroNaoEncontrado) as e:
+            self._auditar_recusa(ator, "DECISAO_ACESSO_RECUSADA", "PedidoAcesso", pedido_id, e)
+            raise
+        return gravado
+
+    def acessos_de_teste_aprovados(self, ator: Ator) -> list[tuple[str, Papel]]:
+        """(identificador, papel) dos pedidos aprovados, para a lista de entrada da interface. Sem motivo nem decisor."""
+        self._exigir(ator, Acao.PEDIR_ACESSO_TESTE, "PedidoAcesso", "*")
+        return [(p.identificador, p.papel) for p in self.repo.listar(E.PedidoAcesso)
+                if p.situacao is SituacaoPedidoAcesso.APROVADO]
 
     # ------------------------------------------------------------ protocolo e diagnóstico
 

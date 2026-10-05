@@ -18,6 +18,7 @@ from ..dominio.enums import (
     Papel,
     SituacaoIntegracao,
     SituacaoMarco,
+    SituacaoPedidoAcesso,
     VariavelCampo,
 )
 from . import geometria, gps, unidades
@@ -264,6 +265,27 @@ def _fonte(o: E.FonteDado):
     return []
 
 
+IDENTIFICADOR_TESTE = re.compile(r"usuario-sintetico-[a-z0-9]+(?:-[a-z0-9]+)*")
+PAPEIS_NAO_PEDIVEIS = (Papel.SISTEMA, Papel.ADMINISTRADOR)
+
+
+def _pedido_acesso(o: E.PedidoAcesso):
+    p = []
+    if not IDENTIFICADOR_TESTE.fullmatch(o.identificador or "") or len(o.identificador) > 60:
+        p.append(erro("IDENTIFICADOR_NAO_SINTETICO", "identificador",
+                      "use um identificador sintético: usuario-sintetico-<letras-ou-numeros>, até 60 caracteres"))
+    if o.papel in PAPEIS_NAO_PEDIVEIS:
+        p.append(erro("PAPEL_NAO_PEDIVEL", "papel", "SISTEMA e ADMINISTRADOR não podem ser pedidos"))
+    if len(o.motivo.strip()) < 10:
+        p.append(erro("MOTIVO_CURTO", "motivo", "explique o motivo do pedido (mínimo 10 caracteres)"))
+    decidido = o.situacao is not SituacaoPedidoAcesso.PENDENTE
+    if decidido and (not o.decidido_por or len(o.motivo_decisao.strip()) < 10 or o.decidido_em is None):
+        p.append(erro("DECISAO_INCOMPLETA", "motivo_decisao", "decisão exige quem decidiu, quando e motivo (mín. 10)"))
+    if not decidido and (o.decidido_por or o.motivo_decisao or o.decidido_em):
+        p.append(erro("DECISAO_SEM_SITUACAO", "situacao", "pedido pendente não tem decisão"))
+    return p
+
+
 REGRAS = {
     E.AreaCandidata: _area_candidata,
     E.Alerta: _alerta,
@@ -283,6 +305,7 @@ REGRAS = {
     E.Relatorio: _relatorio,
     E.IntegracaoExterna: _integracao,
     E.FonteDado: _fonte,
+    E.PedidoAcesso: _pedido_acesso,
 }
 
 

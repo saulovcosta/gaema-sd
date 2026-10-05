@@ -1,0 +1,49 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Nova demanda{% endblock %}
+{% block conteudo %}
+<h1>Nova demanda</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p>
+  <p class="frase">{% if pode_criar %}Preencha o que foi informado e o recorte da área; toque em “Criar demanda”.{% else %}Peça ao analista de triagem que registre a demanda.{% endif %}</p>
+  <p class="discreto">A demanda nasce como “{{ L.situacao("CANDIDATA").nome }}”. Juntos ficam registrados: a fonte (registro manual), a área indicada, o alerta e a área de interesse. Tudo vai para a trilha de auditoria. Não há triagem por satélite: a área é a que você informar.</p></div>
+{% if erros %}
+<div class="aviso erro" role="alert">{{ c.icone("critico") }}<div><p><strong>A demanda não foi criada.</strong></p><ul>{% for e in erros %}<li>{{ e }}</li>{% endfor %}</ul><p>Corrija e toque em “Criar demanda” de novo. O que você digitou continua aqui.</p></div></div>
+{% endif %}
+{% if pode_criar %}
+<form method="post" action="/demanda/nova" class="cartao">
+  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <h2>O que foi informado</h2>
+  <label for="titulo">Título da demanda</label>
+  <input type="text" id="titulo" name="titulo" value="{{ valores.titulo }}" required maxlength="120">
+  <label for="objetivo">Objetivo (opcional)</label>
+  <input type="text" id="objetivo" name="objetivo" value="{{ valores.objetivo }}" maxlength="300">
+  <label for="origem">Origem da informação</label>
+  <select id="origem" name="origem">{% for v, t in origens %}<option value="{{ v }}"{% if v == valores.origem %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <label for="descricao">O que foi informado</label>
+  <span class="ajuda-campo" id="aj-desc">Descreva o fato em poucas linhas. Não escreva nome, documento ou endereço de pessoas.</span>
+  <input type="text" id="descricao" name="descricao" value="{{ valores.descricao }}" required maxlength="300" aria-describedby="aj-desc">
+  <label for="data_alerta">Data da informação</label>
+  <input type="date" id="data_alerta" name="data_alerta" value="{{ valores.data_alerta }}" max="{{ hoje }}" required>
+  <label for="municipio">Município (opcional)</label>
+  <span class="ajuda-campo" id="aj-mun">Como foi informado. Serve para filtrar o painel; não identifica imóvel.</span>
+  <input type="text" id="municipio" name="municipio" value="{{ valores.municipio }}" maxlength="120" aria-describedby="aj-mun">
+  <h2>Recorte da área (retângulo)</h2>
+  <p class="discreto">Coordenadas em graus decimais (WGS84), como no GPS. O retângulo é o recorte de análise: não é imóvel nem limite de propriedade.</p>
+  <div class="grade">
+    <div><label for="lat_max">Latitude norte (maior)</label><input type="text" id="lat_max" name="lat_max" value="{{ valores.lat_max }}" inputmode="decimal" required></div>
+    <div><label for="lat_min">Latitude sul (menor)</label><input type="text" id="lat_min" name="lat_min" value="{{ valores.lat_min }}" inputmode="decimal" required></div>
+    <div><label for="lon_min">Longitude oeste (menor)</label><input type="text" id="lon_min" name="lon_min" value="{{ valores.lon_min }}" inputmode="decimal" required></div>
+    <div><label for="lon_max">Longitude leste (maior)</label><input type="text" id="lon_max" name="lon_max" value="{{ valores.lon_max }}" inputmode="decimal" required></div>
+  </div>
+  <h2>Prioridade (opcional)</h2>
+  <label for="criterio">Critério de prioridade</label>
+  <span class="ajuda-campo" id="aj-crit">Escolhido por pessoa; o sistema não calcula prioridade.</span>
+  <select id="criterio" name="criterio" aria-describedby="aj-crit"><option value="">Sem prioridade registrada</option>{% for v, t in criterios %}<option value="{{ v }}"{% if v == valores.criterio %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <label for="motivo_priorizacao">Motivo da prioridade</label>
+  <span class="ajuda-campo" id="aj-mp">Obrigatório se escolher um critério (pelo menos 10 letras).</span>
+  <input type="text" id="motivo_priorizacao" name="motivo_priorizacao" value="{{ valores.motivo_priorizacao }}" maxlength="300" aria-describedby="aj-mp">
+  <div class="acoes"><button type="submit">Criar demanda</button><a class="botao secundario" href="/painel">Cancelar</a></div>
+</form>
+{% else %}
+<div class="acoes">{{ c.bloqueado("Criar demanda", razao_criar, "criar") }}</div>
+{% endif %}
+{% endblock %}

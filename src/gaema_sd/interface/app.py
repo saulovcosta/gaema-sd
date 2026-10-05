@@ -24,7 +24,7 @@ import threading
 import time
 import urllib.parse
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from http.cookies import SimpleCookie
 from pathlib import Path
 from socketserver import ThreadingMixIn
@@ -37,11 +37,13 @@ from ..auditoria.trilha import sanear_texto
 from ..backup.ancora import interpretar_ancora
 from ..config import parametro
 from ..dominio import entidades as E
-from ..dominio.enums import CategoriaEvidencia, Estado, FormatoRelatorio, Papel, VariavelCampo
+from ..dominio.enums import (CategoriaEvidencia, CriterioPriorizacao, Estado, FormatoRelatorio, ModoProtocolo, OrigemAlerta,
+                             OrigemAreaInteresse, Papel, SituacaoPedidoAcesso, TipoFonte, VariavelCampo)
 from ..erros import (AcessoNegado, AuditoriaCorrompida, ConflitoAtualizacao, ConflitoIdempotencia, ErroGaema,
                      RegistroNaoEncontrado, TransicaoInvalida, ValidacaoFalhou)
 from ..exportacao import painel as exportacao_painel
-from ..nucleo import ESTADOS_COM_RELATORIO, ESTADOS_DE_COLETA, Nucleo
+from ..nucleo import ATOR_PEDIDO_ACESSO, ESTADOS_COM_RELATORIO, ESTADOS_DE_COLETA, Nucleo
+from ..validacao.entidades import PAPEIS_NAO_PEDIVEIS
 from ..validacao.entidades import validar
 from ..validacao.anexos import validar_anexo
 from ..validacao.unidades import PARA_CM, ler_numero
@@ -93,7 +95,8 @@ USUARIOS_DE_TESTE: dict[str, Ator] = {
 MENU = [("/painel", "Início", "inicio", None), ("/campo", "Campo", "campo", None),
         ("/conflitos", "Conflitos", "conflito", Acao.RESOLVER_CONFLITO_SINCRONIZACAO),
         ("/auditoria", "Auditoria", "auditoria", Acao.VERIFICAR_AUDITORIA), ("/exportar", "Exportar", "exportar", Acao.EXPORTAR),
-        ("/backup", "Backup", "backup", Acao.GERIR_BACKUP), ("/ajuda", "Ajuda e limites", "ajuda", None)]
+        ("/backup", "Backup", "backup", Acao.GERIR_BACKUP), ("/acessos", "Acessos de teste", "pessoa", Acao.DECIDIR_ACESSO_TESTE),
+        ("/ajuda", "Ajuda e limites", "ajuda", None)]
 
 
 @dataclass
@@ -137,6 +140,11 @@ class Aplicacao:
             ("GET", r"/", self.inicio), ("GET", r"/entrar", self.entrar_pagina), ("POST", r"/entrar", self.entrar),
             ("POST", r"/sair", self.sair), ("POST", r"/tema", self.tema), ("GET", r"/painel", self.painel),
             ("GET", r"/ajuda", self.ajuda),
+            ("GET", r"/demanda/nova", self.demanda_nova), ("POST", r"/demanda/nova", self.demanda_criar),
+            ("POST", rf"/demanda/({_UUID})/equipe", self.demanda_equipe),
+            ("POST", rf"/demanda/({_UUID})/vistoria", self.demanda_vistoria),
+            ("POST", r"/acesso/pedir", self.acesso_pedir), ("GET", r"/acessos", self.acessos),
+            ("POST", rf"/acessos/({_UUID})/decidir", self.acesso_decidir),
             ("GET", rf"/demanda/({_UUID})", self.demanda), ("POST", rf"/demanda/({_UUID})/transitar", self.transitar),
             ("POST", rf"/demanda/({_UUID})/relatorio", self.emitir_relatorio), ("GET", rf"/relatorio/({_UUID})", self.relatorio),
             ("GET", r"/conflitos", self.conflitos), ("GET", rf"/conflitos/({_UUID})", self.conflito),
@@ -156,7 +164,7 @@ class Aplicacao:
             ("POST", r"/campo/coleta/ambiente", self.coleta_ambiente), ("POST", ROTA_FOTO, self.coleta_foto),
             ("POST", r"/campo/coleta/foto/remover", self.coleta_foto_remover),
         ]
-        self._livres = {self.entrar_pagina, self.entrar, self.tema}
+        self._livres = {self.entrar_pagina, self.entrar, self.tema, self.acesso_pedir}
 
     # ------------------------------------------------------------ WSGI
 
@@ -224,7 +232,7 @@ class Aplicacao:
             else:
                 form = {k: v[0] for k, v in urllib.parse.parse_qs(environ.get("QUERY_STRING", ""),
                                                                   keep_blank_values=True).items()}
-            ator = self.usuarios.get(sessao.usuario) if sessao and sessao.usuario else None
+            ator = self._usuarios_atuais().get(sessao.usuario) if sessao and sessao.usuario else None
             if funcao not in self._livres and ator is None:
                 return self._ir("/entrar")
             self._caminho = caminho
@@ -397,22 +405,71 @@ class Aplicacao:
     def entrar_pagina(self, sessao, ator, form):
         anonima = sessao if sessao is not None else self._nova_sessao(anonima=True)
         usuarios = []
-        for k, a in self.usuarios.items():
+        for k, a in self._usuarios_atuais().items():
             sim, _ = L.pode_nao_pode(a)
             usuarios.append((k, L.papeis(a.papeis), a.id, ", ".join(sim[:4]) + ("…" if len(sim) > 4 else "") or "consultar"))
-        r = self._pagina("entrar", anonima, None, usuarios=usuarios)
+        papeis_pediveis = [(p.value, L.PAPEL[p]) for p in Papel if p not in PAPEIS_NAO_PEDIVEIS]
+        r = self._pagina("entrar", anonima, None, usuarios=usuarios, papeis_pediveis=papeis_pediveis)
         if sessao is None:
             r.cookie = self._cookie(anonima.sid)
         return r
 
     def entrar(self, sessao, ator, form):
         escolhido = form.get("usuario", "")
-        if sessao is None or escolhido not in self.usuarios:
+        if sessao is None or escolhido not in self._usuarios_atuais():
             return self._erro(400, "Escolha um usuário de teste da lista.", "Volte à página de entrada e marque um dos usuários.")
         self.sessoes.pop(sessao.sid, None)                      # troca de sessão no login
         nova = self._nova_sessao(sessao.tema)
         nova.usuario = escolhido
         return self._ir("/painel", cookie=self._cookie(nova.sid))
+
+    def _usuarios_atuais(self) -> dict[str, Ator]:
+        """Usuários de teste fixos mais os aprovados pelo administrador (PedidoAcesso). Sem autenticação real (R-31)."""
+        todos = dict(self.usuarios)
+        reservados = set(todos) | {a.id for a in todos.values()}
+        for ident, papel in self.nucleo.acessos_de_teste_aprovados(ATOR_PEDIDO_ACESSO):
+            if ident not in reservados:
+                todos[ident] = Ator.de(ident, papel)
+        return todos
+
+    def acesso_pedir(self, sessao, ator, form):
+        try:
+            papel = Papel(form.get("papel", ""))
+        except ValueError:
+            self._aviso_erro(sessao, "escolha o papel na lista.")
+            return self._ir("/entrar")
+        atuais = self._usuarios_atuais()
+        try:
+            self.nucleo.pedir_acesso_teste(ATOR_PEDIDO_ACESSO, form.get("identificador", "")[:80], papel,
+                                           form.get("motivo", "")[:300],
+                                           reservados=frozenset(atuais) | {a.id for a in atuais.values()})
+            sessao.avisos.append(("ok", "Pedido registrado. Ele aparece para o administrador decidir; aprovado, o usuário de "
+                                        "teste surge nesta lista. Não há autenticação real (R-31)."))
+        except (ValidacaoFalhou, AcessoNegado, ErroGaema) as e:
+            self._aviso_erro(sessao, str(e))
+        return self._ir("/entrar")
+
+    def acessos(self, sessao, ator, form):
+        try:
+            pedidos = self.nucleo.listar(ator, E.PedidoAcesso)
+            if not pode(ator, Acao.DECIDIR_ACESSO_TESTE):
+                raise AcessoNegado(f"seu papel ({L.papeis(ator.papeis)}) não decide pedidos de acesso de teste")
+        except AcessoNegado as e:
+            return self._sem_permissao(e)
+        ordem = {SituacaoPedidoAcesso.PENDENTE: 0, SituacaoPedidoAcesso.APROVADO: 1, SituacaoPedidoAcesso.REJEITADO: 2}
+        pedidos = sorted(pedidos, key=lambda p: (ordem[p.situacao], p.criado_em))
+        return self._pagina("acessos", sessao, ator, pedidos=pedidos,
+                            pendentes=sum(p.situacao is SituacaoPedidoAcesso.PENDENTE for p in pedidos))
+
+    def acesso_decidir(self, sessao, ator, form, pedido_id):
+        decisao = form.get("decisao", "")
+        if decisao not in ("aprovar", "rejeitar"):
+            return self._erro(400, "Decisão desconhecida.", "Use os botões Aprovar ou Rejeitar.")
+        return self._executar(sessao, "/acessos",
+                              lambda: self.nucleo.decidir_acesso_teste(ator, pedido_id, decisao == "aprovar",
+                                                                       form.get("motivo", "")) and None,
+                              "Pedido aprovado: o usuário de teste já aparece na página de entrada." if decisao == "aprovar"
+                              else "Pedido rejeitado.")
 
     def sair(self, sessao, ator, form):
         self.sessoes.pop(sessao.sid, None)
@@ -431,10 +488,19 @@ class Aplicacao:
     def painel(self, sessao, ator, form):
         demandas, sem_acesso = [], False
         try:
-            demandas = [self.nucleo.resumo_demanda(ator, d.id) | {"titulo": d.titulo}
+            demandas = [self.nucleo.resumo_demanda(ator, d.id) | {"titulo": d.titulo, "municipio": d.municipio,
+                                                                  "equipe_id": d.equipe_id or "", "criado": d.criado_em.date()}
                         for d in self.nucleo.listar(ator, E.Demanda)]
         except AcessoNegado:
             sem_acesso = True
+        equipes = {}
+        try:
+            equipes = {q.id: q.nome for q in self.nucleo.listar(ator, E.Equipe)}
+        except AcessoNegado:
+            pass
+        todas = len(demandas)
+        filtros, erros_filtro = self._filtros_painel(form, equipes)
+        demandas = [d for d in demandas if self._passa_filtro(d, filtros)]
         contagem: dict[str, int] = {}
         for d in demandas:
             contagem[d["estado"]] = contagem.get(d["estado"], 0) + 1
@@ -446,6 +512,12 @@ class Aplicacao:
                 atencao.append({"tom": "erro", "icone": "critico", "titulo": f"{n} conflito(s) de sincronização aguardando sua decisão",
                                 "texto": "Enquanto não decidir, a validação dos dados fica bloqueada.", "href": "/conflitos",
                                 "link": "Abrir conflitos"})
+        if pode(ator, Acao.DECIDIR_ACESSO_TESTE):
+            n = sum(p.situacao is SituacaoPedidoAcesso.PENDENTE for p in self.nucleo.listar(ator, E.PedidoAcesso))
+            if n:
+                atencao.append({"tom": "info", "icone": "pessoa", "titulo": f"{n} pedido(s) de usuário de teste esperando decisão",
+                                "texto": "Aprove ou rejeite com motivo. Sem autenticação real (R-31).", "href": "/acessos",
+                                "link": "Abrir acessos de teste"})
         if self.campo and pode(ator, Acao.COLETAR_CAMPO):
             st = self.campo.status()
             if not st["conectado"]:
@@ -472,8 +544,157 @@ class Aplicacao:
         else:
             proxima = "Não há demandas neste banco."
         sim, nao = L.pode_nao_pode(ator)
+        for d in demandas:
+            d["equipe_nome"] = equipes.get(d["equipe_id"], "sem equipe definida")
         return self._pagina("painel", sessao, ator, demandas=demandas, sem_acesso=sem_acesso, por_situacao=por_situacao,
-                            atencao=atencao, proxima=proxima, pode=sim, nao_pode=nao)
+                            atencao=atencao, proxima=proxima, pode=sim, nao_pode=nao, filtros=filtros,
+                            erros_filtro=erros_filtro, todas=todas, equipes=sorted(equipes.items(), key=lambda x: x[1]),
+                            situacoes=[(e.value, L.situacao(e).nome) for e in Estado],
+                            pode_criar=pode(ator, Acao.REGISTRAR_AREA_CANDIDATA), razao_criar=self._razao_criar(ator))
+
+    @staticmethod
+    def _filtros_painel(form: dict, equipes: dict) -> tuple[dict, list[str]]:
+        """Filtros do painel (GET). Só recortam a lista que o núcleo já devolveu ao usuário; nunca ampliam o acesso."""
+        f = {"situacao": form.get("situacao", ""), "equipe": form.get("equipe", ""),
+             "municipio": form.get("municipio", "").strip()[:80], "de": form.get("de", ""), "ate": form.get("ate", "")}
+        erros = []
+        if f["situacao"] and f["situacao"] not in {e.value for e in Estado}:
+            erros.append("situação desconhecida"); f["situacao"] = ""
+        if f["equipe"] and f["equipe"] != "sem" and f["equipe"] not in equipes:
+            erros.append("equipe desconhecida"); f["equipe"] = ""
+        for k, nome in (("de", "data inicial"), ("ate", "data final")):
+            if f[k]:
+                try:
+                    f[k + "_data"] = date.fromisoformat(f[k])
+                except ValueError:
+                    erros.append(f"{nome} inválida (use o calendário)"); f[k] = ""
+        f["ativo"] = any(f[k] for k in ("situacao", "equipe", "municipio", "de", "ate"))
+        return f, erros
+
+    @staticmethod
+    def _passa_filtro(d: dict, f: dict) -> bool:
+        if f["situacao"] and d["estado"] != f["situacao"]:
+            return False
+        if f["equipe"] and (d["equipe_id"] or "sem") != f["equipe"]:
+            return False
+        if f["municipio"] and f["municipio"].casefold() not in (d["municipio"] or "").casefold():
+            return False
+        if f.get("de_data") and d["criado"] < f["de_data"]:
+            return False
+        if f.get("ate_data") and d["criado"] > f["ate_data"]:
+            return False
+        return True
+
+    @staticmethod
+    def _razao_criar(ator: Ator) -> str:
+        if pode(ator, Acao.REGISTRAR_AREA_CANDIDATA):
+            return ""
+        return (f"seu papel ({L.papeis(ator.papeis)}) não registra a área indicada que dá origem à demanda; "
+                "quem cria demanda pela tela é o analista de triagem.")
+
+    # ---- criar demanda (FonteDado manual → AreaCandidata → Alerta → AreaInteresse → Demanda, numa transação)
+    CAMPOS_NOVA = ("titulo", "objetivo", "origem", "descricao", "data_alerta", "municipio", "lat_min", "lat_max", "lon_min",
+                   "lon_max", "criterio", "motivo_priorizacao")
+
+    def _pagina_nova(self, sessao, ator, valores: dict, erros: list[str], status: int = 200):
+        return self._pagina("demanda_nova", sessao, ator, status, valores={k: valores.get(k, "") for k in self.CAMPOS_NOVA},
+                            erros=erros, origens=[(o.value, L.ORIGEM_ALERTA[o]) for o in OrigemAlerta],
+                            criterios=list(L.CRITERIO.items()), pode_criar=pode(ator, Acao.REGISTRAR_AREA_CANDIDATA),
+                            razao_criar=self._razao_criar(ator), hoje=date.today().isoformat())
+
+    def demanda_nova(self, sessao, ator, form):
+        return self._pagina_nova(sessao, ator, {"data_alerta": date.today().isoformat()}, [])
+
+    def demanda_criar(self, sessao, ator, form):
+        if not pode(ator, Acao.REGISTRAR_AREA_CANDIDATA):
+            return self._sem_permissao(AcessoNegado(self._razao_criar(ator)))
+        v = {k: form.get(k, "").strip()[:300 if k in ("objetivo", "descricao", "motivo_priorizacao") else 120]
+             for k in self.CAMPOS_NOVA}
+        erros = [f"preencha: {nome}" for k, nome in (("titulo", "título"), ("descricao", "o que foi informado"),
+                                                     ("data_alerta", "data da informação")) if not v[k]]
+        try:
+            origem = OrigemAlerta(v["origem"])
+        except ValueError:
+            erros.append("escolha a origem da informação na lista")
+        criterio = None
+        if v["criterio"]:
+            try:
+                criterio = CriterioPriorizacao(v["criterio"])
+            except ValueError:
+                erros.append("escolha o critério de prioridade na lista")
+        try:
+            quando = date.fromisoformat(v["data_alerta"]) if v["data_alerta"] else None
+            if quando and quando > date.today():
+                erros.append("a data da informação não pode estar no futuro")
+        except ValueError:
+            erros.append("data da informação inválida (use o calendário)"); quando = None
+        coords = {}
+        for k, nome, lim in (("lat_min", "latitude sul", 90), ("lat_max", "latitude norte", 90),
+                             ("lon_min", "longitude oeste", 180), ("lon_max", "longitude leste", 180)):
+            try:
+                coords[k] = ler_numero(v[k])
+                if abs(coords[k]) > lim:
+                    erros.append(f"a {nome} deve estar entre -{lim} e {lim}")
+            except (TypeError, ValueError):
+                erros.append(f"a {nome} precisa ser um número (use vírgula ou ponto)")
+        if len(coords) == 4 and not (coords["lat_min"] < coords["lat_max"] and coords["lon_min"] < coords["lon_max"]):
+            erros.append("o sul precisa ser menor que o norte e o oeste menor que o leste")
+        if erros:
+            return self._pagina_nova(sessao, ator, v, erros, 422)
+        la1, la2, lo1, lo2 = coords["lat_min"], coords["lat_max"], coords["lon_min"], coords["lon_max"]
+        wkt = f"POLYGON(({lo1} {la1}, {lo2} {la1}, {lo2} {la2}, {lo1} {la2}, {lo1} {la1}))"
+        base = dict(sintetico=True)
+        fonte = E.FonteDado(nome="Informação registrada na interface de teste", tipo=TipoFonte.REGISTRO_MANUAL,
+                            provedor="registro manual (interface local)", data_referencia=quando, **base)
+        cand = E.AreaCandidata(geometria_wkt=wkt, fonte_ids=[fonte.id], data_deteccao=quando,
+                               metodo_selecao="registro manual na interface (sem triagem por satélite)", **base)
+        alerta = E.Alerta(origem=origem, descricao=v["descricao"], data_alerta=quando, area_candidata_id=cand.id, **base)
+        area = E.AreaInteresse(geometria_wkt=wkt, descricao="Recorte retangular informado na interface (recorte de análise; "
+                               "não é imóvel)", origem=OrigemAreaInteresse.DE_CANDIDATA, area_candidata_id=cand.id, **base)
+        dem = E.Demanda(titulo=v["titulo"], objetivo=v["objetivo"], alerta_ids=[alerta.id], area_candidata_id=cand.id,
+                        area_interesse_id=area.id, criterio_priorizacao=criterio, motivo_priorizacao=v["motivo_priorizacao"],
+                        municipio=v["municipio"], **base)
+        try:
+            self.nucleo.registrar_em_lote(ator, [fonte, cand, alerta, area, dem])
+        except AcessoNegado as e:
+            return self._sem_permissao(e)
+        except (ValidacaoFalhou, ErroGaema) as e:
+            m = L.explicar(sanear_texto(str(e))[:400])
+            return self._pagina_nova(sessao, ator, v, [m.o_que_houve + " " + m.como_resolver + " Nada foi gravado."], 422)
+        sessao.avisos.append(("ok", f"Demanda criada: {L.situacao(Estado.CANDIDATA).nome}. Foram registrados juntos a fonte "
+                                    "(registro manual), a área indicada, o alerta e a área de interesse; tudo fica na trilha."))
+        return self._ir(f"/demanda/{dem.id}")
+
+    def demanda_equipe(self, sessao, ator, form, demanda_id):
+        return self._executar(sessao, f"/demanda/{demanda_id}",
+                              lambda: self.nucleo.definir_equipe(ator, demanda_id, form.get("equipe", "")) and None,
+                              "Equipe definida para a demanda.")
+
+    def demanda_vistoria(self, sessao, ator, form, demanda_id):
+        def fazer():
+            d = self.nucleo.ler(ator, E.Demanda, demanda_id)
+            if d.estado is not Estado.ATRIBUIDA:
+                raise ErroGaema("a vistoria é agendada com a demanda atribuída a uma equipe")
+            try:
+                quando = date.fromisoformat(form.get("data_planejada", ""))
+            except ValueError:
+                raise ErroGaema("data da vistoria inválida (use o calendário)") from None
+            if quando < date.today():
+                raise ErroGaema("a data da vistoria não pode estar no passado")
+            protocolos = {p.id for p in self.nucleo.listar(ator, E.VersaoProtocolo)}
+            if form.get("protocolo", "") not in protocolos:
+                raise ErroGaema("escolha o protocolo na lista")
+            objetivo = form.get("objetivo", "").strip()[:300]
+            if len(objetivo) < 10:
+                raise ErroGaema("descreva o objetivo da vistoria (pelo menos 10 letras)")
+            pacote = ("pacote sintético declarado na interface de teste (aparelho simulado)"
+                      if form.get("missao_baixada") == "sim" else "")
+            self.nucleo.registrar(ator, E.CampanhaVistoria(demanda_id=d.id, equipe_id=d.equipe_id or "",
+                                                            versao_protocolo_id=form["protocolo"], objetivo=objetivo,
+                                                            data_planejada=quando, pacote_offline=pacote, sintetico=True))
+            return quando.strftime("%d/%m/%Y")
+        return self._executar(sessao, f"/demanda/{demanda_id}", fazer,
+                              "Vistoria agendada para {extra}. Agora a demanda pode passar para “planejada”.")
 
     def demanda(self, sessao, ator, form, demanda_id):
         try:
@@ -486,6 +707,11 @@ class Aplicacao:
             campanhas = {c.id for c in self.nucleo.listar(ator, E.CampanhaVistoria) if c.demanda_id == demanda_id}
             pontos_reg = [p for p in self.nucleo.listar(ator, E.PontoAmostral) if p.campanha_id in campanhas]
             area = self.nucleo.ler(ator, E.AreaInteresse, d.area_interesse_id) if d.area_interesse_id else None
+            equipes = {q.id: q.nome for q in self.nucleo.listar(ator, E.Equipe)}
+            protocolos = sorted(self.nucleo.listar(ator, E.VersaoProtocolo),
+                                key=lambda p: (p.modo is not ModoProtocolo.DESCRITIVO, p.codigo, p.versao_semantica))
+            vistorias = sorted((c for c in self.nucleo.listar(ator, E.CampanhaVistoria) if c.demanda_id == demanda_id),
+                               key=lambda c: c.data_planejada)
         except AcessoNegado as e:
             return self._sem_permissao(e)
         except RegistroNaoEncontrado:
@@ -507,7 +733,26 @@ class Aplicacao:
             razao = "o relatório só é emitido depois do diagnóstico revisado."
         else:
             razao = ""
+        if not pode(ator, Acao.GERIR_EQUIPE):
+            razao_equipe = f"seu papel ({L.papeis(ator.papeis)}) não escolhe equipe; quem escolhe é o coordenador."
+        elif d.estado not in Nucleo.ESTADOS_SEM_EQUIPE_FIXA:
+            razao_equipe = "a equipe só é escolhida antes da atribuição."
+        elif not equipes:
+            razao_equipe = "não há equipe cadastrada neste banco."
+        else:
+            razao_equipe = ""
+        if not pode(ator, Acao.PLANEJAR_CAMPANHA):
+            razao_vistoria = f"seu papel ({L.papeis(ator.papeis)}) não agenda vistoria; quem agenda é o coordenador ou o técnico."
+        elif d.estado is not Estado.ATRIBUIDA:
+            razao_vistoria = "a vistoria é agendada quando a demanda está “atribuída” a uma equipe."
+        elif not protocolos:
+            razao_vistoria = "não há protocolo publicado neste banco."
+        else:
+            razao_vistoria = ""
         return self._pagina("demanda", sessao, ator, d=d, resumo=resumo, transicoes=transicoes, historico=historico,
+                            equipes=sorted(equipes.items(), key=lambda x: x[1]), equipe_nome=equipes.get(d.equipe_id or "", ""),
+                            razao_equipe=razao_equipe, razao_vistoria=razao_vistoria, protocolos=protocolos,
+                            vistorias=vistorias, hoje=date.today().isoformat(),
                             relatorios=relatorios, pode_emitir=pode_emitir, razao_emitir=razao,
                             historico_completo=pode(ator, Acao.VERIFICAR_AUDITORIA),
                             formatos=[f.value for f in FormatoRelatorio], voce_age=any(t["disponivel"] for t in transicoes),

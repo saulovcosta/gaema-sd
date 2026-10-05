@@ -53,6 +53,7 @@ class ContextoTransicao:
     marcos_monitoramento: int = 0
     marcos_pendentes: int = 0
     estados_percorridos: frozenset[str] = frozenset()
+    autoatribuicao_permitida: bool = True   # falso só para técnico com o parâmetro desligado ou fora da equipe
 
 
 Checagem = Callable[[Demanda, ContextoTransicao, Estado], Optional[str]]
@@ -111,6 +112,10 @@ PRECONDICOES: dict[str, tuple[str, Checagem]] = {
     "ja_teve_diagnostico_emitido": ("Demanda já passou por DIAGNOSTICO_EMITIDO antes",
                                     _se(lambda d, c, x: Estado.DIAGNOSTICO_EMITIDO.value in c.estados_percorridos,
                                         "a demanda nunca teve diagnóstico emitido")),
+    "autoatribuicao_permitida": ("Técnico só atribui a si se `autoatribuicao_tecnico` estiver ligado e ele for "
+                                 "da equipe definida (coordenador sempre pode)",
+                                 _se(lambda d, c, x: c.autoatribuicao_permitida,
+                                     "autoatribuição pelo técnico desligada ou técnico fora da equipe definida")),
     "duplicada_de_informada": ("Demanda original informada",
                                _se(lambda d, c, x: bool(d.duplicada_de) and d.duplicada_de != d.id,
                                    "informar a demanda original")),
@@ -140,7 +145,8 @@ _NORMAIS = [
     _t(S.ALERTA, S.EM_TRIAGEM, {P.ANALISTA_TRIAGEM, P.COORDENADOR}, descricao="Início da triagem humana"),
     _t(S.EM_TRIAGEM, S.DEMANDA_ABERTA, {P.COORDENADOR, P.MEMBRO_MP}, ["area_interesse_definida"], True,
        "Abertura formal da demanda de averiguação"),
-    _t(S.DEMANDA_ABERTA, S.ATRIBUIDA, {P.COORDENADOR}, ["equipe_definida"], descricao="Equipe atribuída"),
+    _t(S.DEMANDA_ABERTA, S.ATRIBUIDA, {P.COORDENADOR, P.TECNICO_CAMPO}, ["equipe_definida", "autoatribuicao_permitida"],
+       descricao="Equipe atribuída"),
     _t(S.ATRIBUIDA, S.PLANEJADA, {P.COORDENADOR, P.TECNICO_CAMPO}, ["campanha_planejada", "protocolo_definido"],
        descricao="Vistoria planejada"),
     _t(S.PLANEJADA, S.EM_CAMPO, {P.TECNICO_CAMPO}, ["missao_baixada"], descricao="Início da vistoria"),

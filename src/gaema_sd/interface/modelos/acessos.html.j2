@@ -1,0 +1,31 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Acessos de teste{% endblock %}
+{% block conteudo %}
+<h1>Acessos de teste</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p>
+  <p class="frase">{% if pendentes %}Decida os {{ pendentes }} pedido(s) pendente(s), com motivo.{% else %}Nenhum pedido esperando decisão.{% endif %}</p>
+  <p class="discreto"><strong>Sem autenticação real (R-31):</strong> aprovar só libera um papel de teste, com identificador sintético, na página de entrada desta interface local. Não cria conta, senha nem acesso a sistema do MPTO. A decisão não volta atrás e fica na trilha de auditoria.</p></div>
+{% if pedidos %}
+<ul class="lista">{% for p in pedidos %}
+  <li>
+    <div class="linha-titulo"><h2>{{ p.identificador }}</h2>
+      <span class="etiqueta tom-{{ {"PENDENTE": "andamento", "APROVADO": "ok", "REJEITADO": "neutro"}[p.situacao.value] }}">{{ c.icone({"PENDENTE": "relogio", "APROVADO": "ok", "REJEITADO": "neutro"}[p.situacao.value]) }}<span>{{ {"PENDENTE": "Pendente", "APROVADO": "Aprovado", "REJEITADO": "Rejeitado"}[p.situacao.value] }}</span></span></div>
+    <dl class="dados">
+      <dt>Papel pedido</dt><dd>{{ L.PAPEL[p.papel] }}</dd>
+      <dt>Motivo do pedido</dt><dd>{{ p.motivo }}</dd>
+      <dt>Pedido em (UTC)</dt><dd>{{ p.criado_em.strftime("%d/%m/%Y %H:%M") }}</dd>
+      {% if p.decidido_em %}<dt>Decisão</dt><dd>{{ p.motivo_decisao }} <span class="discreto">({{ p.decidido_por }}, {{ p.decidido_em.strftime("%d/%m/%Y %H:%M") }} UTC)</span></dd>{% endif %}
+    </dl>
+    {% if p.situacao.value == "PENDENTE" %}
+    <form method="post" action="/acessos/{{ p.id }}/decidir">
+      <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+      <label for="motivo-{{ loop.index }}">Motivo da decisão</label>
+      <span class="ajuda-campo" id="aj-motivo-{{ loop.index }}">Pelo menos 10 letras.</span>
+      <input type="text" id="motivo-{{ loop.index }}" name="motivo" required minlength="10" maxlength="300" aria-describedby="aj-motivo-{{ loop.index }}">
+      <div class="acoes"><button type="submit" name="decisao" value="aprovar">Aprovar {{ p.identificador }}</button><button type="submit" name="decisao" value="rejeitar" class="secundario">Rejeitar {{ p.identificador }}</button></div>
+    </form>
+    {% endif %}
+  </li>
+{% endfor %}</ul>
+{% else %}<p>Nenhum pedido registrado.</p>{% endif %}
+{% endblock %}

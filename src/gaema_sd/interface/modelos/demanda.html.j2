@@ -10,8 +10,45 @@
 <dl class="dados">
   <dt>Situação atual</dt><dd>{{ s.nome }}{% if d.estado_anterior %} <span class="discreto">(antes: {{ L.nome_estado(d.estado_anterior.value) }})</span>{% endif %}</dd>
   <dt>Prioridade</dt><dd>{{ L.CRITERIO.get(d.criterio_priorizacao.value if d.criterio_priorizacao else "", "não registrada") }}{% if d.motivo_priorizacao %}<br><span class="discreto">Motivo: {{ d.motivo_priorizacao }}</span>{% endif %}</dd>
+  <dt>Município</dt><dd>{{ d.municipio or "não informado" }}</dd>
+  <dt>Equipe</dt><dd>{{ equipe_nome or "sem equipe definida" }}</dd>
   <dt>Identificador</dt><dd class="hash">{{ d.id }}</dd>
 </dl>
+
+<h2>Equipe e vistoria</h2>
+<section class="cartao" aria-labelledby="t-equipe">
+  <h3 id="t-equipe">Escolher a equipe</h3>
+  {% if not razao_equipe %}
+  <form method="post" action="/demanda/{{ d.id }}/equipe">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="equipe">Equipe</label>
+    <select id="equipe" name="equipe">{% for v, t in equipes %}<option value="{{ v }}"{% if v == d.equipe_id %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+    <div class="acoes"><button type="submit" class="secundario">Definir equipe</button></div>
+  </form>
+  {% else %}<div class="acoes">{{ c.bloqueado("Definir equipe", razao_equipe, "equipe") }}</div>{% endif %}
+</section>
+<section class="cartao" aria-labelledby="t-vistoria">
+  <h3 id="t-vistoria">Agendar vistoria</h3>
+  {% if vistorias %}<ul>{% for v in vistorias %}<li>{{ v.data_planejada.strftime("%d/%m/%Y") }}: {{ v.objetivo }}{% if not v.pacote_offline %} <span class="discreto">(missão ainda não baixada no aparelho)</span>{% endif %}</li>{% endfor %}</ul>{% else %}<p>Nenhuma vistoria agendada.</p>{% endif %}
+  {% if not razao_vistoria %}
+  <form method="post" action="/demanda/{{ d.id }}/vistoria">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="data_planejada">Data da vistoria</label>
+    <input type="date" id="data_planejada" name="data_planejada" min="{{ hoje }}" required>
+    <label for="objetivo-vistoria">Objetivo da vistoria</label>
+    <span class="ajuda-campo" id="aj-obj-vist">Pelo menos 10 letras.</span>
+    <input type="text" id="objetivo-vistoria" name="objetivo" required minlength="10" maxlength="300" aria-describedby="aj-obj-vist">
+    <label for="protocolo">Protocolo</label>
+    <span class="ajuda-campo" id="aj-prot">O primeiro da lista é o modo descritivo (padrão). Nenhum protocolo aqui é validado cientificamente.</span>
+    <select id="protocolo" name="protocolo" aria-describedby="aj-prot">{% for p in protocolos %}<option value="{{ p.id }}">{{ p.codigo }} {{ p.versao_semantica }} — {{ {"DESCRITIVO": "descritivo", "PROTOTIPO_TESTE": "protótipo de teste", "VALIDADO_CIENTIFICAMENTE": "validado"}[p.modo.value] }}</option>{% endfor %}</select>
+    <fieldset><legend>A missão e o mapa já foram baixados no aparelho?</legend><div class="opcoes">
+      <label for="missao-sim" class="opcao"><input type="radio" id="missao-sim" name="missao_baixada" value="sim"><span>Sim (aparelho simulado)</span></label>
+      <label for="missao-nao" class="opcao"><input type="radio" id="missao-nao" name="missao_baixada" value="nao" checked><span>Ainda não</span></label>
+    </div></fieldset>
+    <div class="acoes"><button type="submit" class="secundario">Agendar vistoria</button></div>
+  </form>
+  {% else %}<div class="acoes">{{ c.bloqueado("Agendar vistoria", razao_vistoria, "vistoria") }}</div>{% endif %}
+</section>
 
 <h2>Mudar a situação</h2>
 {% if transicoes %}

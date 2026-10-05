@@ -126,6 +126,7 @@ stateDiagram-v2
 | `marcos_resolvidos` | Nenhum marco pendente de verificação |
 | `ja_foi_aberta` | Demanda já passou por DEMANDA_ABERTA antes |
 | `ja_teve_diagnostico_emitido` | Demanda já passou por DIAGNOSTICO_EMITIDO antes |
+| `autoatribuicao_permitida` | Técnico só atribui a si se `autoatribuicao_tecnico` estiver ligado e ele for da equipe definida (coordenador sempre pode) |
 | `duplicada_de_informada` | Demanda original informada |
 | `destino_e_estado_anterior` | Destino igual ao estado anterior à exceção |
 
@@ -146,7 +147,7 @@ stateDiagram-v2
 | 11 | EM_TRIAGEM | DADOS_INSUFICIENTES | ANALISTA_TRIAGEM, COORDENADOR, REVISOR_TECNICO | — | sim | DADOS_INSUFICIENTES → EM_TRIAGEM | Marcada como DADOS_INSUFICIENTES |
 | 12 | EM_TRIAGEM | GEOMETRIA_INCONSISTENTE | ANALISTA_TRIAGEM, COORDENADOR, SISTEMA | — | sim | GEOMETRIA_INCONSISTENTE → EM_TRIAGEM | Marcada como GEOMETRIA_INCONSISTENTE |
 | 13 | EM_TRIAGEM | CANCELADA_JUSTIFICADA | COORDENADOR, MEMBRO_MP | — | sim | não | Cancelamento justificado |
-| 14 | DEMANDA_ABERTA | ATRIBUIDA | COORDENADOR | `equipe_definida` | não | não | Equipe atribuída |
+| 14 | DEMANDA_ABERTA | ATRIBUIDA | COORDENADOR, TECNICO_CAMPO | `equipe_definida`, `autoatribuicao_permitida` | não | não | Equipe atribuída |
 | 15 | DEMANDA_ABERTA | DUPLICADA | ANALISTA_TRIAGEM, COORDENADOR | `duplicada_de_informada` | sim | DUPLICADA → DEMANDA_ABERTA | Marcada como DUPLICADA |
 | 16 | DEMANDA_ABERTA | GEOMETRIA_INCONSISTENTE | ANALISTA_TRIAGEM, COORDENADOR, SISTEMA | — | sim | GEOMETRIA_INCONSISTENTE → DEMANDA_ABERTA | Marcada como GEOMETRIA_INCONSISTENTE |
 | 17 | DEMANDA_ABERTA | CANCELADA_JUSTIFICADA | COORDENADOR, MEMBRO_MP | — | sim | não | Cancelamento justificado |
