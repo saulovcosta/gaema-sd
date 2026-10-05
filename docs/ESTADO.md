@@ -118,6 +118,21 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | Triagem por satélite, processamento de imagem, NDVI | NÃO EXECUTADO | não existe (LA-03) |
 | Codespace real | NÃO EXECUTADO | |
 
+### Rodada 5 — auditoria escrita (DEC-036, 05/10/2026)
+| Verificação | Classe | Resultado |
+|---|---|---|
+| Suíte completa, Python 3.11 e 3.12 | UNITÁRIO | 588 passed, 1 skipped (6 testes novos em `tests/test_rodada5.py`: colunas, testes citados existem, divergência 3 × 4, ABRAMPA sem lista, linguagem, decisões do coordenador) |
+| ABRAMPA SOLOS | NÃO EXECUTADO | PDF não está no repositório; nenhum item listado |
+| Decisões do coordenador | NÃO EXECUTADO | registradas em `docs/pendencias.md`, seção 4; nada implementado |
+
+### Ordem de mescla das Rodadas 2 a 5 (PRs empilhados; nenhum mesclado sem ordem do usuário)
+1. Rodada 2 → `main` (saulovcosta/gaema-sd#9)
+2. Rodada 3 → mesclar depois da 2 (saulovcosta/gaema-sd#10)
+3. Rodada 4 → depois da 3 (saulovcosta/gaema-sd#11)
+4. Rodada 5 → depois da 4 (saulovcosta/gaema-sd, PR da Rodada 5)
+
+Pendente em todas: **reteste do login no Codespace real** (DEC-031/032), CODESPACE REAL NÃO EXECUTADO.
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |

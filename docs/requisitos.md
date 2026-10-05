@@ -171,3 +171,10 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-112 | Importar áreas candidatas sintéticas de GeoJSON ou CSV, conferindo geometria, duplicidade, data e origem declarada; recusas por item, com motivo; importação auditada | INSTITUCIONAL (pedido do usuário, Rodada 4) | TESTADO LOCALMENTE |
 | RQ-113 | Mostrar origem e incerteza declaradas; candidata vira alerta ou demanda só por ação humana auditada | INSTITUCIONAL (pedido do usuário, Rodada 4) | TESTADO LOCALMENTE |
 | RQ-114 | Registrar que não há triagem por satélite, processamento de imagem nem NDVI | INSTITUCIONAL (pedido do usuário, Rodada 4) | TESTADO LOCALMENTE (README e pendências conferidos por teste) |
+
+## Rodada 5 — auditoria escrita
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-115 | Auditoria comparativa por função pública do SIPADE (fonte, o que o GAEMA SD tem, teste, lacuna, prioridade), com divergência 3 × 4 mantida e sem cópia | INSTITUCIONAL (pedido do usuário, Rodada 5) | ESPECIFICADO (documento conferido por teste) |
+| RQ-116 | Decisões do coordenador registradas como não implementadas em `docs/pendencias.md` | INSTITUCIONAL (pedido do usuário, Rodada 5) | ESPECIFICADO (documento conferido por teste) |

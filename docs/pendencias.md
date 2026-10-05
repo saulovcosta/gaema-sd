@@ -45,3 +45,21 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 | Comando ou rotina para o aparelho consultar as decisões de conflito (`Sincronizador.reconciliar` só existe como função) | PENDENTE |
 | Varredura de dependências em rotina automática | NÃO existe (executada manualmente) |
 | Banco institucional (opção PostgreSQL/PostGIS da DEC-002) | Decisão pendente |
+
+## 4. Decisões do coordenador (não implementadas)
+
+Nada nesta seção foi implementado. Cada item espera decisão da coordenação do CAOMA/GAEMA. Até lá, o sistema fica como descrito na coluna "Como está hoje". A prioridade sugerida de cada função está em `docs/auditoria-comparativa.md`.
+
+| Decisão | Como está hoje | Referência |
+|---|---|---|
+| Permitir vínculo **opcional** da demanda com imóvel ou com procedimento | Vedado: a área de interesse é recorte de análise, sem imóvel, proprietário ou número de procedimento | DEC-006 (fronteira técnica e jurídica), DE-07, V-08 |
+| Quem faz a vistoria no Tocantins e com qual capacitação prévia; se o pedido de acesso registra o curso feito | Papel genérico "Técnico de campo"; o curso não é registrado | H-I01, V-10, V-13, art. 20 |
+| Protocolo científico: variáveis, repetições, profundidade, fotos e regra de classificação | Modo descritivo como padrão; protótipo "SEM VALIDADE CIENTÍFICA"; divergência 3 × 4 categorias mantida | LA-02, LA-04, V-05 |
+| ArcGIS: organização, Client ID, Survey123 e relação com o Painel do art. 18 | Adaptadores só como interface; nenhuma integração | LA-05, LA-10, H-A01 |
+| Uso da marca do MPTO e endosso do CAOMA no relatório | "Sem endosso institucional formal" (`config/endosso.json` vazio) | H-I08, DEC-027 |
+| Ligar a autoatribuição da demanda pelo técnico | `autoatribuicao_tecnico` = false | V-14, DEC-034 |
+| Autenticação institucional real | Usuários de teste; aprovação de pedido só libera papel de teste | R-31, H-A06 |
+| Revisão humana ou de terceiros do código | Só revisões por agente de IA separado | H-S02, H-S03 |
+| Teste com leitor de tela | NÃO EXECUTADO (só verificações automáticas) | `docs/acessibilidade-contraste.md` |
+| Teste com pessoas usuárias do CAOMA (escritório e campo) | NÃO EXECUTADO | `docs/guia-capacitacao.md` |
+| Itens da ABRAMPA SOLOS | Não listados: o PDF não está no repositório | `docs/auditoria-comparativa.md`, seção 3 |

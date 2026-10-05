@@ -45,6 +45,8 @@ Detalhes do andamento: `docs/ESTADO.md`.
 
 ## Documentos principais
 
+- `docs/auditoria-comparativa.md` — SIPADE × GAEMA SD por função, com teste e lacuna (Rodada 5)
+
 - `docs/fontes.md` — fontes consultadas, fatos, inferências, lacunas e decisões
 - `docs/sipade-videos.md` — o que os vídeos públicos do SIPADE mostram e o que muda no GAEMA SD
 - `docs/decisoes.md` — escolhas de arquitetura com justificativa
@@ -127,6 +129,8 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 
 - **Rodada 4 (áreas candidatas):** importação de áreas SINTÉTICAS em GeoJSON ou CSV, conferindo geometria, data, origem declarada e duplicidade; mostra origem e incerteza declaradas; uma área só vira alerta ou demanda por decisão de uma pessoa, registrada na trilha.
 - **Não existe triagem por satélite.** O GAEMA SD não processa imagem, não calcula NDVI nem outro índice e não detecta áreas sozinho: as áreas candidatas são as informadas ou importadas por pessoas. O limiar de NDVI para o Cerrado tocantinense segue PENDENTE (LA-03).
+
+- **Rodada 5 (auditoria escrita):** `docs/auditoria-comparativa.md` compara, função por função, o que o SIPADE mostra publicamente com o que o GAEMA SD tem, o teste que cobre e a lacuna. `docs/pendencias.md` (seção 4) lista as decisões que dependem do coordenador.
 
 **Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 124 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
 

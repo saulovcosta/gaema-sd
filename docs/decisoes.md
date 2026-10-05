@@ -364,3 +364,19 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Ação humana:** a tela "Áreas candidatas" mostra origem, incerteza, fonte e data. Uma área só vira alerta ("Gerar alerta desta área", com origem e justificativa) e depois demanda ("Abrir demanda desta área", que cria a área de interesse e a demanda juntas) por decisão de uma pessoa, auditada. A importação não cria alerta nem demanda.
   - **Quem decide:** a matriz atual dá isso a quem tem `REGISTRAR_ALERTA` e `REGISTRAR_DEMANDA`, ou seja, analista e coordenador.
 - **Lacuna registrada:** README e `docs/pendencias.md` (LA-03) dizem que **não existe triagem por satélite**, processamento de imagem nem NDVI.
+
+## DEC-036 — Rodada 5: auditoria escrita (05/10/2026)
+- **`docs/auditoria-comparativa.md`:** 25 funções públicas do SIPADE, cada uma com as colunas fonte (F1, F2, F11 e F12, com as observações V-xx), o que o GAEMA SD tem, teste que cobre, lacuna e prioridade sugerida. A prioridade é AUTORAL; quem decide é o coordenador. Compara-se só função; nada foi copiado. Teste confere que cada teste citado existe.
+- **Divergência 3 × 4 mantida sem conciliar:** são 3 estados no vídeo F11 e 4 cenários no site F1. O pedido falava em "artigo", mas as 3 categorias vêm do vídeo F11 e não do artigo F2; isso ficou anotado.
+- **`docs/pendencias.md`, seção 4, "Decisões do coordenador (não implementadas)":**
+  - vínculo opcional com imóvel ou procedimento (DEC-006 é a fronteira técnica e jurídica; ver DE-07 e V-08);
+  - quem faz a vistoria e curso (H-I01, V-10, V-13);
+  - protocolo científico (LA-02, LA-04);
+  - ArcGIS (LA-05, LA-10);
+  - marca e endosso (H-I08);
+  - autoatribuição;
+  - autenticação real;
+  - revisão humana;
+  - leitor de tela;
+  - teste com pessoas do CAOMA.
+- **ABRAMPA SOLOS:** o PDF não está no repositório. Nenhum item foi listado, e um teste impede lista sem o documento.
