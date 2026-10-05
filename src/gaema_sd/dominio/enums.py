@@ -163,6 +163,14 @@ class ModoProtocolo(str, Enum):
     VALIDADO_CIENTIFICAMENTE = "VALIDADO_CIENTIFICAMENTE"
 
 
+class SituacaoPedidoAcesso(str, Enum):
+    """Pedido de usuário de TESTE. Não há autenticação real (R-31): aprovar só libera um papel de teste."""
+
+    PENDENTE = "PENDENTE"
+    APROVADO = "APROVADO"
+    REJEITADO = "REJEITADO"
+
+
 class SituacaoDiagnostico(str, Enum):
     COMPUTADO = "COMPUTADO"
     EM_REVISAO = "EM_REVISAO"

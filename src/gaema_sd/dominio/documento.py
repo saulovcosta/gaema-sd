@@ -33,7 +33,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         finalidade="Unidade de acompanhamento que percorre o fluxo de estados (docs/estados.md).",
         relacoes="0..n Alerta; 0..1 AreaCandidata, AreaInteresse, Equipe; 0..n CampanhaVistoria, Diagnostico, "
                  "Providencia, PlanoRecuperacao, Relatorio.",
-        validacoes="DUPLICADA exige `duplicada_de` diferente do próprio id.",
+        validacoes="DUPLICADA exige `duplicada_de` diferente do próprio id. `municipio` é texto como informado "
+                   "(sem cadastro de municípios); não identifica imóvel.",
         atualizacao="Estado muda **só** por transição auditada; demais campos por edição versionada.",
         retencao=RETENCAO_PENDENTE),
     "AreaInteresse": dict(
@@ -152,6 +153,15 @@ TEXTOS: dict[str, dict[str, str]] = {
         validacoes="ATIVA só com evidência de teste em ambiente real; guarda o NOME da variável de ambiente, "
                    "nunca o segredo.",
         atualizacao="Edição versionada; só ADMINISTRADOR.",
+        retencao=RETENCAO_PENDENTE),
+    "PedidoAcesso": dict(
+        finalidade="Pedido de **usuário de teste** para a interface local. **Não há autenticação real (R-31)**: "
+                   "aprovar só libera um papel de teste com identificador sintético.",
+        relacoes="Independente. Decidido por ADMINISTRADOR; aprovado, aparece na lista de entrada da interface.",
+        validacoes="Identificador `usuario-sintetico-…` (nunca nome, e-mail ou documento); papel diferente de "
+                   "SISTEMA e ADMINISTRADOR; motivo com 10+ caracteres; decisão com quem, quando e motivo.",
+        atualizacao="Só por `Nucleo.decidir_acesso_teste` (PENDENTE → APROVADO ou REJEITADO), auditado; "
+                    "decisão não volta atrás (novo pedido = novo registro).",
         retencao=RETENCAO_PENDENTE),
 }
 

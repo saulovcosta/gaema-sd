@@ -68,6 +68,10 @@ CRITERIO = {"ART17_I": "Art. 17, I — erosão de grande porte (registro humano)
             "ART17_IV": "Art. 17, IV — encaminhamento de Promotoria (registro humano)",
             "OUTRO": "Outro critério (registro humano)"}
 
+ORIGEM_ALERTA = {"SINAL_REMOTO": "Sinal remoto (imagem ou camada)", "PECA_INFORMACAO_TECNICA": "Peça de Informação Técnica",
+                 "ENCAMINHAMENTO_PROMOTORIA": "Encaminhamento de Promotoria", "NOTICIA_EXTERNA": "Notícia ou comunicação externa",
+                 "DEMANDA_INTERNA": "Demanda interna", "MONITORAMENTO": "Monitoramento de caso anterior"}
+
 ACAO_AUDITORIA = {
     "CRIAR": "Registro criado", "ATUALIZAR": "Registro alterado", "TRANSICAO": "Mudança de situação",
     "TRANSICAO_RECUSADA": "Mudança de situação recusada", "REENVIO_IDEMPOTENTE": "Reenvio sem duplicar",
@@ -78,6 +82,9 @@ ACAO_AUDITORIA = {
     "BACKUP_CRIADO": "Backup criado", "BACKUP_VERIFICADO": "Backup conferido",
     "VERIFICACAO_EVIDENCIA": "Evidência conferida", "REPRODUCAO_DIAGNOSTICO": "Diagnóstico refeito para conferência",
     "RELATORIO_NAO_CONFERE": "Relatório adulterado (não aberto)", "CONSULTA_DECISAO_CONFLITO": "Aparelho consultou decisões",
+    "ACESSO_TESTE_APROVADO": "Usuário de teste aprovado", "ACESSO_TESTE_REJEITADO": "Usuário de teste rejeitado",
+    "DECISAO_ACESSO_RECUSADA": "Decisão de acesso recusada", "CRIACAO_RECUSADA": "Criação recusada",
+    "ATUALIZACAO_RECUSADA": "Alteração recusada",
 }
 
 ACAO_PERMISSAO = {
@@ -92,6 +99,8 @@ ACAO_PERMISSAO = {
     Acao.LER_RESTRITO: "ver dados restritos (demandas, pontos, relatórios)", Acao.EXPORTAR: "exportar o pacote",
     Acao.VERIFICAR_AUDITORIA: "conferir a trilha de auditoria", Acao.SINCRONIZAR: "sincronizar o aparelho",
     Acao.RESOLVER_CONFLITO_SINCRONIZACAO: "decidir conflitos de sincronização", Acao.GERIR_BACKUP: "criar e conferir backups",
+    Acao.PEDIR_ACESSO_TESTE: "pedir usuário de teste (processo da página de entrada)",
+    Acao.DECIDIR_ACESSO_TESTE: "aprovar ou rejeitar usuários de teste",
 }
 
 CAMPO = {"valor_bruto": "Valor anotado", "valor_normalizado": "Valor convertido", "unidade_bruta": "Unidade anotada",

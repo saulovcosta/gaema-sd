@@ -63,5 +63,15 @@
     "valor": 5,
     "proveniencia": "AUTORAL",
     "observacao": "Máximo de fotos por ponto na interface de teste. Não é protocolo de campo: quantas fotos tirar segue PENDENTE (LA-04)."
+  },
+  "autoatribuicao_tecnico": {
+    "valor": false,
+    "proveniencia": "AUTORAL",
+    "observacao": "Desligado por padrão. Ligado, o técnico de campo da equipe definida pode mover a demanda de \"aberta\" para \"atribuída\". Função vista em protótipo público (V-14); decisão institucional PENDENTE."
+  },
+  "interface_pedidos_acesso_pendentes_max": {
+    "valor": 20,
+    "proveniencia": "AUTORAL",
+    "observacao": "Máximo de pedidos de usuário de teste esperando decisão (evita acúmulo pela página de entrada, que não tem login). Sem autenticação real (R-31)."
   }
 }

@@ -9,9 +9,11 @@ from __future__ import annotations
 from typing import Iterable, Optional
 
 from ..acesso.politica import Ator
+from ..config import parametro
 from ..dominio import entidades as E
 from ..dominio.enums import (
     CondicaoAcesso,
+    Papel,
     ResultadoRevisao,
     SituacaoDiagnostico,
     SituacaoMarco,
@@ -76,6 +78,10 @@ def montar_contexto(repo, demanda: E.Demanda, ator: Ator,
         ev.estado_destino for ev in eventos
         if ev.acao == "TRANSICAO" and ev.entidade == "Demanda" and ev.entidade_id == demanda.id)
 
+    so_tecnico = Papel.TECNICO_CAMPO in ator.papeis and not (ator.papeis - {Papel.TECNICO_CAMPO})
+    autoatribuicao = not so_tecnico or (parametro("autoatribuicao_tecnico") is True and equipe is not None
+                                        and ator.id in {m.usuario_id for m in equipe.membros})
+
     return ContextoTransicao(
         geometria_valida=geometria_valida,
         fonte_registrada=fonte_registrada,
@@ -99,4 +105,5 @@ def montar_contexto(repo, demanda: E.Demanda, ator: Ator,
         marcos_monitoramento=len(marcos),
         marcos_pendentes=sum(m.situacao in MARCOS_ABERTOS for m in marcos),
         estados_percorridos=percorridos,
+        autoatribuicao_permitida=autoatribuicao,
     )

@@ -96,6 +96,17 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | GitHub Actions do PR da Rodada 2 | UNITÁRIO (no GitHub) | ver o PR |
 | Codespace real (login, coleta, foto) | NÃO EXECUTADO | reteste do login (DEC-031/032) segue pendente |
 
+### Rodada 3 — telas do escritório (DEC-034, 05/10/2026)
+| Verificação | Classe | Resultado |
+|---|---|---|
+| Suíte completa, Python 3.11 e 3.12 | UNITÁRIO | 547 passed, 1 skipped (33 testes novos em `tests/test_rodada3.py`) |
+| `scripts/demo.sh`; `pip-audit` | UNITÁRIO | OK; sem vulnerabilidade conhecida |
+| `gerar_contratos.py` | UNITÁRIO | mudança esperada: `PedidoAcesso` (esquema e domínio), `municipio` na Demanda, transição de autoatribuição em `estados.md` |
+| 115 telas (inclui demanda nova com erro e criada, pedido de acesso, acessos com pedido pendente, painel filtrado) | NAVEGADOR AUTOMATIZADO | 0 violações; sem rolagem; nenhuma tabela passa da coluna; campos de data do filtro com 21 px corrigidos para ≥ 44 px |
+| GitHub Actions do PR da Rodada 3 | UNITÁRIO (no GitHub) | ver o PR |
+| Codespace real | NÃO EXECUTADO | |
+| Autenticação real | NÃO EXECUTADO | não existe (R-31); usuário de teste aprovado é só um papel de teste |
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |

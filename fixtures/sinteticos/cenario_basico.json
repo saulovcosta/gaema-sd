@@ -141,7 +141,8 @@
       "duplicada_de": null,
       "referencia_interna": "",
       "criterio_priorizacao": null,
-      "motivo_priorizacao": ""
+      "motivo_priorizacao": "",
+      "municipio": ""
     }
   ],
   "CampanhaVistoria": [

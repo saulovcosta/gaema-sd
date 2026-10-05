@@ -169,6 +169,9 @@
     },
     "motivo_priorizacao": {
       "type": "string"
+    },
+    "municipio": {
+      "type": "string"
     }
   },
   "required": [

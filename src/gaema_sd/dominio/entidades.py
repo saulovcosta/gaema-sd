@@ -35,6 +35,7 @@ from .enums import (
     SituacaoDiagnostico,
     SituacaoIntegracao,
     SituacaoMarco,
+    SituacaoPedidoAcesso,
     StatusSincronizacao,
     TipoFonte,
     TipoPlano,
@@ -179,6 +180,7 @@ class Demanda(Registro):
     referencia_interna: str = ""
     criterio_priorizacao: Optional[CriterioPriorizacao] = None  # escolhido por pessoa
     motivo_priorizacao: str = ""
+    municipio: str = ""  # nome do município como informado; texto livre, sem cadastro
 
 
 @dataclass(kw_only=True)
@@ -377,6 +379,19 @@ class Relatorio(Registro):
     motivo_reemissao: str = ""
 
 
+@dataclass(kw_only=True)
+class PedidoAcesso(Registro):
+    """Pedido de usuário de TESTE (identificador sintético). Sem autenticação real (R-31)."""
+
+    identificador: str            # usuario-sintetico-...; nunca nome, e-mail ou documento de pessoa
+    papel: Papel
+    motivo: str
+    situacao: SituacaoPedidoAcesso = SituacaoPedidoAcesso.PENDENTE
+    decidido_por: str = ""
+    motivo_decisao: str = ""
+    decidido_em: Optional[datetime] = None
+
+
 @dataclass(kw_only=True, frozen=True)
 class EventoAuditoria:
     """Evento imutável, encadeado por hash ao anterior (ver auditoria/trilha.py)."""
@@ -417,6 +432,7 @@ ENTIDADES: tuple[type, ...] = (
     EventoAuditoria,
     FonteDado,
     IntegracaoExterna,
+    PedidoAcesso,
 )
 
 POR_NOME: dict[str, type] = {c.__name__: c for c in ENTIDADES}

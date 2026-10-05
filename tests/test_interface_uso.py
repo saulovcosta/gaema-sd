@@ -112,9 +112,9 @@ def test_linguagem_vedada_ausente_das_telas(sistema):
 
 def test_menu_mostra_tudo_e_marca_o_que_o_papel_nao_acessa(sistema):
     t = cliente(sistema, "tecnico").get("/painel").texto
-    for item in ("Início", "Campo", "Conflitos", "Auditoria", "Exportar", "Backup", "Ajuda e limites"):
+    for item in ("Início", "Campo", "Conflitos", "Auditoria", "Exportar", "Backup", "Acessos de teste", "Ajuda e limites"):
         assert item in t
-    assert t.count('class="bloqueada"') == 4 and "indisponível: seu papel (Técnico de campo)" in t
+    assert t.count('class="bloqueada"') == 5 and "indisponível: seu papel (Técnico de campo)" in t
 
 
 def test_botoes_sem_permissao_aparecem_desativados_com_a_razao(sistema):

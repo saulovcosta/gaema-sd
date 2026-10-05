@@ -91,11 +91,12 @@ async function entrar(page, usuario) {
   }
   const roteiro = [
     ["anonimo", ["/entrar", "/nao-existe"]],
-    ["coord", ["/painel", ...demandaIds, demandaIds[0] + "?ponto=P01#ponto-P01", "/conflitos", "/exportar", "/ajuda"]],
-    ["analista", [demandaIds[0]]],
+    ["coord", ["/painel", "/painel?situacao=EM_CAMPO&municipio=x", ...demandaIds, demandaIds[0] + "?ponto=P01#ponto-P01",
+               "/conflitos", "/exportar", "/ajuda", "/demanda/nova"]],
+    ["analista", [demandaIds[0], "/demanda/nova"]],
     ["tecnico", ["/painel", "/campo", "/campo/coleta", "/backup"]],
     ["auditor", ["/auditoria"]],
-    ["admin", ["/backup"]],
+    ["admin", ["/backup", "/acessos"]],
   ];
   for (const largura of [360, 1280]) {
     for (const esquema of ["light", "dark"]) {
@@ -164,6 +165,37 @@ async function entrar(page, usuario) {
         await ctx.close();
       }
     }
+  }
+  // Rodada 3: pedido de usuário de teste (anônimo), demanda nova com erro (analista) e acessos com pedido pendente (admin)
+  {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, bypassCSP: true });
+    const page = await ctx.newPage();
+    await page.goto(BASE + "/entrar");
+    await page.fill("input[name=identificador]", "usuario-sintetico-verificacao");
+    await page.fill("input[name=motivo]", "verificação automática da tela");
+    await Promise.all([page.waitForNavigation(), page.click("form[action='/acesso/pedir'] button[type=submit]")]);
+    relatorio.push({ nome: "360-anonimo-pedido-enviado", largura: 360, esquema: "light", usuario: "anonimo", caminho: "/entrar (pedido)",
+                     status: 200, pedido_registrado: (await page.content()).includes("Pedido registrado"),
+                     ...(await medir(page, 360)), axe: await axe(page) });
+    await entrar(page, "analista");
+    await page.goto(BASE + "/demanda/nova");
+    await page.fill("input[name=titulo]", "Demanda da verificação (sintética)");
+    await page.fill("input[name=descricao]", "texto sintético");
+    for (const [k, v] of [["lat_max", "-10,50"], ["lat_min", "-10,40"], ["lon_min", "-48,52"], ["lon_max", "-48,50"]]) await page.fill(`input[name=${k}]`, v);
+    await Promise.all([page.waitForNavigation(), page.click("form[action='/demanda/nova'] button[type=submit]")]);
+    await page.screenshot({ path: path.join(OUT, "360-analista-demanda-nova-erro.png"), fullPage: true });
+    relatorio.push({ nome: "360-analista-demanda-nova-erro", largura: 360, esquema: "light", usuario: "analista", caminho: "/demanda/nova (erro)",
+                     status: 422, ...(await medir(page, 360)), axe: await axe(page) });
+    await page.fill("input[name=lat_min]", "-10,52");
+    await Promise.all([page.waitForNavigation(), page.click("form[action='/demanda/nova'] button[type=submit]")]);
+    relatorio.push({ nome: "360-analista-demanda-criada", largura: 360, esquema: "light", usuario: "analista", caminho: page.url().replace(BASE, ""),
+                     status: 200, criada: (await page.content()).includes("Demanda criada"), ...(await medir(page, 360)), axe: await axe(page) });
+    await entrar(page, "admin");
+    await page.goto(BASE + "/acessos");
+    await page.screenshot({ path: path.join(OUT, "360-admin-acessos-pendente.png"), fullPage: true });
+    relatorio.push({ nome: "360-admin-acessos-pendente", largura: 360, esquema: "light", usuario: "admin", caminho: "/acessos (pendente)",
+                     status: 200, ...(await medir(page, 360)), axe: await axe(page) });
+    await ctx.close();
   }
   // tema escuro escolhido na própria tela (data-tema), com o sistema em modo claro
   {

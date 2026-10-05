@@ -48,6 +48,8 @@ class Acao(str, Enum):
     SINCRONIZAR = "SINCRONIZAR"
     RESOLVER_CONFLITO_SINCRONIZACAO = "RESOLVER_CONFLITO_SINCRONIZACAO"
     GERIR_BACKUP = "GERIR_BACKUP"
+    PEDIR_ACESSO_TESTE = "PEDIR_ACESSO_TESTE"
+    DECIDIR_ACESSO_TESTE = "DECIDIR_ACESSO_TESTE"
 
 
 P = Papel
@@ -76,6 +78,10 @@ MATRIZ: dict[Acao, frozenset[Papel]] = {
     Acao.SINCRONIZAR: frozenset({P.TECNICO_CAMPO}),  # o dispositivo envia como o técnico dono dele
     Acao.RESOLVER_CONFLITO_SINCRONIZACAO: frozenset({P.COORDENADOR}),
     Acao.GERIR_BACKUP: frozenset({P.ADMINISTRADOR}),
+    # Usuário de TESTE (sem autenticação real, R-31): o visitante pede pela página de entrada, por meio do processo
+    # "visitante-pedido-acesso" (papel SISTEMA); só o administrador decide.
+    Acao.PEDIR_ACESSO_TESTE: frozenset({P.SISTEMA}),
+    Acao.DECIDIR_ACESSO_TESTE: frozenset({P.ADMINISTRADOR}),
 }
 
 

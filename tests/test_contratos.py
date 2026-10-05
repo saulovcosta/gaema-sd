@@ -52,7 +52,7 @@ def test_esquema_recusa_campo_extra_e_enum_invalido():
         jsonschema.validate({"titulo": "x", "estado": "CONDENADA"}, s)
 
 
-def test_dominio_documenta_as_20_entidades():
+def test_dominio_documenta_as_21_entidades():  # 21ª: PedidoAcesso (Rodada 3)
     from gaema_sd.dominio import entidades as E
     from gaema_sd.dominio.documento import TEXTOS
 
@@ -62,4 +62,4 @@ def test_dominio_documenta_as_20_entidades():
         assert f"## {nome}\n" in texto
     for chave in ("Finalidade", "Sensibilidade", "Relações", "Validações", "Atualização", "Retenção",
                   "Exemplo sintético"):
-        assert texto.count(f"**{chave}.**") == 20, chave
+        assert texto.count(f"**{chave}.**") == 21, chave

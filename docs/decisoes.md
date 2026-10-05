@@ -327,3 +327,22 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Mapa:** link "Ir para a lista de pontos (alternativa ao mapa…)" antes do mapa; a tabela passa a se chamar "Lista de pontos (alternativa ao mapa)".
 - **Contrastes "a revisar":** são os textos do SVG do mapa; conta à mão em `docs/acessibilidade-contraste.md` (todos ≥ 4,5:1 ou ≥ 3:1); teste recalcula a partir das cores.
 - **Relatório:** "Longitude" confirmada em uma linha (A4 e 360 px); o mapa passava 2 px da largura por causa da borda — corrigido (`box-sizing: border-box`). Em tela de 360 px as tabelas do relatório rolam de lado: o relatório é documento A4 (R-40).
+
+## DEC-034 — Rodada 3: telas do escritório (05/10/2026)
+- **Criar demanda pela tela (só ANALISTA_TRIAGEM):** uma ação grava, **numa transação só** (`Nucleo.registrar_em_lote`), a fonte (`FonteDado` REGISTRO_MANUAL), a área indicada (`AreaCandidata`), o `Alerta`, a `AreaInteresse` (DE_CANDIDATA) e a `Demanda` (nasce CANDIDATA). Cada criação é auditada. Se uma falhar, nada fica gravado e a recusa do lote é auditada. Recorte por retângulo (latitude/longitude mínima e máxima). O método diz "registro manual na interface (sem triagem por satélite)". Para o coordenador, o botão aparece desabilitado com o motivo, porque só o analista registra área candidata (matriz de acesso, inalterada).
+- **Município:** campo opcional `Demanda.municipio`, em texto como informado. Não há cadastro de municípios e o campo não identifica imóvel; também não entra na exportação. Contratos regerados.
+- **Usuários de teste:** entidade nova `PedidoAcesso` (21ª), na tabela genérica `registros`, sem mudar a versão do esquema.
+  - O visitante pede pela página de entrada por meio do processo `visitante-pedido-acesso` (papel SISTEMA, ação `PEDIR_ACESSO_TESTE`). Identificador obrigatoriamente `usuario-sintetico-…`. ADMINISTRADOR e SISTEMA não podem ser pedidos.
+  - Pedidos pendentes têm limite AUTORAL: `interface_pedidos_acesso_pendentes_max` = 20.
+  - Só o ADMINISTRADOR decide (`DECIDIR_ACESSO_TESTE`), com motivo, e a decisão não volta atrás. Alteração por fora é recusada.
+  - Aprovado, o usuário aparece na lista de entrada.
+  - **Sem autenticação real (R-31)**, dito na entrada e na tela de acessos.
+- **Equipe e vistoria:**
+  - `Nucleo.definir_equipe`: só o coordenador (`GERIR_EQUIPE`), antes da atribuição.
+  - "Agendar vistoria" cria `CampanhaVistoria` com a equipe da demanda, quando ela está ATRIBUIDA. O protocolo descritivo vem primeiro na lista; a interface publica o protocolo descritivo no cenário de demonstração.
+  - "Missão baixada" é declarada pela pessoa (aparelho simulado): sem a declaração, a demanda não vai para EM_CAMPO.
+  - O técnico só agenda vistoria da própria equipe (regra nova no núcleo).
+- **Filtros do painel:** situação, equipe, município (parte do nome) e data de criação, por GET. Só recortam a lista que o núcleo já devolve ao usuário; o técnico continua vendo só a própria equipe.
+- **Autoatribuição pelo técnico:** parâmetro `autoatribuicao_tecnico` = **false** (AUTORAL; visto em protótipo público, V-14; decisão institucional pendente).
+  - DEMANDA_ABERTA → ATRIBUIDA aceita também TECNICO_CAMPO, com a pré-condição nova `autoatribuicao_permitida`: parâmetro ligado **e** técnico na equipe definida. O coordenador não é afetado.
+  - `docs/estados.md` foi regerado.
