@@ -13,6 +13,7 @@ from .. import demo
 from ..nucleo import Nucleo
 from ..persistencia.sqlite import Repositorio
 from . import USUARIOS_DE_TESTE, servir
+from .app import hosts_codespaces
 from .campo import Campo
 from .cenario import preparar_vistoria_em_campo
 
@@ -43,6 +44,8 @@ def main() -> int:
     campo = Campo.criar(pasta / "aparelho-simulado", central, USUARIOS_DE_TESTE["tecnico"])
     servidor = servir(central, a.porta, campo=campo)
     print(f"Interface (PROTÓTIPO, dados sintéticos) em http://127.0.0.1:{a.porta}/  — Ctrl+C para encerrar.")
+    for h in sorted(hosts_codespaces(a.porta)):
+        print(f"No Codespaces, abra: https://{h}/  (aba PORTAS, porta {a.porta}; acesso só para quem tem o Codespace)")
     try:
         servidor.serve_forever()
     except KeyboardInterrupt:

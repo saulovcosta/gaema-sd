@@ -272,3 +272,16 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Risco:** revisor é agente de IA (R-30).
 - **Teste:** `tests/test_regressao_fase6.py` (`test_pr4_*`), `tests/test_relatorio_institucional.py`.
 
+## DEC-029 — Teste pelo navegador no GitHub Codespaces (03/10/2026)
+
+- **Contexto:** o usuário quer testar a interface no navegador sem instalar nada. O Codespace dele estava na `main` antes do PR 4, sem a interface.
+- **Achado (reproduzido):** o encaminhamento do Codespaces entra no contêiner por 127.0.0.1, então a interface continua escutando só ali. Mas o navegador chega com o endereço público (`<codespace>-8765.app.github.dev`, em https). A conferência de Host recusava esse endereço ("400 – Endereço não permitido") e a de Origin esperava `http://`.
+- **Decisão (mudança mínima):** `interface/app.py::hosts_codespaces`.
+  - Só quando `CODESPACES=true` e existem `CODESPACE_NAME` e `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN` (valores conferidos por expressão regular), a interface aceita **exatamente** `<CODESPACE_NAME>-<porta>.<domínio>`, com origem `https://` desse endereço.
+  - Fora do Codespaces nada muda.
+  - Continuam valendo: servidor só em 127.0.0.1, CSRF, cookie restrito, mesma origem, recusa de outros endereços e origens. A porta segue **privada** (padrão do Codespaces).
+- **Ambiente:** `.devcontainer/devcontainer.json` (Python 3.12, `pip install -r requirements-dev.txt`, porta 8765 com abertura do navegador, início por `scripts/interface.sh`). O script não abre duas vezes na mesma porta.
+- **Regras de negócio, acesso e auditoria:** inalteradas.
+- **Limite:** testado simulando o encaminhamento (conexão em 127.0.0.1 com o Host público). **Não testado num Codespace real.**
+- **Teste:** `tests/test_codespaces.py`; suíte completa também em Python 3.12 (475 testes; um aviso interno do reportlab sobre Python 3.14).
+

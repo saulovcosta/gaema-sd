@@ -4,6 +4,19 @@ Módulo autoral do Radar Ambiental do Ministério Público do Estado do Tocantin
 
 > **Situação atual:** protótipo em desenvolvimento, com **dados sintéticos**. Não está integrado a nenhum sistema do MPTO nem ao ArcGIS. Nenhum resultado tem validade científica ou jurídica.
 
+## Como testar no navegador (Codespaces)
+
+Não precisa instalar nada no seu computador. Tudo roda com **dados inventados**.
+
+1. No GitHub, abra o repositório e toque em **Code** → aba **Codespaces** → **Create codespace on main**. Se já existe um Codespace antigo, crie um novo: o antigo não tem a interface.
+2. Espere a preparação, alguns minutos na primeira vez. A interface abre sozinha numa aba nova do navegador.
+3. Se a aba não abrir, procure embaixo a aba **PORTAS** (PORTS), na linha **8765**, e toque no ícone do globo.
+4. Toque no papel com que quer testar ("Entrar como Coordenador", por exemplo) e siga o quadro **"O que fazer agora"** de cada tela.
+5. Para recomeçar do zero: no terminal do Codespace, aperte Ctrl+C e digite `scripts/interface.sh`. Cada abertura cria um cenário novo.
+6. Ao terminar, pare o Codespace (menu **Codespaces** → **Stop**) para não gastar a cota.
+
+O endereço só abre para quem é dono do Codespace, porque a porta fica privada. Não há senha nem autenticação real; não use dados reais.
+
 ## O que o sistema faz (e o que não faz)
 
 - **Faz:** organiza áreas suspeitas, alertas, demandas, vistorias, medições, fotos, diagnóstico descritivo, revisão técnica, relatório e acompanhamento.
@@ -112,7 +125,7 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 ```bash
 scripts/testar.sh     # todos os testes
 scripts/demo.sh       # fluxo completo com dados sintéticos; relatórios em saida/
-scripts/interface.sh  # interface local em http://127.0.0.1:8765/ (dados sintéticos)
+scripts/interface.sh  # interface local em http://127.0.0.1:8765/ (dados sintéticos); no Codespaces abre sozinha
 scripts/demo_sincronizacao.sh   # conflito, decisão do coordenador e aparelho convergindo
 python -m gaema_sd.backup verificar PASTA_DO_BACKUP   # confere um backup
 ```
