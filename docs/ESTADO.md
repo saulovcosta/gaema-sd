@@ -107,6 +107,17 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | Codespace real | NÃO EXECUTADO | |
 | Autenticação real | NÃO EXECUTADO | não existe (R-31); usuário de teste aprovado é só um papel de teste |
 
+### Rodada 4 — áreas candidatas (DEC-035, 05/10/2026)
+| Verificação | Classe | Resultado |
+|---|---|---|
+| Suíte completa, Python 3.11 e 3.12 | UNITÁRIO | 582 passed, 1 skipped (35 testes novos em `tests/test_rodada4.py`) |
+| `scripts/demo.sh`; `pip-audit` | UNITÁRIO | OK; sem vulnerabilidade conhecida |
+| `gerar_contratos.py` | UNITÁRIO | mudança esperada: `origem_declarada` e `incerteza` na AreaCandidata |
+| 124 telas (inclui importação de arquivo com 1 aceito e 1 recusado) | NAVEGADOR AUTOMATIZADO | 0 violações; sem rolagem; campo de arquivo com 21 px corrigido para ≥ 44 px |
+| GitHub Actions do PR da Rodada 4 | UNITÁRIO (no GitHub) | ver o PR |
+| Triagem por satélite, processamento de imagem, NDVI | NÃO EXECUTADO | não existe (LA-03) |
+| Codespace real | NÃO EXECUTADO | |
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |

@@ -1,0 +1,14 @@
+{
+  "type": "FeatureCollection",
+  "_aviso": "DADOS SINTÉTICOS. Áreas inventadas para testar a importação; não correspondem a imóvel, pessoa ou procedimento.",
+  "features": [
+    {"type": "Feature",
+     "properties": {"data_deteccao": "2026-08-10", "origem_declarada": "camada sintética de teste A",
+                    "incerteza": "limite traçado à mão sobre esquema sintético; posição aproximada", "fonte": "Camada sintética A"},
+     "geometry": {"type": "Polygon", "coordinates": [[[-48.40, -10.30], [-48.39, -10.30], [-48.39, -10.29], [-48.40, -10.29], [-48.40, -10.30]]]}},
+    {"type": "Feature",
+     "properties": {"data_deteccao": "2026-08-12", "origem_declarada": "camada sintética de teste A",
+                    "incerteza": "não declarada pela fonte", "fonte": "Camada sintética A"},
+     "geometry": {"type": "MultiPolygon", "coordinates": [[[[-48.38, -10.28], [-48.37, -10.28], [-48.37, -10.27], [-48.38, -10.27], [-48.38, -10.28]]]]}}
+  ]
+}

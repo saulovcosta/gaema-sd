@@ -125,7 +125,10 @@ Nada passou de **TESTADO LOCALMENTE** (testes automáticos no computador, dados 
 
 - **Rodada 3 (escritório):** o analista cria demanda pela tela (com município e recorte retangular); o coordenador escolhe a equipe e agenda a vistoria (protocolo descritivo como padrão); o painel filtra por situação, equipe, município e data; usuário de teste pode ser pedido na entrada e aprovado pelo administrador (**não há autenticação real**); autoatribuição pelo técnico existe como opção, desligada.
 
-**Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 111 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
+- **Rodada 4 (áreas candidatas):** importação de áreas SINTÉTICAS em GeoJSON ou CSV, conferindo geometria, data, origem declarada e duplicidade; mostra origem e incerteza declaradas; uma área só vira alerta ou demanda por decisão de uma pessoa, registrada na trilha.
+- **Não existe triagem por satélite.** O GAEMA SD não processa imagem, não calcula NDVI nem outro índice e não detecta áreas sozinho: as áreas candidatas são as informadas ou importadas por pessoas. O limiar de NDVI para o Cerrado tocantinense segue PENDENTE (LA-03).
+
+**Nível de pronto real:** TESTADO LOCALMENTE. Verificação automática de acessibilidade (axe-core) sem violações em 124 telas, mas **não foi feito teste com leitor de tela nem com pessoas usuárias**, e **não há conformidade WCAG declarada**. Sem autenticação real, sem rede real, sem ArcGIS, Radar Ambiental ou sistema do MPTO.
 
 ## Para quem programa
 

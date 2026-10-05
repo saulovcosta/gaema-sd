@@ -8,7 +8,7 @@ Nível: **ESPECIFICADO**. Proveniência: AUTORAL (consolidação) sobre as lacun
 |---|---|---|---|---|
 | LA-01 | Científica | Faixas numéricas vistas nas telas do SIPADE (altura do pasto, <50%, >10 mm) sem fundamentação pública | Não adotadas como limiar | Nada, enquanto não houver fundamentação |
 | LA-02 | Científica | Fórmulas, pesos e limiares do SIPADE | Protótipo próprio, só presença/ausência, rotulado "PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA" | Protocolo validado no lugar do protótipo (nova versão publicada) |
-| LA-03 | Científica | Limiar de NDVI para o Cerrado tocantinense | NDVI é sinal configurável, sem valor padrão | Uso de NDVI na triagem |
+| LA-03 | Científica | Limiar de NDVI para o Cerrado tocantinense | NDVI é sinal configurável, sem valor padrão. **Não existe triagem por satélite** (Rodada 4): nenhuma imagem é processada nem índice calculado; áreas candidatas só entram informadas ou importadas por pessoa, com origem e incerteza declaradas | Uso de NDVI na triagem |
 | LA-04 | Científica | Protocolo de campo validado: número de pontos, repetições, profundidade da penetrometria | Parâmetros PENDENTES; o XLSForm não define profundidade nem repetições | Formulário e regras de penetrometria completos |
 | LA-05 | Ambiente | Organização ArcGIS do MPTO, Client ID, serviços existentes do Radar Ambiental | Adaptadores só interface; nada contra ArcGIS | Teste do XLSForm, publicação, camadas, qualquer adaptador real |
 | LA-06 | Institucional | Normas de retenção documental e classificação de sigilo | Retenção PENDENTE; exportação sem geometria nem texto livre; backup sem rotina | Política de backup, retenção e conteúdo permitido na exportação |

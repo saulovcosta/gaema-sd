@@ -73,5 +73,15 @@
     "valor": 20,
     "proveniencia": "AUTORAL",
     "observacao": "Máximo de pedidos de usuário de teste esperando decisão (evita acúmulo pela página de entrada, que não tem login). Sem autenticação real (R-31)."
+  },
+  "importacao_max_bytes": {
+    "valor": 1048576,
+    "proveniencia": "AUTORAL",
+    "observacao": "Tamanho máximo do arquivo de áreas candidatas (GeoJSON ou CSV) por importação; limite técnico provisório."
+  },
+  "importacao_max_itens": {
+    "valor": 200,
+    "proveniencia": "AUTORAL",
+    "observacao": "Máximo de áreas por importação; limite técnico provisório, sem relação com capacidade de vistoria."
   }
 }

@@ -44,10 +44,12 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
 | `metodo_selecao` | str | não |
 | `prioridade` | int (opcional) | não |
 | `chave_deduplicacao` | str | não |
+| `origem_declarada` | str | não |
+| `incerteza` | str | não |
 
 **Relações.** Usa 1..n FonteDado; origina 0..n Alerta, AreaInteresse e Demanda.
 
-**Validações.** Obrigatórios da tabela acima, mais: Polígono WGS84 válido (sem auto-interseção, com área); ao menos uma fonte; todo sinal aponta fonte listada; fora do recorte aproximado do Tocantins gera ALERTA.
+**Validações.** Obrigatórios da tabela acima, mais: Polígono WGS84 válido (sem auto-interseção, com área); ao menos uma fonte; todo sinal aponta fonte listada; fora do recorte aproximado do Tocantins gera ALERTA. Na importação (`Nucleo.importar_candidatas`): origem declarada obrigatória, data não futura e `chave_deduplicacao` = hash da geometria normalizada (área repetida é recusada). `origem_declarada` e `incerteza` são texto declarado; não há processamento de imagem nem NDVI.
 
 **Atualização.** Editável enquanto a Demanda estiver em CANDIDATA/ALERTA/EM_TRIAGEM; cada edição gera versão.
 
@@ -80,7 +82,9 @@ INTERNA: leitura por qualquer papel humano. RESTRITA: leitura só por papéis do
   "data_deteccao": "2026-01-10",
   "metodo_selecao": "seleção manual sintética",
   "prioridade": null,
-  "chave_deduplicacao": "sintetica-a"
+  "chave_deduplicacao": "sintetica-a",
+  "origem_declarada": "",
+  "incerteza": ""
 }
 ```
 

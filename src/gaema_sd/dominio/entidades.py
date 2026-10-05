@@ -139,6 +139,8 @@ class AreaCandidata(Registro):
     metodo_selecao: str = ""
     prioridade: Optional[int] = None
     chave_deduplicacao: str = ""
+    origem_declarada: str = ""   # de onde veio a área, como declarado por quem a indicou ou importou
+    incerteza: str = ""          # incerteza declarada, em texto; o sistema não calcula nem inventa número
 
 
 @dataclass(kw_only=True)
