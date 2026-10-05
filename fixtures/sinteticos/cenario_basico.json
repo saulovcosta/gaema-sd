@@ -44,7 +44,9 @@
       "data_deteccao": "2026-01-10",
       "metodo_selecao": "seleção manual sintética",
       "prioridade": null,
-      "chave_deduplicacao": "sintetica-a"
+      "chave_deduplicacao": "sintetica-a",
+      "origem_declarada": "",
+      "incerteza": ""
     }
   ],
   "Alerta": [

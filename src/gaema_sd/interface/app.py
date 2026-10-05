@@ -54,11 +54,21 @@ from .mapa import mapa_svg
 log = logging.getLogger("gaema_sd.interface")
 
 LIMITE_CORPO = 64 * 1024
-ROTA_FOTO = "/campo/coleta/foto"     # única rota que aceita multipart/form-data (foto do ponto)
+ROTA_FOTO = "/campo/coleta/foto"     # rotas que aceitam multipart/form-data: foto do ponto e arquivo de áreas candidatas
+ROTA_IMPORTACAO = "/candidatas/importar"
 TOTAL_ETAPAS = 5
 TIPOS_FOTO = ("image/jpeg", "image/png")
 AMBIENTE_VAZIO = {"altura": "", "altura_unidade": "cm", "solo": "", "solo_fonte": "", "geologia": "",
                   "geologia_fonte": "", "chuva": "nao_observado", "chuva_nota": ""}
+
+
+def limite_importacao() -> int:
+    return int(parametro("importacao_max_bytes")) + LIMITE_CORPO
+
+
+def limite_multipart(caminho: str) -> int | None:
+    """Limite do corpo multipart na rota, ou None se a rota não aceita multipart."""
+    return {ROTA_FOTO: limite_foto, ROTA_IMPORTACAO: limite_importacao}.get(caminho, lambda: None)()
 
 
 def limite_foto() -> int:
@@ -95,7 +105,7 @@ USUARIOS_DE_TESTE: dict[str, Ator] = {
 MENU = [("/painel", "Início", "inicio", None), ("/campo", "Campo", "campo", None),
         ("/conflitos", "Conflitos", "conflito", Acao.RESOLVER_CONFLITO_SINCRONIZACAO),
         ("/auditoria", "Auditoria", "auditoria", Acao.VERIFICAR_AUDITORIA), ("/exportar", "Exportar", "exportar", Acao.EXPORTAR),
-        ("/backup", "Backup", "backup", Acao.GERIR_BACKUP), ("/acessos", "Acessos de teste", "pessoa", Acao.DECIDIR_ACESSO_TESTE),
+        ("/candidatas", "Áreas candidatas", "campo", None), ("/backup", "Backup", "backup", Acao.GERIR_BACKUP), ("/acessos", "Acessos de teste", "pessoa", Acao.DECIDIR_ACESSO_TESTE),
         ("/ajuda", "Ajuda e limites", "ajuda", None)]
 
 
@@ -107,6 +117,7 @@ class Sessao:
     tema: str = "auto"
     usada_em: float = field(default_factory=time.monotonic)
     avisos: list = field(default_factory=list)   # ("ok", texto) | ("erro", Mensagem); mostrados uma vez
+    importacao: list = field(default_factory=list)  # resultado por item da última importação; mostrado uma vez
 
 
 @dataclass
@@ -143,6 +154,9 @@ class Aplicacao:
             ("GET", r"/demanda/nova", self.demanda_nova), ("POST", r"/demanda/nova", self.demanda_criar),
             ("POST", rf"/demanda/({_UUID})/equipe", self.demanda_equipe),
             ("POST", rf"/demanda/({_UUID})/vistoria", self.demanda_vistoria),
+            ("GET", r"/candidatas", self.candidatas), ("POST", ROTA_IMPORTACAO, self.candidatas_importar),
+            ("POST", rf"/candidatas/({_UUID})/alerta", self.candidata_alerta),
+            ("POST", rf"/candidatas/({_UUID})/demanda", self.candidata_demanda),
             ("POST", r"/acesso/pedir", self.acesso_pedir), ("GET", r"/acessos", self.acessos),
             ("POST", rf"/acessos/({_UUID})/decidir", self.acesso_decidir),
             ("GET", rf"/demanda/({_UUID})", self.demanda), ("POST", rf"/demanda/({_UUID})/transitar", self.transitar),
@@ -325,9 +339,12 @@ class Aplicacao:
         if n < 0:
             return self._erro(400, "Pedido malformado.")
         multipart = _eh_multipart(environ)
-        if multipart and caminho != ROTA_FOTO:
+        if multipart and limite_multipart(caminho) is None:
             return self._erro(400, "Tipo de conteúdo não aceito.")
-        if n > (limite_foto() if multipart else LIMITE_CORPO):
+        if n > (limite_multipart(caminho) if multipart else LIMITE_CORPO):
+            if multipart and caminho == ROTA_IMPORTACAO:
+                return self._erro(413, "Arquivo grande demais.",
+                                  f"Envie um arquivo de até {int(parametro('importacao_max_bytes')) // 1024} KB.")
             if multipart:
                 return self._erro(413, "Foto grande demais.",
                                   f"Envie uma foto de até {int(parametro('interface_foto_maximo_bytes')) // (1024 * 1024)} MB.")
@@ -470,6 +487,97 @@ class Aplicacao:
                                                                        form.get("motivo", "")) and None,
                               "Pedido aprovado: o usuário de teste já aparece na página de entrada." if decisao == "aprovar"
                               else "Pedido rejeitado.")
+
+    # ---- áreas candidatas: importação (GeoJSON/CSV) e passagem a alerta/demanda só por ação humana
+    def candidatas(self, sessao, ator, form):
+        try:
+            cands = self.nucleo.listar(ator, E.AreaCandidata)
+            alertas = self.nucleo.listar(ator, E.Alerta)
+            fontes = {f.id: f.nome for f in self.nucleo.listar(ator, E.FonteDado)}
+        except AcessoNegado as e:
+            return self._sem_permissao(e)
+        try:
+            demandas = self.nucleo.listar(ator, E.Demanda)
+        except AcessoNegado:
+            demandas = []
+        alerta_de = {a.area_candidata_id: a for a in alertas if a.area_candidata_id}
+        demanda_de = {d.area_candidata_id: d for d in demandas if d.area_candidata_id}
+        linhas = [{"c": c, "fonte": ", ".join(fontes.get(f, "?") for f in c.fonte_ids), "alerta": alerta_de.get(c.id),
+                   "demanda": demanda_de.get(c.id)} for c in sorted(cands, key=lambda c: (c.data_deteccao, c.criado_em), reverse=True)]
+        resultado, sessao.importacao = sessao.importacao, []
+        return self._pagina("candidatas", sessao, ator, linhas=linhas, resultado=resultado,
+                            pode_importar=pode(ator, Acao.REGISTRAR_AREA_CANDIDATA), razao_importar=self._razao_criar(ator),
+                            pode_alerta=pode(ator, Acao.REGISTRAR_ALERTA) and pode(ator, Acao.REGISTRAR_DEMANDA),
+                            razao_alerta=f"seu papel ({L.papeis(ator.papeis)}) não registra alerta nem demanda; quem decide é "
+                                         "o analista de triagem ou o coordenador.",
+                            origens=[(o.value, L.ORIGEM_ALERTA[o]) for o in OrigemAlerta],
+                            max_kb=int(parametro("importacao_max_bytes")) // 1024, max_itens=int(parametro("importacao_max_itens")))
+
+    def candidatas_importar(self, sessao, ator, form):
+        formato = form.get("formato", "")
+        arq = getattr(self, "_arquivos", {}).get("arquivo")
+        texto = form.get("texto", "")
+        if arq and arq[2]:
+            nome = arq[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+            formato = "geojson" if nome.endswith((".geojson", ".json")) else "csv" if nome.endswith(".csv") else formato
+            try:
+                texto = arq[2].decode("utf-8-sig")
+            except UnicodeDecodeError:
+                self._aviso_erro(sessao, "o arquivo precisa estar em texto UTF-8 (GeoJSON ou CSV).")
+                return self._ir("/candidatas")
+        if not texto.strip():
+            self._aviso_erro(sessao, "cole o conteúdo ou escolha um arquivo antes de importar.")
+            return self._ir("/candidatas")
+        try:
+            r = self.nucleo.importar_candidatas(ator, texto, formato)
+        except AcessoNegado as e:
+            return self._sem_permissao(e)
+        except ErroGaema as e:
+            self._aviso_erro(sessao, str(e))
+            return self._ir("/candidatas")
+        sessao.importacao = [{"numero": i.numero, "aceito": i.aceito, "origem": i.origem_declarada,
+                              "erros": [p.mensagem for p in i.problemas if p.gravidade.value == "ERRO"],
+                              "alertas": [p.mensagem for p in i.problemas if p.gravidade.value != "ERRO"]}
+                             for i in r["itens"]]
+        n_ok = len(r["gravados"])
+        sessao.avisos.append(("ok", f"Importação concluída: {n_ok} área(s) registrada(s) e {len(r['itens']) - n_ok} recusada(s). "
+                                    "Nenhuma virou alerta ou demanda: isso é decisão de uma pessoa, abaixo."))
+        return self._ir("/candidatas")
+
+    def candidata_alerta(self, sessao, ator, form, cand_id):
+        def fazer():
+            c = self.nucleo.ler(ator, E.AreaCandidata, cand_id)
+            if any(a.area_candidata_id == c.id for a in self.nucleo.listar(ator, E.Alerta)):
+                raise ErroGaema("esta área já tem alerta")
+            try:
+                origem = OrigemAlerta(form.get("origem", ""))
+            except ValueError:
+                raise ErroGaema("escolha a origem do alerta na lista") from None
+            descricao = form.get("descricao", "").strip()[:300]
+            if len(descricao) < 10:
+                raise ErroGaema("descreva por que a área merece triagem (pelo menos 10 letras)")
+            self.nucleo.registrar(ator, E.Alerta(origem=origem, descricao=descricao, data_alerta=date.today(),
+                                                 area_candidata_id=c.id, sintetico=True))
+        return self._executar(sessao, "/candidatas", fazer, "Alerta gerado por decisão sua (registrado na trilha).")
+
+    def candidata_demanda(self, sessao, ator, form, cand_id):
+        def fazer():
+            c = self.nucleo.ler(ator, E.AreaCandidata, cand_id)
+            alerta = next((a for a in self.nucleo.listar(ator, E.Alerta) if a.area_candidata_id == c.id), None)
+            if alerta is None:
+                raise ErroGaema("gere o alerta antes de abrir a demanda")
+            if any(d.area_candidata_id == c.id for d in self.nucleo.listar(ator, E.Demanda)):
+                raise ErroGaema("esta área já tem demanda")
+            titulo = form.get("titulo", "").strip()[:120]
+            if not titulo:
+                raise ErroGaema("dê um título à demanda")
+            area = E.AreaInteresse(geometria_wkt=c.geometria_wkt, descricao="Recorte de análise da área candidata importada "
+                                   "(não é imóvel)", origem=OrigemAreaInteresse.DE_CANDIDATA, area_candidata_id=c.id, sintetico=True)
+            dem = E.Demanda(titulo=titulo, alerta_ids=[alerta.id], area_candidata_id=c.id, area_interesse_id=area.id,
+                            municipio=form.get("municipio", "").strip()[:120], sintetico=True)
+            self.nucleo.registrar_em_lote(ator, [area, dem])
+        return self._executar(sessao, "/candidatas", fazer,
+                              "Demanda aberta por decisão sua, na situação “" + L.situacao(Estado.CANDIDATA).nome + "”.")
 
     def sair(self, sessao, ator, form):
         self.sessoes.pop(sessao.sid, None)
@@ -1360,7 +1468,7 @@ class _Serializado:
             n = int(environ.get("CONTENT_LENGTH") or 0)
         except ValueError:
             n = -1
-        limite = limite_foto() if environ.get("PATH_INFO") == ROTA_FOTO and _eh_multipart(environ) else LIMITE_CORPO
+        limite = (limite_multipart(environ.get("PATH_INFO", "")) or LIMITE_CORPO) if _eh_multipart(environ) else LIMITE_CORPO
         if 0 < n <= limite:
             environ["wsgi.input"] = io.BytesIO(environ["wsgi.input"].read(n))
         elif n != 0:

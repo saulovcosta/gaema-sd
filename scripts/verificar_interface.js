@@ -91,9 +91,9 @@ async function entrar(page, usuario) {
   }
   const roteiro = [
     ["anonimo", ["/entrar", "/nao-existe"]],
-    ["coord", ["/painel", "/painel?situacao=EM_CAMPO&municipio=x", ...demandaIds, demandaIds[0] + "?ponto=P01#ponto-P01",
+    ["coord", ["/painel", "/painel?situacao=EM_CAMPO&municipio=x", "/candidatas", ...demandaIds, demandaIds[0] + "?ponto=P01#ponto-P01",
                "/conflitos", "/exportar", "/ajuda", "/demanda/nova"]],
-    ["analista", [demandaIds[0], "/demanda/nova"]],
+    ["analista", [demandaIds[0], "/demanda/nova", "/candidatas"]],
     ["tecnico", ["/painel", "/campo", "/campo/coleta", "/backup"]],
     ["auditor", ["/auditoria"]],
     ["admin", ["/backup", "/acessos"]],
@@ -190,6 +190,18 @@ async function entrar(page, usuario) {
     await Promise.all([page.waitForNavigation(), page.click("form[action='/demanda/nova'] button[type=submit]")]);
     relatorio.push({ nome: "360-analista-demanda-criada", largura: 360, esquema: "light", usuario: "analista", caminho: page.url().replace(BASE, ""),
                      status: 200, criada: (await page.content()).includes("Demanda criada"), ...(await medir(page, 360)), axe: await axe(page) });
+    // Rodada 4: importação de áreas candidatas (arquivo sintético com 1 item recusado) e resultado por item
+    await page.goto(BASE + "/candidatas");
+    await page.setInputFiles("input[name=arquivo]", { name: "areas.csv", mimeType: "text/csv", buffer: Buffer.from(
+      "geometria_wkt,data_deteccao,origem_declarada,incerteza,fonte\n" +
+      '"POLYGON ((-48.36 -10.26, -48.35 -10.26, -48.35 -10.25, -48.36 -10.25, -48.36 -10.26))",2026-08-15,planilha sintética,aproximada,P\n' +
+      '"POLYGON ((-48.34 -10.24, -48.33 -10.24, -48.33 -10.23, -48.34 -10.23, -48.34 -10.24))",2026-08-16,,,P\n') });
+    await Promise.all([page.waitForNavigation(), page.click("form[action='/candidatas/importar'] button[type=submit]")]);
+    await page.screenshot({ path: path.join(OUT, "360-analista-candidatas-importadas.png"), fullPage: true });
+    relatorio.push({ nome: "360-analista-candidatas-importadas", largura: 360, esquema: "light", usuario: "analista",
+                     caminho: "/candidatas (importação)", status: 200,
+                     importou: (await page.content()).includes("1 área(s) registrada(s) e 1 recusada(s)"),
+                     ...(await medir(page, 360)), axe: await axe(page) });
     await entrar(page, "admin");
     await page.goto(BASE + "/acessos");
     await page.screenshot({ path: path.join(OUT, "360-admin-acessos-pendente.png"), fullPage: true });

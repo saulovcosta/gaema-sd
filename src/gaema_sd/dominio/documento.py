@@ -20,7 +20,10 @@ TEXTOS: dict[str, dict[str, str]] = {
         finalidade="Polígono indicado por sinal remoto como possível pastagem degradada. É só **sinal**, não conclusão.",
         relacoes="Usa 1..n FonteDado; origina 0..n Alerta, AreaInteresse e Demanda.",
         validacoes="Polígono WGS84 válido (sem auto-interseção, com área); ao menos uma fonte; todo sinal aponta "
-                   "fonte listada; fora do recorte aproximado do Tocantins gera ALERTA.",
+                   "fonte listada; fora do recorte aproximado do Tocantins gera ALERTA. Na importação "
+                   "(`Nucleo.importar_candidatas`): origem declarada obrigatória, data não futura e `chave_deduplicacao` = "
+                   "hash da geometria normalizada (área repetida é recusada). `origem_declarada` e `incerteza` são texto "
+                   "declarado; não há processamento de imagem nem NDVI.",
         atualizacao="Editável enquanto a Demanda estiver em CANDIDATA/ALERTA/EM_TRIAGEM; cada edição gera versão.",
         retencao=RETENCAO_PENDENTE),
     "Alerta": dict(

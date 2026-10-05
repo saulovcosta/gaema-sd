@@ -163,3 +163,11 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-109 | Coordenador escolhe a equipe; coordenador ou técnico da equipe agenda a vistoria (protocolo descritivo como padrão) | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
 | RQ-110 | Filtros do painel por situação, equipe, município e data, sem ampliar o acesso | INSTITUCIONAL (pedido do usuário, Rodada 3) | TESTADO LOCALMENTE |
 | RQ-111 | Autoatribuição pelo técnico como opção em `config/parametros.json`, desligada por padrão, com proveniência | OBSERVAÇÃO PÚBLICA (V-14) + AUTORAL (desligada) | TESTADO LOCALMENTE |
+
+## Rodada 4 — áreas candidatas
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-112 | Importar áreas candidatas sintéticas de GeoJSON ou CSV, conferindo geometria, duplicidade, data e origem declarada; recusas por item, com motivo; importação auditada | INSTITUCIONAL (pedido do usuário, Rodada 4) | TESTADO LOCALMENTE |
+| RQ-113 | Mostrar origem e incerteza declaradas; candidata vira alerta ou demanda só por ação humana auditada | INSTITUCIONAL (pedido do usuário, Rodada 4) | TESTADO LOCALMENTE |
+| RQ-114 | Registrar que não há triagem por satélite, processamento de imagem nem NDVI | INSTITUCIONAL (pedido do usuário, Rodada 4) | TESTADO LOCALMENTE (README e pendências conferidos por teste) |

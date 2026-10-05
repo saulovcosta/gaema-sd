@@ -1,0 +1,79 @@
+{% extends "base.html.j2" %}
+{% block titulo %}Áreas candidatas{% endblock %}
+{% block conteudo %}
+<h1>Áreas candidatas</h1>
+<div class="proxima"><p class="rotulo">O que fazer agora</p>
+  <p class="frase">{% if pode_importar %}Importe um arquivo de áreas (GeoJSON ou CSV) ou decida, área por área, se ela vira alerta e demanda.{% else %}Consulte as áreas indicadas; quem importa e decide é o analista de triagem.{% endif %}</p>
+  <p class="discreto"><strong>Não há triagem por satélite neste protótipo:</strong> nenhuma imagem é processada e nenhum índice de vegetação (NDVI) é calculado. Área, data, origem e incerteza são as declaradas no arquivo. Uma área só vira alerta ou demanda por decisão de uma pessoa, registrada na trilha.</p></div>
+
+{% if resultado %}
+<section class="cartao" aria-labelledby="t-resultado">
+  <h2 id="t-resultado">Resultado da importação, item por item</h2>
+  <table class="tabela">
+    <caption>Cada área do arquivo e o que aconteceu com ela</caption>
+    <thead><tr><th scope="col">Item</th><th scope="col">Resultado</th><th scope="col">Origem declarada</th><th scope="col">Motivo</th></tr></thead>
+    <tbody>{% for r in resultado %}
+      <tr><th scope="row">{{ r.numero }}</th>
+        <td data-rotulo="Resultado">{% if r.aceito %}<span class="etiqueta tom-ok">{{ c.icone("ok") }}<span>registrada</span></span>{% else %}<span class="etiqueta tom-critico">{{ c.icone("critico") }}<span>recusada</span></span>{% endif %}</td>
+        <td data-rotulo="Origem declarada">{{ r.origem or "—" }}</td>
+        <td data-rotulo="Motivo">{{ (r.erros + r.alertas)|join("; ") or "—" }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="cartao" aria-labelledby="t-importar">
+  <h2 id="t-importar">Importar áreas (dados sintéticos)</h2>
+  {% if pode_importar %}
+  <p class="discreto">GeoJSON (FeatureCollection de polígonos) ou CSV com as colunas <code>geometria_wkt</code>, <code>data_deteccao</code> (AAAA-MM-DD), <code>origem_declarada</code>, <code>incerteza</code> e <code>fonte</code>. Até {{ max_kb }} KB e {{ max_itens }} áreas. Origem é obrigatória; data no futuro e área repetida são recusadas.</p>
+  <form method="post" action="/candidatas/importar" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="arquivo">Arquivo (.geojson, .json ou .csv)</label>
+    <input type="file" id="arquivo" name="arquivo" accept=".geojson,.json,.csv,application/geo+json,application/json,text/csv">
+    <label for="formato">Formato, se colar o texto</label>
+    <select id="formato" name="formato"><option value="geojson">GeoJSON</option><option value="csv">CSV</option></select>
+    <label for="texto">Ou cole o conteúdo aqui</label>
+    <textarea id="texto" name="texto" rows="6"></textarea>
+    <div class="acoes"><button type="submit">Importar</button></div>
+  </form>
+  {% else %}<div class="acoes">{{ c.bloqueado("Importar", razao_importar, "importar") }}</div>{% endif %}
+</section>
+
+<h2>Áreas registradas</h2>
+{% if linhas %}
+<ul class="lista">{% for l in linhas %}
+  <li>
+    <div class="linha-titulo"><h3>Área detectada em {{ l.c.data_deteccao.strftime("%d/%m/%Y") }}</h3>
+      {% if l.demanda %}<span class="etiqueta tom-andamento">{{ c.icone("andamento") }}<span>com demanda</span></span>{% elif l.alerta %}<span class="etiqueta tom-atencao">{{ c.icone("atencao") }}<span>com alerta</span></span>{% else %}<span class="etiqueta tom-neutro">{{ c.icone("neutro") }}<span>só indicada</span></span>{% endif %}</div>
+    <dl class="dados">
+      <dt>Origem declarada</dt><dd>{{ l.c.origem_declarada or "não declarada" }}</dd>
+      <dt>Incerteza declarada</dt><dd>{{ l.c.incerteza or "não declarada" }}</dd>
+      <dt>Fonte</dt><dd>{{ l.fonte }}</dd>
+      <dt>Como foi indicada</dt><dd>{{ l.c.metodo_selecao or "—" }}</dd>
+    </dl>
+    {% if l.demanda %}<p><a href="/demanda/{{ l.demanda.id }}">Abrir a demanda “{{ l.demanda.titulo }}”</a></p>
+    {% elif not pode_alerta %}<div class="acoes">{{ c.bloqueado("Gerar alerta", razao_alerta, "alerta-" ~ loop.index) }}</div>
+    {% elif not l.alerta %}
+    <form method="post" action="/candidatas/{{ l.c.id }}/alerta">
+      <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+      <label for="origem-{{ loop.index }}">Origem do alerta</label>
+      <select id="origem-{{ loop.index }}" name="origem">{% for v, t in origens %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select>
+      <label for="desc-{{ loop.index }}">Por que esta área merece triagem</label>
+      <input type="text" id="desc-{{ loop.index }}" name="descricao" required minlength="10" maxlength="300">
+      <div class="acoes"><button type="submit" class="secundario">Gerar alerta desta área</button></div>
+    </form>
+    {% else %}
+    <p class="discreto">Alerta: {{ l.alerta.descricao }}</p>
+    <form method="post" action="/candidatas/{{ l.c.id }}/demanda">
+      <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+      <label for="tit-{{ loop.index }}">Título da demanda</label>
+      <input type="text" id="tit-{{ loop.index }}" name="titulo" required maxlength="120">
+      <label for="mun-{{ loop.index }}">Município (opcional)</label>
+      <input type="text" id="mun-{{ loop.index }}" name="municipio" maxlength="120">
+      <div class="acoes"><button type="submit" class="secundario">Abrir demanda desta área</button></div>
+    </form>
+    {% endif %}
+  </li>
+{% endfor %}</ul>
+{% else %}<p>Nenhuma área candidata registrada.</p>{% endif %}
+{% endblock %}

@@ -346,3 +346,21 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Autoatribuição pelo técnico:** parâmetro `autoatribuicao_tecnico` = **false** (AUTORAL; visto em protótipo público, V-14; decisão institucional pendente).
   - DEMANDA_ABERTA → ATRIBUIDA aceita também TECNICO_CAMPO, com a pré-condição nova `autoatribuicao_permitida`: parâmetro ligado **e** técnico na equipe definida. O coordenador não é afetado.
   - `docs/estados.md` foi regerado.
+
+## DEC-035 — Rodada 4: entrada de áreas candidatas por importação (05/10/2026)
+- **Importação:** `Nucleo.importar_candidatas(ator, texto, formato)`, só para ANALISTA_TRIAGEM (`REGISTRAR_AREA_CANDIDATA`, matriz inalterada).
+  - **Formatos:** GeoJSON (FeatureCollection de Polygon/MultiPolygon) ou CSV com `geometria_wkt`.
+  - **Leitura pura** em `src/gaema_sd/importacao/` (sem rede).
+  - **Cada item é conferido:**
+    - geometria por `validar_poligono_wkt`;
+    - data AAAA-MM-DD não futura;
+    - origem declarada obrigatória;
+    - duplicidade pelo hash da geometria normalizada (shapely `normalize`, 7 casas), no próprio arquivo e contra o banco. O hash fica gravado em `chave_deduplicacao`.
+  - **Gravação:** os aceitos entram numa transação, cada um com CRIAR. A importação gera o evento `IMPORTACAO_CANDIDATAS`, com contagens e o hash do arquivo. Os recusados aparecem um a um, com motivo.
+  - **Fonte:** uma `FonteDado` por fonte declarada, com proveniência PENDENTE.
+  - **Limites AUTORAIS:** `importacao_max_bytes` (1 MiB) e `importacao_max_itens` (200).
+  - **Envio:** multipart também nesta rota, com limite próprio (`limite_multipart`).
+- **Campos novos (opcionais) na AreaCandidata:** `origem_declarada` e `incerteza`, ambos em texto declarado; o sistema não calcula nem inventa número. Contratos regerados. Exemplos sintéticos em `fixtures/sinteticos/importacao/`.
+- **Ação humana:** a tela "Áreas candidatas" mostra origem, incerteza, fonte e data. Uma área só vira alerta ("Gerar alerta desta área", com origem e justificativa) e depois demanda ("Abrir demanda desta área", que cria a área de interesse e a demanda juntas) por decisão de uma pessoa, auditada. A importação não cria alerta nem demanda.
+  - **Quem decide:** a matriz atual dá isso a quem tem `REGISTRAR_ALERTA` e `REGISTRAR_DEMANDA`, ou seja, analista e coordenador.
+- **Lacuna registrada:** README e `docs/pendencias.md` (LA-03) dizem que **não existe triagem por satélite**, processamento de imagem nem NDVI.

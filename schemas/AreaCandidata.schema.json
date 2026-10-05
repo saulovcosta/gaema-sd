@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "gaema-sd/AreaCandidata.schema.json",
   "title": "AreaCandidata",
-  "description": "AreaCandidata(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, geometria_wkt: 'str', fonte_ids: 'list[str]' = <factory>, sinais: 'list[SinalRemoto]' = <factory>, data_deteccao: 'date', metodo_selecao: 'str' = '', prioridade: 'Optional[int]' = None, chave_deduplicacao: 'str' = '')",
+  "description": "AreaCandidata(*, id: 'str' = <factory>, versao: 'int' = 1, criado_em: 'datetime' = <factory>, criado_por: 'str' = '', atualizado_em: 'Optional[datetime]' = None, sintetico: 'bool' = False, geometria_wkt: 'str', fonte_ids: 'list[str]' = <factory>, sinais: 'list[SinalRemoto]' = <factory>, data_deteccao: 'date', metodo_selecao: 'str' = '', prioridade: 'Optional[int]' = None, chave_deduplicacao: 'str' = '', origem_declarada: 'str' = '', incerteza: 'str' = '')",
   "type": "object",
   "properties": {
     "id": {
@@ -99,6 +99,12 @@
       ]
     },
     "chave_deduplicacao": {
+      "type": "string"
+    },
+    "origem_declarada": {
+      "type": "string"
+    },
+    "incerteza": {
       "type": "string"
     }
   },

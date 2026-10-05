@@ -22,7 +22,8 @@ from .backup.ancora import conferir_ancora, gerar_ancora
 from .backup.backup import criar_backup as criar_backup_arquivos
 from .backup.backup import verificar_backup as verificar_backup_arquivos
 from .dominio import entidades as E
-from .dominio.enums import Estado, FormatoRelatorio, Papel, Sensibilidade, SituacaoPedidoAcesso, StatusSincronizacao
+from .dominio.enums import (Estado, FormatoRelatorio, Papel, Proveniencia, Sensibilidade, SituacaoPedidoAcesso,
+                           StatusSincronizacao, TipoFonte)
 from .dominio.serializacao import de_dict, json_canonico, para_dict, sha256_texto
 from .erros import (
     AcessoNegado,
@@ -38,6 +39,7 @@ from .estados import maquina
 from .exportacao import painel as exportacao_painel
 from .estados.contexto import montar_contexto
 from .config import parametro
+from .importacao.candidatas import ler_candidatas
 from .persistencia.sqlite import ArmazenamentoAuditoriaSQLite, Repositorio
 from .protocolo.definicao import canonizar, carregar_definicao
 from .sincronizacao.item import DecisaoConflito, ItemSincronizacao, ResultadoSincronizacao
@@ -345,6 +347,48 @@ class Nucleo:
             self._auditar_recusa(ator, "ATUALIZACAO_RECUSADA", "Demanda", demanda_id, e)
             raise e
         return self.atualizar(ator, dataclasses.replace(d, equipe_id=equipe_id), d.versao)[0]   # confere a versão
+
+    METODO_IMPORTACAO = "importação de arquivo (área declarada; sem processamento de imagem nem NDVI)"
+
+    def importar_candidatas(self, ator: Ator, texto: str, formato: str) -> dict:
+        """Importa áreas candidatas de GeoJSON ou CSV. Cada item é conferido (geometria, data não futura, origem
+        declarada, duplicidade pela geometria normalizada, no arquivo e no banco). Os aceitos são gravados juntos, numa
+        transação, cada um com evento CRIAR; o resumo da importação também vai para a trilha. Nada vira alerta nem
+        demanda aqui: isso é ação humana separada."""
+        self._exigir(ator, Acao.REGISTRAR_AREA_CANDIDATA, "AreaCandidata", "*")
+        bruto = (texto or "").encode("utf-8")
+        try:
+            if len(bruto) > int(parametro("importacao_max_bytes")):
+                raise ValueError(f"arquivo maior que {int(parametro('importacao_max_bytes')) // 1024} KB")
+            itens = ler_candidatas(texto or "", formato, maximo_itens=int(parametro("importacao_max_itens")))
+        except ValueError as e:
+            erro_ = ErroGaema(f"importação recusada: {e}")
+            self._auditar_recusa(ator, "IMPORTACAO_RECUSADA", "AreaCandidata", "*", erro_)
+            raise erro_ from None
+        existentes = {c.chave_deduplicacao for c in self.repo.listar(E.AreaCandidata) if c.chave_deduplicacao}
+        for item in itens:
+            if item.aceito and item.chave in existentes:
+                item.problemas.append(erro("DUPLICADA_NO_BANCO", "geometria_wkt", "área já registrada antes"))
+        aceitos = [i for i in itens if i.aceito]
+        gravados: list[E.AreaCandidata] = []
+        with self.repo.transacao():
+            fontes: dict[str, str] = {}
+            for item in aceitos:
+                nome = item.fonte or "fonte não declarada"
+                if nome not in fontes:
+                    f = E.FonteDado(nome=f"{nome} (declarada no arquivo importado)", tipo=TipoFonte.CAMADA_VETORIAL,
+                                    provedor="arquivo importado (declarado por quem o preparou)",
+                                    proveniencia=Proveniencia.PENDENTE, sintetico=True)
+                    fontes[nome] = self._registrar(ator, f)[0].id
+                cand = E.AreaCandidata(geometria_wkt=item.geometria_wkt, fonte_ids=[fontes[nome]],
+                                       data_deteccao=item.data_deteccao, metodo_selecao=self.METODO_IMPORTACAO,
+                                       chave_deduplicacao=item.chave, origem_declarada=item.origem_declarada,
+                                       incerteza=item.incerteza, sintetico=True)
+                gravados.append(self._registrar(ator, cand)[0])
+            self.trilha.registrar(ator, "IMPORTACAO_CANDIDATAS", "AreaCandidata", "*", detalhes={
+                "formato": formato, "itens": len(itens), "aceitos": len(gravados), "recusados": len(itens) - len(gravados),
+                "sha256": hashlib.sha256(bruto).hexdigest()})
+        return {"itens": itens, "gravados": gravados}
 
     # ------------------------------------------------------------ usuários de TESTE (sem autenticação real, R-31)
 
