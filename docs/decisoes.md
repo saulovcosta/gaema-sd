@@ -285,3 +285,16 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
 - **Limite:** testado simulando o encaminhamento (conexão em 127.0.0.1 com o Host público). **Não testado num Codespace real.**
 - **Teste:** `tests/test_codespaces.py`; suíte completa também em Python 3.12 (475 testes; um aviso interno do reportlab sobre Python 3.14).
 
+## DEC-030 — Rodada 1: abrir de verdade (05/10/2026)
+
+- **PRs:** PR 6 mesclado depois da suíte (481 testes passaram, 1 pulado). PR 5, de outra sessão, fechado com comentário. Os itens exclusivos dele vieram para esta rodada: porta 8765 marcada `"visibility": "private"` e CSS da tabela da interface.
+- **Cookie:** recebe `Secure` quando o pedido chega pelo endereço https do Codespaces. No acesso local por http fica sem `Secure`, senão o navegador descarta o cookie e o login falha. Seguem `HttpOnly`, `SameSite=Strict` e `Path=/`.
+- **Cabeçalho `Server`:** passa a ser `GAEMA-SD`, sem a versão do Python. O `wsgiref` só escreve o dele quando a aplicação não define um.
+- **Tabela de pontos da interface:**
+  - cabeçalho sem quebra no meio da palavra ("Longitude");
+  - números sem quebra em tela larga;
+  - selos ("selecionado", "acima do limite") na linha de baixo e com quebra permitida.
+  - Medido no navegador: a tabela cabe na coluna a 360 e 1280 px. O roteiro `scripts/verificar_interface.js` passou a medir isso.
+- **CI:** `.github/workflows/testes.yml` roda a cada push e pull request: testes, demonstração e `pip-audit`. Só leitura, sem segredos.
+- **Teste:** `tests/test_rodada1.py`, `tests/test_codespaces.py`.
+

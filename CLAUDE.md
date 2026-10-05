@@ -52,4 +52,6 @@ Usuário: Promotor de Justiça, não programa. Responder em português claro e c
 - Acessibilidade da interface: axe-core e navegador automatizado cobrem só o automático; não declarar conformidade WCAG; leitor de tela e pessoas usuárias seguem NÃO EXECUTADOS.
 - Cabeçalho do relatório (DEC-027): logo `assets/logo-mpto-gaema.png` só no relatório (a interface mantém identidade própria); frase institucional só por `relatorio/institucional.py::linha_institucional`. Endosso só por `config/endosso.json` (vazio = sem endosso; parcial ou inválido = sem endosso); nunca escrever "endosso" sem a negativa enquanto o campo estiver vazio (`tests/test_relatorio_institucional.py`).
 - Codespaces (DEC-029): `.devcontainer/devcontainer.json` (Python 3.12) roda `scripts/interface.sh`. A interface só aceita o endereço encaminhado `<CODESPACE_NAME>-<porta>.<domínio>` (origem https) quando `CODESPACES=true`; nunca trocar o bind 127.0.0.1 nem tornar a porta pública.
+- Rodada 1 (DEC-030): cookie de sessão com `Secure` só quando o pedido vem pelo https do Codespaces (`self._https`); cabeçalho `Server: GAEMA-SD` (sem versão do Python). A porta 8765 fica `"visibility": "private"`. CI em `.github/workflows/testes.yml` (pytest, demo, pip-audit; sem segredos): manter verde.
+- Classificar toda verificação como UNITÁRIO, NAVEGADOR AUTOMATIZADO, CODESPACE REAL ou NÃO EXECUTADO.
 

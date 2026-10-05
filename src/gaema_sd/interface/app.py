@@ -165,6 +165,7 @@ class Aplicacao:
             ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; "
                                         "base-uri 'none'; frame-ancestors 'none'"),
             ("X-Content-Type-Options", "nosniff"), ("X-Frame-Options", "DENY"), ("Referrer-Policy", "same-origin"),
+            ("Server", "GAEMA-SD"),   # sem versão do Python: o wsgiref só escreve o dele se a aplicação não definir
             ("Cache-Control", "no-store"), ("Cross-Origin-Opener-Policy", "same-origin"),
         ]
 
@@ -206,6 +207,7 @@ class Aplicacao:
             if funcao not in self._livres and ator is None:
                 return self._ir("/entrar")
             self._caminho = caminho
+            self._https = host in self.hosts_https     # pedido chegou pelo endereço https do Codespaces
             resp = funcao(sessao, ator, form, *achou.groups())
             log.info("%s %s -> %s", metodo, re.sub(_UUID, "{id}", caminho), resp.status)
             return resp
@@ -246,9 +248,11 @@ class Aplicacao:
         for k in [k for k, v in self.sessoes.items() if agora - v.usada_em > SESSAO_TTL]:
             self.sessoes.pop(k)
 
-    @staticmethod
-    def _cookie(sid: str, *, apagar: bool = False) -> str:
-        return f"sid={'' if apagar else sid}; HttpOnly; SameSite=Strict; Path=/" + ("; Max-Age=0" if apagar else "")
+    def _cookie(self, sid: str, *, apagar: bool = False) -> str:
+        """Cookie de sessão. `Secure` só quando o pedido veio por https (Codespaces): no acesso local por http o
+        navegador descartaria um cookie Secure e o login não funcionaria."""
+        return (f"sid={'' if apagar else sid}; HttpOnly; SameSite=Strict; Path=/" + ("; Max-Age=0" if apagar else "")
+                + ("; Secure" if getattr(self, "_https", False) else ""))
 
     def _conferir_origem(self, environ, host: str) -> Resposta | None:
         # Atenção: com Referrer-Policy "no-referrer" o navegador manda "Origin: null" em todo formulário e esta

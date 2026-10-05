@@ -30,7 +30,7 @@ def test_devcontainer_python_312_dependencias_porta_e_inicio():
     assert "pip install -r requirements-dev.txt" in d["postCreateCommand"]
     assert d["postAttachCommand"] == "scripts/interface.sh"
     assert d["forwardPorts"] == [8765] and d["portsAttributes"]["8765"]["onAutoForward"] == "openBrowser"
-    assert "visibility" not in json.dumps(d)          # porta fica privada (padrão do Codespaces): só o dono acessa
+    assert d["portsAttributes"]["8765"]["visibility"] == "private"     # só o dono do Codespace acessa
 
 
 def test_endereco_encaminhado_so_dentro_do_codespaces():
