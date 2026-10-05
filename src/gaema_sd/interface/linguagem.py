@@ -196,3 +196,25 @@ def explicar(texto_tecnico: str) -> Mensagem:
             return Mensagem(houve, resolver, _trocar_codigos(texto_tecnico))
     return Mensagem("Não foi possível concluir a operação.",
                     "Confira os dados e tente de novo. Se continuar, chame a equipe técnica.", _trocar_codigos(texto_tecnico))
+
+
+# ---- onde a interface roda (este computador ou um Codespace do GitHub) ------------------------------------------------
+
+def onde_atende(no_codespace: bool) -> str:
+    if no_codespace:
+        return "Esta interface só atende pelo endereço do seu Codespace (aba PORTAS, porta 8765)."
+    return "Esta interface só atende neste computador."
+
+
+def como_usar_botoes(no_codespace: bool) -> str:
+    if no_codespace:
+        return "Use os botões desta interface, aberta pelo endereço do seu Codespace (aba PORTAS, porta 8765)."
+    return "Use os botões desta interface, aberta em 127.0.0.1."
+
+
+def rodape_local(no_codespace: bool) -> str:
+    if no_codespace:
+        return ("GAEMA SD — protótipo de teste rodando no seu Codespace do GitHub, com porta privada (só você acessa); "
+                "dados sintéticos; nada é enviado a sistemas externos.")
+    return "GAEMA SD — protótipo local, só neste computador (127.0.0.1); nada é enviado para fora."
+

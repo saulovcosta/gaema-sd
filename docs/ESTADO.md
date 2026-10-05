@@ -81,7 +81,8 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | `scripts/demo.sh`; `gerar_contratos.py`; `pip-audit` | UNITÁRIO | OK; sem diferença; sem vulnerabilidade conhecida |
 | 83 telas a 360 e 1280 px, claro e escuro, zoom 200%: axe-core, rolagem lateral, tabela dentro da coluna, "Longitude" inteira | NAVEGADOR AUTOMATIZADO (Chromium) | 0 violações; 12 contrastes "a revisar" (Rodada 2); sem rolagem; nenhuma tabela passa da coluna |
 | GitHub Actions (`.github/workflows/testes.yml`), Python 3.12.14 no GitHub, push e pull request do PR 7 | UNITÁRIO (no GitHub) | verde nas duas execuções: **487 passed**, inclusive o teste pulado aqui, que confirma que a porta não responde fora de 127.0.0.1; demonstração "Resultado: OK"; pip-audit sem vulnerabilidade |
-| Abrir num Codespace real, aba abrindo sozinha, porta privada | CODESPACE REAL | **NÃO EXECUTADO** (este ambiente não cria Codespace) |
+| Abrir num Codespace real | CODESPACE REAL (executado pelo usuário, 05/10/2026) | **a página abre**; o **login falhou** antes da correção da DEC-031 ("Pedido recusado: veio de outra página"); **reteste pendente** |
+| Caso real reproduzido (Host local + origem pública do Codespace): login aceito; outras origens recusadas; fora do Codespace sem mudança | UNITÁRIO (servidor real) | passou; os testes novos falham no código anterior |
 
 ## Nível de pronto real de cada entrega
 
@@ -109,7 +110,7 @@ Nenhuma entrega passou de TESTADO LOCALMENTE: nada está INTEGRÁVEL, VALIDADO E
 ## Testes executados
 
 Fase 6, em 03/10/2026:
-- `scripts/testar.sh` → **486 passed, 1 skipped** na Rodada 1 (481 + 1 skipped com o PR 6; **475 passed** depois da revisão do PR 4 (DEC-028; 463 após o cabeçalho institucional; 443 antes dele: 329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6)).
+- `scripts/testar.sh` → **492 passed, 1 skipped** depois da correção do login no Codespace (DEC-031); 486 passed, 1 skipped na Rodada 1 (481 + 1 skipped com o PR 6; **475 passed** depois da revisão do PR 4 (DEC-028; 463 após o cabeçalho institucional; 443 antes dele: 329 do fim da Fase 5 + testes de modo central, âncora, rodada, interface, uso da interface, relatório A4 e 31 de regressão da revisão da Fase 6)).
 - `scripts/demo.sh` → "Resultado: OK". `scripts/demo_sincronizacao.sh` → "Resultado: OK" (conflito, decisão, aparelho converge).
 - `python3 scripts/gerar_contratos.py` → nenhum arquivo gerado mudou. `pip-audit -r requirements-dev.txt` → "No known vulnerabilities found".
 - `scripts/interface.sh` → a interface abriu em http://127.0.0.1:8765/ (resposta 200 em `/entrar`); login, navegação e coleta em etapas feitos por Chromium automatizado.
