@@ -125,13 +125,10 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | ABRAMPA SOLOS | NÃO EXECUTADO | PDF não está no repositório; nenhum item listado |
 | Decisões do coordenador | NÃO EXECUTADO | registradas em `docs/pendencias.md`, seção 4; nada implementado |
 
-### Ordem de mescla das Rodadas 2 a 5 (PRs empilhados; nenhum mesclado sem ordem do usuário)
-1. Rodada 2 → `main` (saulovcosta/gaema-sd#9)
-2. Rodada 3 → mesclar depois da 2 (saulovcosta/gaema-sd#10)
-3. Rodada 4 → depois da 3 (saulovcosta/gaema-sd#11)
-4. Rodada 5 → depois da 4 (saulovcosta/gaema-sd, PR da Rodada 5)
+### Rodadas 2 a 5 mescladas em `main` (05/10/2026, por ordem do usuário)
+Mescladas em ordem, com commit de mescla: saulovcosta/gaema-sd#9 (Rodada 2), saulovcosta/gaema-sd#10 (Rodada 3), saulovcosta/gaema-sd#11 (Rodada 4) e saulovcosta/gaema-sd#12 (Rodada 5). O CI do GitHub estava verde no head de cada uma.
 
-Pendente em todas: **reteste do login no Codespace real** (DEC-031/032), CODESPACE REAL NÃO EXECUTADO.
+Pendente: **reteste do login no Codespace real** (DEC-031/032), CODESPACE REAL NÃO EXECUTADO.
 
 ## Nível de pronto real de cada entrega
 
