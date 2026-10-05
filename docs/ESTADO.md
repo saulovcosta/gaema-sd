@@ -84,6 +84,18 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | Abrir num Codespace real | CODESPACE REAL (executado pelo usuário, 05/10/2026) | **a página abre**; o **login falhou** antes da correção da DEC-031 ("Pedido recusado: veio de outra página"); **reteste pendente** |
 | Caso real reproduzido (Host local + origem pública do Codespace): login aceito; outras origens recusadas; fora do Codespace sem mudança | UNITÁRIO (servidor real) | passou; os testes novos falham no código anterior |
 
+### Rodada 2 — coleta de campo completa (DEC-033, 05/10/2026)
+| Verificação | Classe | Resultado |
+|---|---|---|
+| Suíte completa, Python 3.11 | UNITÁRIO | 514 passed, 1 skipped (19 testes novos em `tests/test_rodada2.py`) |
+| Suíte completa, Python 3.12 | UNITÁRIO | 514 passed, 1 skipped |
+| `scripts/demo.sh`; `gerar_contratos.py`; `pip-audit` | UNITÁRIO | OK; sem diferença; sem vulnerabilidade conhecida |
+| 91 telas (coleta em 5 etapas, com foto anexada), 360 e 1280 px, claro e escuro, zoom 200% | NAVEGADOR AUTOMATIZADO (Chromium + axe-core) | 0 violações; sem rolagem; nenhuma tabela passa da coluna; botões de opção ≥ 92×44 px; foto anexada nas 4 combinações |
+| 48 nós "a revisar" (textos do SVG do mapa) | UNITÁRIO (conta à mão + teste) | todos acima do mínimo; ver `docs/acessibilidade-contraste.md` |
+| Relatório: "Longitude" em uma linha; mapa dentro da largura | NAVEGADOR AUTOMATIZADO | 1 linha a 360 px e em A4; mapa passava 2 px (corrigido); a 360 px tabelas do relatório rolam (R-40) |
+| GitHub Actions do PR da Rodada 2 | UNITÁRIO (no GitHub) | ver o PR |
+| Codespace real (login, coleta, foto) | NÃO EXECUTADO | reteste do login (DEC-031/032) segue pendente |
+
 ## Nível de pronto real de cada entrega
 
 | Entrega | Nível de pronto real | O que limita |

@@ -37,12 +37,13 @@ from ..auditoria.trilha import sanear_texto
 from ..backup.ancora import interpretar_ancora
 from ..config import parametro
 from ..dominio import entidades as E
-from ..dominio.enums import Estado, FormatoRelatorio, Papel, VariavelCampo
+from ..dominio.enums import CategoriaEvidencia, Estado, FormatoRelatorio, Papel, VariavelCampo
 from ..erros import (AcessoNegado, AuditoriaCorrompida, ConflitoAtualizacao, ConflitoIdempotencia, ErroGaema,
                      RegistroNaoEncontrado, TransicaoInvalida, ValidacaoFalhou)
 from ..exportacao import painel as exportacao_painel
 from ..nucleo import ESTADOS_COM_RELATORIO, ESTADOS_DE_COLETA, Nucleo
 from ..validacao.entidades import validar
+from ..validacao.anexos import validar_anexo
 from ..validacao.unidades import PARA_CM, ler_numero
 from . import linguagem as L
 from .campo import DISPOSITIVO_ID, Campo
@@ -51,6 +52,16 @@ from .mapa import mapa_svg
 log = logging.getLogger("gaema_sd.interface")
 
 LIMITE_CORPO = 64 * 1024
+ROTA_FOTO = "/campo/coleta/foto"     # única rota que aceita multipart/form-data (foto do ponto)
+TOTAL_ETAPAS = 5
+TIPOS_FOTO = ("image/jpeg", "image/png")
+AMBIENTE_VAZIO = {"altura": "", "altura_unidade": "cm", "solo": "", "solo_fonte": "", "geologia": "",
+                  "geologia_fonte": "", "chuva": "nao_observado", "chuva_nota": ""}
+
+
+def limite_foto() -> int:
+    """Corpo máximo do envio de foto: o tamanho máximo da foto mais uma folga para os campos do formulário."""
+    return int(parametro("interface_foto_maximo_bytes")) + LIMITE_CORPO
 MAX_SESSOES = 50
 MAX_ANONIMAS = 20
 SESSAO_TTL = 8 * 3600          # segundos sem uso até a sessão expirar (escolha de projeto, AUTORAL)
@@ -142,6 +153,8 @@ class Aplicacao:
             ("POST", r"/campo/coleta/desfazer", self.coleta_desfazer), ("POST", r"/campo/coleta/salvar", self.coleta_salvar),
             ("POST", r"/campo/coleta/descartar", self.coleta_descartar),
             ("POST", r"/campo/coleta/conferir", self.coleta_conferir),
+            ("POST", r"/campo/coleta/ambiente", self.coleta_ambiente), ("POST", ROTA_FOTO, self.coleta_foto),
+            ("POST", r"/campo/coleta/foto/remover", self.coleta_foto_remover),
         ]
         self._livres = {self.entrar_pagina, self.entrar, self.tema}
 
@@ -188,13 +201,21 @@ class Aplicacao:
                 recusa = self._conferir_origem(environ, host)
                 if recusa:
                     return recusa
-                corpo = self._ler_corpo(environ)
+                corpo = self._ler_corpo(environ, caminho)
                 if isinstance(corpo, Resposta):
                     return corpo
-                pares = urllib.parse.parse_qs(corpo, keep_blank_values=True)
-                if any(len(v) > 1 for v in pares.values()):
-                    return self._erro(400, "Pedido malformado: um campo veio repetido.", "Recarregue a página e envie de novo.")
-                form = {k: v[0] for k, v in pares.items()}
+                self._arquivos = {}
+                if _eh_multipart(environ):
+                    try:
+                        form, self._arquivos = ler_multipart(corpo, environ.get("CONTENT_TYPE") or "")
+                    except ValueError:
+                        return self._erro(400, "Pedido malformado: o envio do arquivo não pôde ser lido.",
+                                          "Escolha o arquivo de novo e toque em enviar.")
+                else:
+                    pares = urllib.parse.parse_qs(corpo.decode("utf-8", errors="replace"), keep_blank_values=True)
+                    if any(len(v) > 1 for v in pares.values()):
+                        return self._erro(400, "Pedido malformado: um campo veio repetido.", "Recarregue a página e envie de novo.")
+                    form = {k: v[0] for k, v in pares.items()}
                 if funcao not in self._livres and not (sessao and sessao.usuario):
                     return self._ir("/entrar")
                 if not sessao or not hmac.compare_digest(form.get("csrf", "").encode("utf-8"), sessao.csrf.encode("utf-8")):
@@ -288,19 +309,25 @@ class Aplicacao:
         aceitas = {f"https://{host}"} if host in self.hosts_https else {f"http://{host}"}
         return aceitas | {f"https://{h}" for h in self.hosts_https}
 
-    def _ler_corpo(self, environ) -> str | Resposta:
+    def _ler_corpo(self, environ, caminho: str) -> bytes | Resposta:
         try:
             n = int(environ.get("CONTENT_LENGTH") or 0)
         except ValueError:
             return self._erro(400, "Pedido malformado.")
         if n < 0:
             return self._erro(400, "Pedido malformado.")
-        if n > LIMITE_CORPO:
+        multipart = _eh_multipart(environ)
+        if multipart and caminho != ROTA_FOTO:
+            return self._erro(400, "Tipo de conteúdo não aceito.")
+        if n > (limite_foto() if multipart else LIMITE_CORPO):
+            if multipart:
+                return self._erro(413, "Foto grande demais.",
+                                  f"Envie uma foto de até {int(parametro('interface_foto_maximo_bytes')) // (1024 * 1024)} MB.")
             return self._erro(413, "Pedido grande demais.", "Envie menos texto de uma vez.")
         tipo = (environ.get("CONTENT_TYPE") or "").split(";")[0].strip().lower()
-        if n and tipo != "application/x-www-form-urlencoded":
+        if n and not multipart and tipo != "application/x-www-form-urlencoded":
             return self._erro(400, "Tipo de conteúdo não aceito.")
-        return environ["wsgi.input"].read(n).decode("utf-8", errors="replace")
+        return environ["wsgi.input"].read(n)
 
     # ------------------------------------------------------------ respostas
 
@@ -636,7 +663,7 @@ class Aplicacao:
         st = self.campo.status()
         r = self.campo.rascunho()
         if r and pode(ator, Acao.COLETAR_CAMPO):
-            proxima = f"Continue a coleta do ponto {r.get('codigo') or 'em andamento'} (etapa {r['etapa']} de 4)."
+            proxima = f"Continue a coleta do ponto {r.get('codigo') or 'em andamento'} (etapa {r['etapa']} de {TOTAL_ETAPAS})."
         elif st["problemas"]:
             proxima = "Veja os registros com problema na fila e avise o coordenador, se for conflito."
         elif st["pendentes"]:
@@ -736,7 +763,12 @@ class Aplicacao:
             gps_ruim = float(str(r.get("precisao", "")).replace(",", ".")) > limite
         except ValueError:
             gps_ruim = False
+        r["ambiente"] = {**AMBIENTE_VAZIO, **r.get("ambiente", {})}       # o modelo usa StrictUndefined
+        r.setdefault("fotos", [])
         return self._pagina("coleta", sessao, ator, etapa=r["etapa"], r=r, missoes=missoes, missao_rotulo=rotulo,
+                            total_etapas=TOTAL_ETAPAS, categorias_foto=[(c.value, L.CATEGORIA_FOTO[c]) for c in CategoriaEvidencia],
+                            max_fotos=int(parametro("interface_fotos_por_ponto")),
+                            max_foto_mb=int(parametro("interface_foto_maximo_bytes")) // (1024 * 1024),
                             variaveis=[(v.value, ROTULO_VARIAVEL[v]) for v in VARIAVEIS_PRESENCA],
                             unidades_p=list(PARA_CM), unidades_r=UNIDADES_R, limite_gps=f"{limite:g}", gps_ruim=gps_ruim,
                             rotulo_unidade=lambda u: dict(UNIDADES_R).get(u, u))
@@ -814,10 +846,127 @@ class Aplicacao:
         if bloqueio:
             return bloqueio
         r = self._rascunho_ou_novo()
-        if r.get("max_etapa", 1) < 3:
+        if r.get("max_etapa", 1) < 4:
             self._aviso_erro(sessao, "complete as etapas anteriores antes da conferência.")
             return self._ir("/campo/coleta")
+        return self._ir_etapa(r, 5)
+
+    # ---- etapa 3: ambiente do ponto e fotos
+    def coleta_ambiente(self, sessao, ator, form):
+        bloqueio = self._guarda_coleta(sessao, ator)
+        if bloqueio:
+            return bloqueio
+        r = self._rascunho_ou_novo()
+        if r.get("max_etapa", 1) < 3:
+            self._aviso_erro(sessao, "complete as etapas anteriores antes do ambiente do ponto.")
+            return self._ir("/campo/coleta")
+        amb = {k: form.get(k, "").strip()[:120] for k in ("altura", "altura_unidade", "solo", "solo_fonte", "geologia",
+                                                           "geologia_fonte", "chuva_nota")}
+        amb["chuva"] = form.get("chuva") if form.get("chuva") in ("sim", "nao", "nao_observado") else "nao_observado"
+        r["ambiente"] = amb
+        self.campo.salvar_rascunho(r)                     # nada se perde, mesmo com erro
+        erros = []
+        if amb["altura"]:
+            try:
+                if ler_numero(amb["altura"]) < 0:
+                    erros.append("a altura do pasto não pode ser negativa")
+            except ValueError:
+                erros.append("a altura do pasto precisa ser um número (use vírgula ou ponto)")
+            if amb["altura_unidade"] not in PARA_CM:
+                erros.append("escolha a unidade da altura da lista")
+        if erros:
+            sessao.avisos.append(("erro", L.Mensagem("A etapa do ambiente precisa de ajuste.",
+                                                     "Corrija o que está indicado e toque em “Salvar e seguir”.", "; ".join(erros))))
+            return self._ir("/campo/coleta")
         return self._ir_etapa(r, 4)
+
+    def _pasta_fotos(self) -> Path:
+        return self.campo.pasta / "fotos-rascunho"
+
+    def coleta_foto(self, sessao, ator, form):
+        bloqueio = self._guarda_coleta(sessao, ator)
+        if bloqueio:
+            return bloqueio
+        r = self._rascunho_ou_novo()
+        r.setdefault("fotos", [])
+        if r.get("max_etapa", 1) < 3:
+            self._aviso_erro(sessao, "complete as etapas anteriores antes de anexar fotos.")
+            return self._ir("/campo/coleta")
+        arq = getattr(self, "_arquivos", {}).get("foto")
+        if not arq or not arq[2]:
+            self._aviso_erro(sessao, "escolha uma foto antes de enviar.")
+            return self._ir("/campo/coleta")
+        if len(r["fotos"]) >= int(parametro("interface_fotos_por_ponto")):
+            self._aviso_erro(sessao, f"este ponto já tem {len(r['fotos'])} foto(s), o máximo nesta interface de teste.")
+            return self._ir("/campo/coleta")
+        try:
+            categoria = CategoriaEvidencia(form.get("categoria", ""))
+        except ValueError:
+            self._aviso_erro(sessao, "escolha o tipo da foto na lista.")
+            return self._ir("/campo/coleta")
+        nome, tipo, conteudo = arq
+        nome = nome.replace("\\", "/").rsplit("/", 1)[-1][:120]
+        resultado = validar_anexo(conteudo, nome, tipo)
+        if resultado.aceito and resultado.tipo_detectado not in TIPOS_FOTO:
+            self._aviso_erro(sessao, "aqui só entra foto (JPEG ou PNG); documento em PDF não é foto do ponto.")
+            return self._ir("/campo/coleta")
+        if not resultado.aceito:
+            sessao.avisos.append(("erro", L.Mensagem("A foto não foi aceita.", "Envie uma foto JPEG ou PNG do próprio aparelho.",
+                                                     "; ".join(p.mensagem for p in resultado.problemas)[:300])))
+            return self._ir("/campo/coleta")
+        if any(f["sha256"] == resultado.sha256 for f in r["fotos"]):
+            self._aviso_erro(sessao, "esta mesma foto já foi anexada a este ponto.")
+            return self._ir("/campo/coleta")
+        pasta = self._pasta_fotos()
+        pasta.mkdir(parents=True, exist_ok=True)
+        arquivo = resultado.sha256 + "." + nome.rsplit(".", 1)[-1].lower()
+        tmp = pasta / (arquivo + ".parcial")
+        tmp.write_bytes(conteudo)
+        os.replace(tmp, pasta / arquivo)
+        r["fotos"].append({"arquivo": arquivo, "nome": nome, "tipo": resultado.tipo_detectado, "tamanho": resultado.tamanho_bytes,
+                           "sha256": resultado.sha256, "categoria": categoria.value})
+        self.campo.salvar_rascunho(r)
+        sessao.avisos.append(("ok", f"Foto {len(r['fotos'])} anexada ao rascunho ({L.CATEGORIA_FOTO[categoria]})."))
+        return self._ir("/campo/coleta")
+
+    def coleta_foto_remover(self, sessao, ator, form):
+        bloqueio = self._guarda_coleta(sessao, ator)
+        if bloqueio:
+            return bloqueio
+        r = self._rascunho_ou_novo()
+        sha = form.get("sha256", "")
+        resto = [f for f in r.get("fotos", []) if f["sha256"] != sha]
+        if len(resto) != len(r.get("fotos", [])):
+            for f in r["fotos"]:
+                if f["sha256"] == sha:
+                    (self._pasta_fotos() / f["arquivo"]).unlink(missing_ok=True)
+            r["fotos"] = resto
+            self.campo.salvar_rascunho(r)
+            sessao.avisos.append(("ok", "Foto retirada do rascunho."))
+        return self._ir("/campo/coleta")
+
+    @staticmethod
+    def _observacoes_ambiente(amb: dict, ponto_id: str, quando, ator, chave: str, base: dict) -> list:
+        """Altura do pasto (número + unidade), tipo de solo e formação geológica (texto, como no mapa consultado) e chuva
+        nas últimas 48 h (sim/não). Sem faixa, limiar ou lista inventada; campo em branco não gera registro."""
+        obs = []
+
+        def nova(variavel, valor, unidade, nota="", sufixo=""):
+            obs.append(E.Observacao(ponto_id=ponto_id, variavel=variavel, valor_bruto=valor, unidade_bruta=unidade,
+                                    observado_em=quando, observador_id=ator.id, nota=nota,
+                                    chave_idempotencia=f"{chave}:obs:{sufixo or variavel.value}", **base))
+        if amb.get("altura"):
+            nova(VariavelCampo.ALTURA_PASTO, amb["altura"], amb.get("altura_unidade", "cm"))
+        if amb.get("solo"):
+            nova(VariavelCampo.TIPO_SOLO, amb["solo"], "texto",
+                 f"fonte informada: {amb['solo_fonte']}" if amb.get("solo_fonte") else "")
+        if amb.get("geologia"):
+            nova(VariavelCampo.FORMACAO_GEOLOGICA, amb["geologia"], "texto",
+                 f"fonte informada: {amb['geologia_fonte']}" if amb.get("geologia_fonte") else "")
+        if amb.get("chuva") in ("sim", "nao"):
+            nova(VariavelCampo.PRECIPITACAO_RECENTE, "sim" if amb["chuva"] == "sim" else "não", "presenca",
+                 amb.get("chuva_nota", ""))
+        return obs
 
     def coleta_desfazer(self, sessao, ator, form):
         bloqueio = self._guarda_coleta(sessao, ator)
@@ -834,6 +983,8 @@ class Aplicacao:
         bloqueio = self._guarda_coleta(sessao, ator)
         if bloqueio:
             return bloqueio
+        for f in (self.campo.rascunho() or {}).get("fotos", []):
+            (self._pasta_fotos() / f["arquivo"]).unlink(missing_ok=True)
         self.campo.descartar_rascunho()
         sessao.avisos.append(("ok", "Rascunho descartado. Nada foi salvo no aparelho."))
         return self._ir("/campo")
@@ -843,7 +994,7 @@ class Aplicacao:
         if bloqueio:
             return bloqueio
         r = self.campo.rascunho()
-        if not r or r.get("max_etapa", 1) < 4:
+        if not r or r.get("max_etapa", 1) < TOTAL_ETAPAS:
             self._aviso_erro(sessao, "a coleta ainda não passou por todas as etapas.")
             return self._ir("/campo/coleta")
         try:
@@ -864,12 +1015,20 @@ class Aplicacao:
                 registros.append(E.Observacao(ponto_id=ponto.id, variavel=VariavelCampo.HIPOTESE_ALTERNATIVA,
                                               valor_bruto=r["hipotese"], unidade_bruta="texto", observado_em=quando,
                                               observador_id=ator.id, chave_idempotencia=f"{chave}:obs:hip", **base))
+            registros += self._observacoes_ambiente(r.get("ambiente", {}), ponto.id, quando, ator, chave, base)
+            fotos = []
+            for f in r.get("fotos", []):
+                conteudo = (self._pasta_fotos() / f["arquivo"]).read_bytes()
+                fotos.append((E.Evidencia(campanha_id=r["missao"], ponto_id=ponto.id, categoria=CategoriaEvidencia(f["categoria"]),
+                                          nome_arquivo_original=f["nome"], tipo_mime=f["tipo"], tamanho_bytes=f["tamanho"],
+                                          sha256=f["sha256"], registrado_por="",
+                                          chave_idempotencia=f"{chave}:foto:{f['sha256'][:16]}", **base), conteudo))
             for i, m in enumerate(r["medicoes"], 1):
                 registros.append(E.MedicaoPenetracao(ponto_id=ponto.id, repeticao=i, profundidade_bruta=m["profundidade"],
                                                      profundidade_unidade=m["unidade_p"], resistencia_bruta=m["resistencia"],
                                                      resistencia_unidade=m["unidade_r"], contexto_umidade=m["umidade"],
                                                      medido_em=quando, chave_idempotencia=f"{chave}:pen:{i}", **base))
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError, OSError) as e:
             self._aviso_erro(sessao, f"dados do rascunho incompletos ou inválidos ({type(e).__name__}); volte às etapas.")
             return self._ir("/campo/coleta")
         problemas = [f"{p.campo}: {p.mensagem}" for reg in registros
@@ -881,14 +1040,19 @@ class Aplicacao:
         try:
             for reg in registros:
                 self.campo.dispositivo.coletar(reg)
+            for ev, conteudo in fotos:
+                self.campo.dispositivo.coletar(ev, conteudo)
         except ErroGaema as e:
             self._aviso_erro(sessao, str(e))
             return self._ir("/campo/coleta")
         self.campo.descartar_rascunho()
+        for f in r.get("fotos", []):
+            (self._pasta_fotos() / f["arquivo"]).unlink(missing_ok=True)
         st = self.campo.status()
         n_obs = sum(isinstance(x, E.Observacao) for x in registros)
         n_med = sum(isinstance(x, E.MedicaoPenetracao) for x in registros)
-        sessao.avisos.append(("ok", f"Ponto {ponto.codigo} salvo no aparelho: {n_obs} observação(ões) e {n_med} medição(ões). "
+        sessao.avisos.append(("ok", f"Ponto {ponto.codigo} salvo no aparelho: {n_obs} observação(ões), {n_med} medição(ões) "
+                                    f"e {len(fotos)} foto(s). "
                                     f"Na fila: {st['pendentes']}. Sincronize quando houver rede."))
         return self._ir("/campo")
 
@@ -910,6 +1074,34 @@ class _ServidorComThreads(ThreadingMixIn, WSGIServer):
     daemon_threads = True
 
 
+def _eh_multipart(environ) -> bool:
+    return (environ.get("CONTENT_TYPE") or "").split(";")[0].strip().lower() == "multipart/form-data"
+
+
+def ler_multipart(corpo: bytes, content_type: str) -> tuple[dict[str, str], dict[str, tuple[str, str, bytes]]]:
+    """Formulário multipart (biblioteca padrão, sem dependência nova). Devolve (campos de texto, arquivos), em que cada
+    arquivo é (nome original, tipo declarado, bytes). Campo repetido, parte sem nome ou corpo que não é multipart: erro."""
+    from email.parser import BytesParser
+    from email.policy import HTTP
+    cabecalho = f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("latin-1", errors="strict")
+    msg = BytesParser(policy=HTTP).parsebytes(cabecalho + corpo)
+    if not msg.is_multipart():
+        raise ValueError("não é multipart")
+    campos: dict[str, str] = {}
+    arquivos: dict[str, tuple[str, str, bytes]] = {}
+    for parte in msg.iter_parts():
+        nome = parte.get_param("name", header="content-disposition")
+        if not nome or nome in campos or nome in arquivos:
+            raise ValueError("parte sem nome ou repetida")
+        dados = parte.get_payload(decode=True) or b""
+        arquivo = parte.get_filename()
+        if arquivo is not None:
+            arquivos[nome] = (arquivo, parte.get_content_type(), dados)
+        else:
+            campos[nome] = dados.decode("utf-8", errors="replace")
+    return campos, arquivos
+
+
 class _Serializado:
     """Lê o corpo (com limite) FORA da trava e só então atende, um pedido por vez: o núcleo e o SQLite nunca são
     usados por duas threads ao mesmo tempo."""
@@ -923,7 +1115,8 @@ class _Serializado:
             n = int(environ.get("CONTENT_LENGTH") or 0)
         except ValueError:
             n = -1
-        if 0 < n <= LIMITE_CORPO:
+        limite = limite_foto() if environ.get("PATH_INFO") == ROTA_FOTO and _eh_multipart(environ) else LIMITE_CORPO
+        if 0 < n <= limite:
             environ["wsgi.input"] = io.BytesIO(environ["wsgi.input"].read(n))
         elif n != 0:
             environ["wsgi.input"] = io.BytesIO(b"")   # a aplicação recusa pelo CONTENT_LENGTH (400 ou 413)

@@ -122,6 +122,11 @@
   .opcoes { display:flex; flex-wrap:wrap; gap:var(--e2) var(--e4); }
   .opcoes label { display:inline-flex; align-items:center; gap:var(--e2); font-weight:400; min-height:44px; margin:0; }
   .opcoes input { width:1.25rem; height:1.25rem; }
+  /* sim / não / não observado como botões: o rótulo inteiro é o alvo de toque (>= 44 x 44 px); marcado = borda grossa + negrito */
+  .opcoes label.opcao { min-width:44px; padding:var(--e2) var(--e3); border:1.5px solid var(--borda-campo); border-radius:var(--raio);
+                        background:var(--superficie); cursor:pointer; }
+  .opcoes label.opcao:has(input:checked) { border-width:3px; border-color:var(--marca); font-weight:700; }
+  .opcoes label.opcao:focus-within { outline:3px solid var(--foco); outline-offset:2px; }
   button, .botao { display:inline-flex; align-items:center; justify-content:center; gap:var(--e2); min-height:44px; min-width:44px;
            padding:var(--e2) var(--e4); font:inherit; font-weight:600; border-radius:var(--raio); cursor:pointer;
            background:var(--marca); color:var(--marca-texto); border:2px solid var(--marca); text-decoration:none; }

@@ -11,12 +11,21 @@
     "observacao": "25 MiB por arquivo. Limite técnico provisório."
   },
   "anexo_tipos_permitidos": {
-    "valor": ["image/jpeg", "image/png", "application/pdf"],
+    "valor": [
+      "image/jpeg",
+      "image/png",
+      "application/pdf"
+    ],
     "proveniencia": "AUTORAL",
     "observacao": "Tipo conferido pela assinatura do arquivo, não pela extensão."
   },
   "recorte_aproximado_tocantins": {
-    "valor": {"lon_min": -50.8, "lon_max": -45.6, "lat_min": -13.5, "lat_max": -5.1},
+    "valor": {
+      "lon_min": -50.8,
+      "lon_max": -45.6,
+      "lat_min": -13.5,
+      "lat_max": -5.1
+    },
     "proveniencia": "AUTORAL",
     "observacao": "Retângulo envolvente aproximado, usado só para ALERTA de localização improvável. Não é limite oficial."
   },
@@ -44,5 +53,15 @@
     "valor": 2.0,
     "proveniencia": "AUTORAL",
     "observacao": "Espera antes da segunda tentativa; dobra a cada nova tentativa. Valor operacional provisório, sem fundamento externo."
+  },
+  "interface_foto_maximo_bytes": {
+    "valor": 10485760,
+    "proveniencia": "AUTORAL",
+    "observacao": "10 MiB por foto enviada pela interface de teste (limite técnico provisório; o núcleo aceita até anexo_tamanho_maximo_bytes)."
+  },
+  "interface_fotos_por_ponto": {
+    "valor": 5,
+    "proveniencia": "AUTORAL",
+    "observacao": "Máximo de fotos por ponto na interface de teste. Não é protocolo de campo: quantas fotos tirar segue PENDENTE (LA-04)."
   }
 }

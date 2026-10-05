@@ -72,4 +72,5 @@ class Campo:
     def rascunho_novo() -> dict:
         return {"etapa": 1, "max_etapa": 1, "missao": "", "codigo": "", "latitude": "", "longitude": "", "precisao": "",
                 "capturado_em": datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M"), "presenca": {}, "hipotese": "",
-                "medicoes": [], "ultima_unidade_p": "cm", "ultima_unidade_r": "kpa", "ultima_umidade": ""}
+                "medicoes": [], "ultima_unidade_p": "cm", "ultima_unidade_r": "kpa", "ultima_umidade": "",
+                "ambiente": {}, "fotos": []}

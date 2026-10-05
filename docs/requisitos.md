@@ -142,3 +142,13 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 | RQ-98 | Sob o cabeçalho, a faixa de protótipo e a linha "Protótipo em desenvolvimento no âmbito do CAOMA. Sem endosso institucional formal."; só com número E data do ato válidos em `config/endosso.json` a linha vira "Endossado pelo CAOMA, ato nº X, de DD/MM/AAAA"; sem isso, "endosso" só aparece na negativa | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE (configuração vazia, parcial, inválida, futura e válida) |
 | RQ-99 | Tabela de pontos com coordenadas e cabeçalho "Longitude" em uma linha (alerta de GPS em coluna própria) e mapa do relatório maior e centralizado | INSTITUCIONAL (pedido do usuário) | TESTADO LOCALMENTE |
 | RQ-100 | Interface: nome por extenso ("Linha de Atuação em Solos Degradados"), faixa curta em caixa alta, crachá "Papel em teste" e entrada em um toque por papel | INSTITUCIONAL (artefatos do usuário) | TESTADO LOCALMENTE |
+
+## Rodada 2 — coleta de campo completa
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-101 | Coleta com etapa "Ambiente do ponto": altura do pasto (número + unidade), tipo de solo e formação geológica em texto livre com a fonte consultada, chuva nas últimas 48 h (sim/não/não sei); sem lista, faixa ou limite inventado; em branco não gera registro | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE |
+| RQ-102 | Fotos por ponto (JPEG/PNG) enviadas pela interface, conferidas pelo conteúdo, guardadas pelo hash e gravadas na central como `Evidencia` vinculada ao ponto por `Nucleo.registrar_evidencia`, após sincronizar; multipart só nessa rota, com token e limite próprio (AUTORAL) | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE |
+| RQ-103 | Opções sim / não / não observado como caixas clicáveis de pelo menos 44 px, com foco visível e estado marcado por forma e texto | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE (UNITÁRIO + NAVEGADOR AUTOMATIZADO) |
+| RQ-104 | Lista de pontos identificada como alternativa ao mapa, com link de salto antes do mapa | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE |
+| RQ-105 | Contrastes que o axe-core deixa "a revisar" conferidos à mão e recalculados por teste (`docs/acessibilidade-contraste.md`) | INSTITUCIONAL (pedido do usuário, Rodada 2) | TESTADO LOCALMENTE |

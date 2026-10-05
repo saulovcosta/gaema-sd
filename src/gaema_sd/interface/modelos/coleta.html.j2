@@ -1,17 +1,18 @@
 {% extends "base.html.j2" %}
-{% block titulo %}Coleta — etapa {{ etapa }} de 4{% endblock %}
+{% block titulo %}Coleta — etapa {{ etapa }} de {{ total_etapas }}{% endblock %}
 {% block conteudo %}
 <h1>Coletar ponto</h1>
 <div class="proxima"><p class="rotulo">O que fazer agora</p><p class="frase">{{ {1: "Informe a vistoria, o código e as coordenadas do ponto e toque em “Salvar e seguir”.",
   2: "Marque o que foi visto em cada item e toque em “Salvar e seguir”.",
-  3: "Anote cada repetição da penetrometria (ou nenhuma) e siga para a conferência.",
-  4: "Confira tudo e toque em “Salvar no aparelho”."}[etapa] }}</p></div>
+  3: "Anote o ambiente do ponto e anexe as fotos (tudo é opcional) e toque em “Salvar e seguir”.",
+  4: "Anote cada repetição da penetrometria (ou nenhuma) e siga para a conferência.",
+  5: "Confira tudo e toque em “Salvar no aparelho”."}[etapa] }}</p></div>
 <nav aria-label="Etapas da coleta"><ol class="etapas">
-  {% for n, nome in [(1, "Ponto"), (2, "O que foi visto"), (3, "Penetrometria"), (4, "Conferir e salvar")] %}
+  {% for n, nome in [(1, "Ponto"), (2, "O que foi visto"), (3, "Ambiente e fotos"), (4, "Penetrometria"), (5, "Conferir e salvar")] %}
   <li{% if n == etapa %} aria-current="step"{% elif n < etapa %} class="feita"{% endif %}>{{ nome }}{% if n < etapa %}<span class="so-leitor"> (feita)</span>{% endif %}</li>
   {% endfor %}
 </ol></nav>
-<p class="discreto" aria-live="polite">Etapa {{ etapa }} de 4. O rascunho é salvo neste aparelho a cada etapa; se a tela fechar, você continua de onde parou.</p>
+<p class="discreto" aria-live="polite">Etapa {{ etapa }} de {{ total_etapas }}. O rascunho é salvo neste aparelho a cada etapa; se a tela fechar, você continua de onde parou.</p>
 
 {% if etapa == 1 %}
 <form method="post" action="/campo/coleta/ponto" class="cartao">
@@ -47,7 +48,7 @@
   {% for v, rotulo in variaveis %}
   <fieldset><legend>{{ rotulo }}</legend><div class="opcoes">
     {% for valor, texto in [("sim", "Sim, presente"), ("nao", "Não, ausente"), ("nao_observado", "Não observado")] %}
-    <label for="{{ v }}-{{ valor }}"><input type="radio" id="{{ v }}-{{ valor }}" name="{{ v }}" value="{{ valor }}"{% if r.presenca.get(v, "nao_observado") == valor %} checked{% endif %}> {{ texto }}</label>
+    <label for="{{ v }}-{{ valor }}" class="opcao"><input type="radio" id="{{ v }}-{{ valor }}" name="{{ v }}" value="{{ valor }}"{% if r.presenca.get(v, "nao_observado") == valor %} checked{% endif %}><span>{{ texto }}</span></label>
     {% endfor %}
   </div></fieldset>
   {% endfor %}
@@ -58,8 +59,56 @@
 </form>
 
 {% elif etapa == 3 %}
+<form method="post" action="/campo/coleta/ambiente" class="cartao">
+  <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+  <h2>3. Ambiente do ponto {{ r.codigo }}</h2>
+  <p class="discreto">Tudo aqui é opcional: deixe em branco o que não foi anotado. O sistema não classifica nada com estes dados (não há faixa nem limiar validado).</p>
+  <label for="altura">Altura do pasto</label>
+  <span class="ajuda-campo" id="aj-alt">Como foi medida no ponto. Não há faixas: anote o número.</span>
+  <div class="com-unidade"><input type="text" id="altura" name="altura" value="{{ r.ambiente.altura or "" }}" inputmode="decimal" aria-describedby="aj-alt">
+    <label for="altura_unidade" class="so-leitor">Unidade da altura</label>
+    <select id="altura_unidade" name="altura_unidade">{% for u in unidades_p %}<option value="{{ u }}"{% if u == (r.ambiente.altura_unidade or "cm") %} selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+  <label for="solo">Tipo de solo</label>
+  <span class="ajuda-campo" id="aj-solo">Escreva como consta no mapa de solos consultado.</span>
+  <input type="text" id="solo" name="solo" value="{{ r.ambiente.solo or "" }}" aria-describedby="aj-solo" maxlength="120">
+  <label for="solo_fonte">Mapa ou fonte do tipo de solo</label>
+  <input type="text" id="solo_fonte" name="solo_fonte" value="{{ r.ambiente.solo_fonte or "" }}" maxlength="120">
+  <label for="geologia">Formação geológica</label>
+  <span class="ajuda-campo" id="aj-geo">Escreva como consta no mapa geológico consultado.</span>
+  <input type="text" id="geologia" name="geologia" value="{{ r.ambiente.geologia or "" }}" aria-describedby="aj-geo" maxlength="120">
+  <label for="geologia_fonte">Mapa ou fonte da formação geológica</label>
+  <input type="text" id="geologia_fonte" name="geologia_fonte" value="{{ r.ambiente.geologia_fonte or "" }}" maxlength="120">
+  <fieldset><legend>Choveu nas últimas 48 horas?</legend><div class="opcoes">
+    {% for valor, texto in [("sim", "Sim"), ("nao", "Não"), ("nao_observado", "Não sei")] %}
+    <label for="chuva-{{ valor }}" class="opcao"><input type="radio" id="chuva-{{ valor }}" name="chuva" value="{{ valor }}"{% if (r.ambiente.chuva or "nao_observado") == valor %} checked{% endif %}><span>{{ texto }}</span></label>
+    {% endfor %}
+  </div></fieldset>
+  <label for="chuva_nota">Observação sobre a chuva (opcional)</label>
+  <input type="text" id="chuva_nota" name="chuva_nota" value="{{ r.ambiente.chuva_nota or "" }}" maxlength="120">
+  <div class="acoes"><button type="submit">Salvar e seguir</button><a class="botao secundario" href="/campo/coleta?etapa=2">Voltar à etapa 2</a></div>
+</form>
+<section class="cartao" aria-labelledby="t-fotos">
+  <h2 id="t-fotos">Fotos do ponto {{ r.codigo }}</h2>
+  <p class="discreto">JPEG ou PNG, até {{ max_foto_mb }} MB cada, no máximo {{ max_fotos }} por ponto. A foto original é guardada com o código de conferência (hash); data e local da foto são declarações do aparelho.</p>
+  {% if r.fotos %}<ul class="lista">{% for f in r.fotos %}
+    <li>{{ loop.index }}. {{ L.CATEGORIA_FOTO_POR_CODIGO.get(f.categoria, f.categoria) }} — {{ f.nome }} ({{ (f.tamanho / 1024)|round(0)|int }} KB)
+      <form method="post" action="/campo/coleta/foto/remover" class="em-linha"><input type="hidden" name="csrf" value="{{ sessao.csrf }}"><input type="hidden" name="sha256" value="{{ f.sha256 }}"><button type="submit" class="perigo">Retirar foto {{ loop.index }}</button></form></li>
+  {% endfor %}</ul>{% else %}<p>Nenhuma foto anexada.</p>{% endif %}
+  {% if r.fotos|length < max_fotos %}
+  <form method="post" action="/campo/coleta/foto" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ sessao.csrf }}">
+    <label for="categoria">Tipo da foto</label>
+    <select id="categoria" name="categoria">{% for v, rot in categorias_foto %}<option value="{{ v }}">{{ rot }}</option>{% endfor %}</select>
+    <label for="foto">Arquivo da foto</label>
+    <input type="file" id="foto" name="foto" accept="image/jpeg,image/png" required>
+    <div class="acoes"><button type="submit" class="secundario">Anexar foto</button></div>
+  </form>
+  {% else %}<p class="aviso info"><span>Limite de fotos deste ponto atingido. Retire uma para anexar outra.</span></p>{% endif %}
+</section>
+
+{% elif etapa == 4 %}
 <section class="cartao" aria-labelledby="t-pen">
-  <h2 id="t-pen">3. Penetrometria no ponto {{ r.codigo }}</h2>
+  <h2 id="t-pen">4. Penetrometria no ponto {{ r.codigo }}</h2>
   <p class="discreto">Registre cada repetição como foi lida. O protocolo de quantas repetições e a que profundidade ainda está pendente: o sistema não impõe número nem profundidade.</p>
   {% if r.medicoes %}
   <table class="tabela">
@@ -87,12 +136,12 @@
     <div class="acoes"><button type="submit" class="secundario">Anotar repetição</button></div>
   </form>
   <form method="post" action="/campo/coleta/conferir"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
-    <div class="acoes"><button type="submit">Seguir para a conferência</button><a class="botao secundario" href="/campo/coleta?etapa=2">Voltar à etapa 2</a></div></form>
+    <div class="acoes"><button type="submit">Seguir para a conferência</button><a class="botao secundario" href="/campo/coleta?etapa=3">Voltar à etapa 3</a></div></form>
 </section>
 
 {% else %}
 <section class="cartao" aria-labelledby="t-conf">
-  <h2 id="t-conf">4. Conferir antes de salvar</h2>
+  <h2 id="t-conf">5. Conferir antes de salvar</h2>
   <p>Confira tudo. Depois de salvo, corrigir gera nova versão (nada é apagado).</p>
   <dl class="dados">
     <dt>Vistoria</dt><dd>{{ missao_rotulo }}</dd>
@@ -101,10 +150,15 @@
     <dt>Data e hora</dt><dd>{{ r.capturado_em.replace("T", " ") }}</dd>
     {% for v, rotulo in variaveis %}<dt>{{ rotulo }}</dt><dd>{{ {"sim": "Sim, presente", "nao": "Não, ausente"}.get(r.presenca.get(v), "Não observado") }}</dd>{% endfor %}
     <dt>Hipótese alternativa</dt><dd>{{ r.hipotese or "—" }}</dd>
+    <dt>Altura do pasto</dt><dd>{{ (r.ambiente.altura ~ " " ~ r.ambiente.altura_unidade) if r.ambiente.altura else "—" }}</dd>
+    <dt>Tipo de solo</dt><dd>{{ r.ambiente.solo or "—" }}{% if r.ambiente.solo_fonte %} (fonte: {{ r.ambiente.solo_fonte }}){% endif %}</dd>
+    <dt>Formação geológica</dt><dd>{{ r.ambiente.geologia or "—" }}{% if r.ambiente.geologia_fonte %} (fonte: {{ r.ambiente.geologia_fonte }}){% endif %}</dd>
+    <dt>Chuva nas últimas 48 h</dt><dd>{{ {"sim": "Sim", "nao": "Não"}.get(r.ambiente.chuva, "Não sei / não anotado") }}{% if r.ambiente.chuva_nota %} ({{ r.ambiente.chuva_nota }}){% endif %}</dd>
+    <dt>Fotos</dt><dd>{% if r.fotos %}{% for f in r.fotos %}{{ loop.index }}) {{ L.CATEGORIA_FOTO_POR_CODIGO.get(f.categoria, f.categoria) }}: {{ f.nome }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}nenhuma{% endif %}</dd>
     <dt>Penetrometria</dt><dd>{% if r.medicoes %}{% for m in r.medicoes %}{{ loop.index }}) {{ m.profundidade }} {{ m.unidade_p }}: {{ m.resistencia }} {{ rotulo_unidade(m.unidade_r) }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}nenhuma repetição{% endif %}</dd>
   </dl>
   <form method="post" action="/campo/coleta/salvar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
-    <div class="acoes"><button type="submit">Salvar no aparelho</button><a class="botao secundario" href="/campo/coleta?etapa=3">Voltar e corrigir</a></div></form>
+    <div class="acoes"><button type="submit">Salvar no aparelho</button><a class="botao secundario" href="/campo/coleta?etapa=4">Voltar e corrigir</a></div></form>
   <form method="post" action="/campo/coleta/descartar"><input type="hidden" name="csrf" value="{{ sessao.csrf }}">
     <div class="acoes"><button type="submit" class="perigo">Descartar este rascunho</button></div></form>
 </section>
