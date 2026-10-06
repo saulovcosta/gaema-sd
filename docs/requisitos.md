@@ -178,3 +178,10 @@ Fonte F13. Regra geral: os critérios e instrumentos da Portaria orientam **deci
 |---|---|---|---|
 | RQ-115 | Auditoria comparativa por função pública do SIPADE (fonte, o que o GAEMA SD tem, teste, lacuna, prioridade), com divergência 3 × 4 mantida e sem cópia | INSTITUCIONAL (pedido do usuário, Rodada 5) | ESPECIFICADO (documento conferido por teste) |
 | RQ-116 | Decisões do coordenador registradas como não implementadas em `docs/pendencias.md` | INSTITUCIONAL (pedido do usuário, Rodada 5) | ESPECIFICADO (documento conferido por teste) |
+
+## Rodada 6
+
+| ID | Requisito | Proveniência | Nível |
+|---|---|---|---|
+| RQ-117 | A demonstração da interface traz áreas candidatas sintéticas, com origem e incerteza declaradas, sem alerta nem demanda automáticos | INSTITUCIONAL (pedido do usuário, Rodada 6) | TESTADO LOCALMENTE |
+| RQ-118 | Itens do menu sem quebra de linha interna a 360 e 1280 px | INSTITUCIONAL (pedido do usuário, Rodada 6) | TESTADO LOCALMENTE (UNITÁRIO + NAVEGADOR AUTOMATIZADO) |

@@ -50,6 +50,8 @@ async function medir(page, largura) {
       scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth,
       largos: largos.slice(0, 8), pequenos: pequenos.slice(0, 12), n_pequenos: pequenos.length, cortados: cortados.slice(0, 8),
       h1: document.querySelectorAll("h1").length, salto_de_titulo: salto,
+      menu_quebrado: [...document.querySelectorAll("nav.abas li > a, nav.abas li > span")]
+        .filter((e) => e.getBoundingClientRect().height > 50).map((e) => e.innerText.trim()),
       proxima_acao: !!document.querySelector(".proxima"),
       faixa: document.body.innerText.includes("PROTÓTIPO DE TESTE, SEM VALIDADE CIENTÍFICA"),
     };
