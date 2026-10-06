@@ -15,7 +15,20 @@ from ..persistencia.sqlite import Repositorio
 from . import USUARIOS_DE_TESTE, servir
 from .app import hosts_codespaces
 from .campo import Campo
-from .cenario import preparar_vistoria_em_campo
+from .cenario import preparar_areas_candidatas, preparar_vistoria_em_campo
+
+
+def criar_cenario_demo(pasta: Path) -> None:
+    """Cenário SINTÉTICO de demonstração numa pasta vazia: demonstração completa, 2ª demanda já em campo (aparelho
+    simulado) e 3 áreas candidatas importadas, com origem e incerteza declaradas."""
+    demo.executar(pasta, verbose=False)
+    repo_demo = Repositorio(str(pasta / "gaema-demo.db"))
+    try:
+        n = Nucleo(repo_demo, pasta)
+        preparar_vistoria_em_campo(n)
+        preparar_areas_candidatas(n)
+    finally:
+        repo_demo.fechar()
 
 
 def main() -> int:
@@ -30,10 +43,7 @@ def main() -> int:
         if any(pasta.iterdir()):
             print(f"A pasta {pasta} não está vazia; use uma pasta nova para o cenário de demonstração.")
             return 2
-        demo.executar(pasta, verbose=False)
-        repo_demo = Repositorio(str(pasta / "gaema-demo.db"))
-        preparar_vistoria_em_campo(Nucleo(repo_demo, pasta))   # 2ª demanda, já em campo, para o aparelho simulado
-        repo_demo.fechar()
+        criar_cenario_demo(pasta)
     banco = pasta / "gaema-demo.db"
     if not banco.is_file():
         print(f"Não há banco em {pasta}. Use --demo numa pasta nova para criar o cenário sintético.")

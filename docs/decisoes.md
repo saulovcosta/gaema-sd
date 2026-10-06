@@ -380,3 +380,10 @@ Formato: cada decisão traz hipótese, motivo, impacto, risco e teste. Uma decis
   - leitor de tela;
   - teste com pessoas do CAOMA.
 - **ABRAMPA SOLOS:** o PDF não está no repositório. Nenhum item foi listado, e um teste impede lista sem o documento.
+
+## DEC-037 — Rodada 6: Codespace real, demonstração com áreas candidatas, GPS e menu (06/10/2026)
+- **Codespace real (teste do usuário, 05/10/2026):** a página abre e o login do Coordenador funciona. Coleta, foto e relatório no Codespace seguem NÃO EXECUTADOS. A origem tolerante da DEC-032 continua ativa (R-39), porque o valor real de `Origin` não foi registrado; voltar à regra estrita fica para quando ele for conhecido.
+- **Demonstração (`--demo`):** passa a criar 3 áreas candidatas SINTÉTICAS (`cenario.preparar_areas_candidatas`), com origem e incerteza declaradas. Elas entram pelo caminho auditado `Nucleo.importar_candidatas` e não viram alerta nem demanda. A preparação foi extraída para `interface/__main__.py::criar_cenario_demo`.
+- **GPS:** o limite de 10 m (`gps_precisao_maxima_m`) foi listado em `docs/pendencias.md`, seção 5, como valor provisório sem fonte, a validar.
+- **Menu:** os itens não quebram mais por dentro (`white-space:nowrap`); a lista continua quebrando entre itens. Medido a 360 e 1280 px.
+- **Achado na captura a 360 px:** a situação inicial dizia "Área indicada por satélite", mas não existe triagem por satélite (DEC-035). Passou a "Área indicada (sem conclusão)", com teste.

@@ -31,7 +31,7 @@ class Situacao:
 
 
 SITUACAO: dict[Estado, Situacao] = {
-    S.CANDIDATA: Situacao("Área indicada por satélite (sem conclusão)", "neutro", "Analise o sinal e, se fizer sentido, registre um alerta."),
+    S.CANDIDATA: Situacao("Área indicada (sem conclusão)", "neutro", "Confira a área indicada e, se fizer sentido, registre um alerta."),
     S.ALERTA: Situacao("Alerta aguardando triagem", "neutro", "Faça a triagem do alerta."),
     S.EM_TRIAGEM: Situacao("Em triagem", "andamento", "Decida se abre a averiguação e registre o motivo."),
     S.DEMANDA_ABERTA: Situacao("Averiguação aberta", "andamento", "Designe a equipe técnica."),

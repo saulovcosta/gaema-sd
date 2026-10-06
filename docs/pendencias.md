@@ -63,3 +63,12 @@ Nada nesta seção foi implementado. Cada item espera decisão da coordenação 
 | Teste com leitor de tela | NÃO EXECUTADO (só verificações automáticas) | `docs/acessibilidade-contraste.md` |
 | Teste com pessoas usuárias do CAOMA (escritório e campo) | NÃO EXECUTADO | `docs/guia-capacitacao.md` |
 | Itens da ABRAMPA SOLOS | Não listados: o PDF não está no repositório | `docs/auditoria-comparativa.md`, seção 3 |
+
+## 5. Valores provisórios sem fonte (a validar)
+
+Valores em uso só para o protótipo funcionar. Não têm fonte científica nem institucional e precisam ser validados antes de qualquer uso real.
+
+| Parâmetro | Valor hoje | Proveniência | Efeito | A validar com |
+|---|---|---|---|---|
+| `gps_precisao_maxima_m` (precisão máxima do GPS) | 10 m | AUTORAL, **sem fonte** | Só gera alerta de GPS ruim no ponto, na tela e no relatório; não bloqueia o registro | Equipe técnica, junto com o protocolo de campo (LA-04) |
+

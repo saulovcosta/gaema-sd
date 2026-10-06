@@ -1,10 +1,12 @@
-"""Cenário SINTÉTICO extra para a interface: uma segunda demanda já em campo, para o aparelho simulado ter missão.
+"""Cenário SINTÉTICO extra para a interface: uma segunda demanda já em campo, para o aparelho simulado ter missão, e
+áreas candidatas importadas (origem e incerteza declaradas) para a tela "Áreas candidatas" não ficar vazia.
 
 Usa só o caminho normal do núcleo (registrar, transitar). Nada aqui corresponde a área, pessoa ou procedimento real.
 """
 
 from __future__ import annotations
 
+import json
 from datetime import date
 
 from ..demo import ATORES
@@ -49,3 +51,25 @@ def preparar_vistoria_em_campo(n: Nucleo) -> str:
     n.transitar(a["coord"], d, Estado.PLANEJADA)
     n.transitar(a["tecnico"], d, Estado.EM_CAMPO)
     return d
+
+
+# Três áreas inventadas, longe das demandas da demonstração. Origem e incerteza são texto declarado, não cálculo.
+AREAS_CANDIDATAS_DEMO = [
+    ((-48.300, -10.600), "2026-09-10"),
+    ((-48.280, -10.620), "2026-09-12"),
+    ((-48.260, -10.640), "2026-09-15"),
+]
+
+
+def preparar_areas_candidatas(n: Nucleo) -> int:
+    """Importa 3 áreas candidatas SINTÉTICAS pelo caminho auditado (Nucleo.importar_candidatas). Nada vira alerta nem
+    demanda: isso continua sendo decisão de uma pessoa, na tela. Devolve quantas foram registradas."""
+    feicoes = []
+    for (lon, lat), data in AREAS_CANDIDATAS_DEMO:
+        anel = [[lon, lat], [lon + 0.008, lat], [lon + 0.008, lat + 0.008], [lon, lat + 0.008], [lon, lat]]
+        feicoes.append({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [anel]},
+                        "properties": {"data_deteccao": data, "fonte": "Camada sintética de demonstração",
+                                       "origem_declarada": "camada sintética de demonstração (dado inventado)",
+                                       "incerteza": "limite aproximado, traçado sobre esquema sintético"}})
+    texto = json.dumps({"type": "FeatureCollection", "features": feicoes}, ensure_ascii=False)
+    return len(n.importar_candidatas(ATORES["analista"], texto, "geojson")["gravados"])

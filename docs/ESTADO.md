@@ -81,7 +81,7 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | `scripts/demo.sh`; `gerar_contratos.py`; `pip-audit` | UNITÁRIO | OK; sem diferença; sem vulnerabilidade conhecida |
 | 83 telas a 360 e 1280 px, claro e escuro, zoom 200%: axe-core, rolagem lateral, tabela dentro da coluna, "Longitude" inteira | NAVEGADOR AUTOMATIZADO (Chromium) | 0 violações; 12 contrastes "a revisar" (Rodada 2); sem rolagem; nenhuma tabela passa da coluna |
 | GitHub Actions (`.github/workflows/testes.yml`), Python 3.12.14 no GitHub, push e pull request do PR 7 | UNITÁRIO (no GitHub) | verde nas duas execuções: **487 passed**, inclusive o teste pulado aqui, que confirma que a porta não responde fora de 127.0.0.1; demonstração "Resultado: OK"; pip-audit sem vulnerabilidade |
-| Abrir num Codespace real | CODESPACE REAL (executado pelo usuário, 05/10/2026) | **a página abre**; o **login falhou** antes da correção da DEC-031 ("Pedido recusado: veio de outra página"); **reteste pendente** |
+| Abrir num Codespace real | CODESPACE REAL (executado pelo usuário, 05/10/2026) | **a página abre**; o **login falhou** antes da correção da DEC-031 ("Pedido recusado: veio de outra página"); reteste feito em 05/10/2026: login funciona (Rodada 6) |
 | Caso real reproduzido (Host local + origem pública do Codespace): login aceito; outras origens recusadas; fora do Codespace sem mudança | UNITÁRIO (servidor real) | passou; os testes novos falham no código anterior |
 
 ### Rodada 2 — coleta de campo completa (DEC-033, 05/10/2026)
@@ -94,7 +94,7 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 | 48 nós "a revisar" (textos do SVG do mapa) | UNITÁRIO (conta à mão + teste) | todos acima do mínimo; ver `docs/acessibilidade-contraste.md` |
 | Relatório: "Longitude" em uma linha; mapa dentro da largura | NAVEGADOR AUTOMATIZADO | 1 linha a 360 px e em A4; mapa passava 2 px (corrigido); a 360 px tabelas do relatório rolam (R-40) |
 | GitHub Actions do PR da Rodada 2 | UNITÁRIO (no GitHub) | ver o PR |
-| Codespace real (login, coleta, foto) | NÃO EXECUTADO | reteste do login (DEC-031/032) segue pendente |
+| Codespace real (login, coleta, foto) | NÃO EXECUTADO na Rodada 2 | login confirmado depois, em 05/10/2026 (Rodada 6); coleta e foto seguem NÃO EXECUTADAS |
 
 ### Rodada 3 — telas do escritório (DEC-034, 05/10/2026)
 | Verificação | Classe | Resultado |
@@ -128,7 +128,15 @@ Atualizado em: 05/10/2026, Rodada 1 (abrir no navegador pelo Codespaces), depois
 ### Rodadas 2 a 5 mescladas em `main` (05/10/2026, por ordem do usuário)
 Mescladas em ordem, com commit de mescla: saulovcosta/gaema-sd#9 (Rodada 2), saulovcosta/gaema-sd#10 (Rodada 3), saulovcosta/gaema-sd#11 (Rodada 4) e saulovcosta/gaema-sd#12 (Rodada 5). O CI do GitHub estava verde no head de cada uma.
 
-Pendente: **reteste do login no Codespace real** (DEC-031/032), CODESPACE REAL NÃO EXECUTADO.
+Login no Codespace real: confirmado pelo usuário em 05/10/2026 (Rodada 6).
+
+### Rodada 6 (DEC-037, 06/10/2026)
+| Verificação | Classe | Resultado |
+|---|---|---|
+| Página abre e login do Coordenador funciona no Codespace (feito pelo usuário em 05/10/2026) | CODESPACE REAL | executado: funciona |
+| Coleta, foto e relatório no Codespace | NÃO EXECUTADO | |
+| Suíte completa, Python 3.11 e 3.12 | UNITÁRIO | 593 passed, 1 skipped (4 testes novos em `tests/test_rodada6.py`) |
+| 120 telas a 360 e 1280 px; menu sem quebra interna; capturas de Início, Coleta e Relatório a 360 px | NAVEGADOR AUTOMATIZADO | 0 violações; nenhum item do menu com mais de uma linha; o relatório a 360 px rola de lado nas tabelas (R-40, documento A4) |
 
 ## Nível de pronto real de cada entrega
 
