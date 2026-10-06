@@ -597,7 +597,7 @@ class Aplicacao:
         demandas, sem_acesso = [], False
         try:
             demandas = [self.nucleo.resumo_demanda(ator, d.id) | {"titulo": d.titulo, "municipio": d.municipio,
-                                                                  "equipe_id": d.equipe_id or "", "criado": d.criado_em.date()}
+                                                                  "equipe_id": d.equipe_id or "", "criado": d.criado_em.astimezone().date()}
                         for d in self.nucleo.listar(ator, E.Demanda)]
         except AcessoNegado:
             sem_acesso = True
